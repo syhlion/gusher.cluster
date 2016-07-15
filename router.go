@@ -18,8 +18,8 @@ type User struct {
 
 type WsManager struct {
 	users map[*User]bool
-	sync.RWMutex
-	pool redis.Pool
+	*sync.RWMutex
+	pool *redis.Pool
 }
 
 func (u *User) AfterReadStream(b []byte) (err error) {
