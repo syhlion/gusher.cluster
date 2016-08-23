@@ -14,9 +14,11 @@ import (
 
 	"github.com/codegangsta/cli"
 	"github.com/garyburd/redigo/redis"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"github.com/syhlion/redisocket"
+	"github.com/syhlion/redisocket.v2"
+	"github.com/syhlion/requestwork.v2"
 )
 
 var env *string
@@ -29,6 +31,8 @@ var (
 		Usage:  "Start gusher.cluster Server",
 		Action: start,
 	}
+	rpool   *redis.Pool
+	worker  *requestwork.Worker
 	rsocket redisocket.App
 )
 
@@ -52,10 +56,10 @@ func start(c *cli.Context) {
 	)
 
 	/*redis start*/
-	pool := redis.NewPool(func() (redis.Conn, error) {
+	rpool := redis.NewPool(func() (redis.Conn, error) {
 		return redis.Dial("tcp", redis_err)
 	}, 10)
-	rsocket = redisocket.NewApp(pool)
+	rsocket = redisocket.NewApp(rpool)
 
 	/*api start*/
 	apiListener, err := net.Listen("tcp", public_api_addr)
@@ -63,13 +67,17 @@ func start(c *cli.Context) {
 		os.Exit(1)
 	}
 	r := mux.NewRouter()
+
+	//TODO
+	worker = requestwork.New(50)
 	wm := &WsManager{
 		users:   make(map[*User]bool),
 		RWMutex: &sync.RWMutex{},
-		pool:    pool,
+		pool:    rpool,
 	}
-	r.HandleFunc("/ws", wm.Connect)
-	http.Handle("/", r)
+
+	r.HandleFunc("/ws/{app_key}", HttpUse(wm.Connect, AuthMiddleware))
+	http.Handle("/", handlers.LoggingHandler(os.Stdout, r))
 	go http.Serve(apiListener, nil)
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
