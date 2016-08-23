@@ -27,15 +27,10 @@ type WsManager struct {
 
 func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 
-	s, err := rsocket.NewClient(w, r)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
 	id, channel, err := func() (id string, channel map[string]bool, err error) {
 		channel = make(map[string]bool)
-		if s, ok := r.Context().Value("auth").(Auth); ok {
+		auth := r.Context().Value("auth")
+		if s, ok := auth.(Auth); ok {
 			for _, c := range s.Channel {
 				channel[c] = false
 			}
@@ -46,6 +41,14 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}()
 	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), 401)
+		return
+	}
+	s, err := rsocket.NewClient(w, r)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), 401)
 		return
 	}
 
@@ -53,13 +56,14 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	wm.Lock()
 	wm.users[u] = true
 	wm.Unlock()
-	u.Listen(func(data []byte) (err error) {
+	err = u.Listen(func(data []byte) (err error) {
 		h := func(data []byte) (d []byte, err error) {
 			return data, nil
 		}
 		var packet Packet
 		err = json.Unmarshal(data, &packet)
 		if err != nil {
+			log.Println(err)
 			return
 		}
 
@@ -85,6 +89,9 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 
 		return
 	})
+	if err != nil {
+		log.Println(err)
+	}
 	wm.Disconnect(u)
 
 }

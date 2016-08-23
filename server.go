@@ -56,14 +56,20 @@ func start(c *cli.Context) {
 	)
 
 	/*redis start*/
-	rpool := redis.NewPool(func() (redis.Conn, error) {
+	rpool = redis.NewPool(func() (redis.Conn, error) {
 		return redis.Dial("tcp", redis_err)
 	}, 10)
 	rsocket = redisocket.NewApp(rpool)
+	rsocketErr := make(chan error, 1)
+	go func() {
+		err := rsocket.Listen()
+		rsocketErr <- err
+	}()
 
 	/*api start*/
 	apiListener, err := net.Listen("tcp", public_api_addr)
 	if err != nil {
+		log.Println(err)
 		os.Exit(1)
 	}
 	r := mux.NewRouter()
@@ -78,12 +84,23 @@ func start(c *cli.Context) {
 
 	r.HandleFunc("/ws/{app_key}", HttpUse(wm.Connect, AuthMiddleware))
 	http.Handle("/", handlers.LoggingHandler(os.Stdout, r))
-	go http.Serve(apiListener, nil)
+	serverError := make(chan error, 1)
+	go func() {
+		err := http.Serve(apiListener, nil)
+		serverError <- err
+	}()
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
 	log.Println(name, "Start ! ")
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
-	log.Println("Receive signal:", <-shutdow_observer)
+	select {
+	case <-shutdow_observer:
+		log.Println("Receive signal")
+	case err := <-serverError:
+		log.Println(err)
+	case err := <-rsocketErr:
+		log.Println(err)
+	}
 
 }
 

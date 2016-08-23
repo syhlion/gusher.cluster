@@ -23,13 +23,15 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		app_key := params["app_key"]
-		if app_key != "" {
+		if app_key == "" {
 			log.Println("app_key nil")
+			http.Error(w, "auth nil", 401)
 			return
 		}
 
 		auth := r.FormValue("auth")
-		if auth != "" {
+		if auth == "" {
+			log.Println("auth nil")
 			http.Error(w, "auth nil", 401)
 			return
 		}
@@ -40,17 +42,20 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 		reply, err := redis.Int(c.Do("HEXISTS", app_key, "url"))
 		if err != nil || reply == 0 {
+			log.Println("auth process error")
 			http.Error(w, "auth process error", 401)
 			return
 		}
 
 		url, err := redis.String(c.Do("HGET", app_key, "url"))
 		if err != nil {
+			log.Println("auth process error")
 			http.Error(w, "auth process error", 401)
 			return
 		}
 		req, err := http.NewRequest("POST", url, nil)
 		if err != nil {
+			log.Println("auth process error")
 			http.Error(w, "auth process error", 401)
 			return
 		}
@@ -61,10 +66,11 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			}
 			defer resp.Body.Close()
 
-			a := &Auth{}
+			a := Auth{}
 			//TODO read json and parse
-			err = json.NewDecoder(resp.Body).Decode(a)
+			err = json.NewDecoder(resp.Body).Decode(&a)
 			if err != nil {
+				log.Println(err)
 				return
 			}
 			ctx := r.Context()
@@ -72,8 +78,11 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			r = r.WithContext(ctx)
 			return
 		})
+		if err != nil {
+			http.Error(w, "auth error", 401)
+			return
+		}
 		h.ServeHTTP(w, r)
 
-		return
 	}
 }
