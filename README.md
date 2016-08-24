@@ -50,7 +50,7 @@ Unsubscribe Command
     "user_id":"BlackJack....",
     "channel":["channel1","channel2"...]
 }
-``
+```
 
 
 
