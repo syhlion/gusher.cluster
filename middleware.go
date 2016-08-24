@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"time"
 
@@ -24,14 +23,14 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 		params := mux.Vars(r)
 		app_key := params["app_key"]
 		if app_key == "" {
-			log.Println("app_key nil")
+			logger.RequestWarn(r, "app_key nil")
 			http.Error(w, "auth nil", 401)
 			return
 		}
 
 		auth := r.FormValue("auth")
 		if auth == "" {
-			log.Println("auth nil")
+			logger.RequestWarn(r, "auth nil")
 			http.Error(w, "auth nil", 401)
 			return
 		}
@@ -42,35 +41,35 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 		reply, err := redis.Int(c.Do("HEXISTS", app_key, "url"))
 		if err != nil || reply == 0 {
-			log.Println("auth process error")
+			logger.RequestWarn(r, err)
 			http.Error(w, "auth process error", 401)
 			return
 		}
 
 		url, err := redis.String(c.Do("HGET", app_key, "url"))
 		if err != nil {
-			log.Println("auth process error")
+			logger.RequestWarn(r, err)
 			http.Error(w, "auth process error", 401)
 			return
 		}
 		req, err := http.NewRequest("POST", url, nil)
 		if err != nil {
-			log.Println("auth process error")
+			logger.RequestWarn(r, err)
 			http.Error(w, "auth process error", 401)
 			return
 		}
 		ctx, _ := context.WithTimeout(r.Context(), 30*time.Second)
 		err = worker.Execute(ctx, req, func(resp *http.Response, err error) (e error) {
 			if err != nil {
+				logger.RequestWarn(r, err)
 				return
 			}
 			defer resp.Body.Close()
 
 			a := Auth{}
-			//TODO read json and parse
 			err = json.NewDecoder(resp.Body).Decode(&a)
 			if err != nil {
-				log.Println(err)
+				logger.RequestWarn(r, err)
 				return
 			}
 			ctx := r.Context()
@@ -79,6 +78,7 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			return
 		})
 		if err != nil {
+			logger.RequestWarn(r, err)
 			http.Error(w, "auth error", 401)
 			return
 		}

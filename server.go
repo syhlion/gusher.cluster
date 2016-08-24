@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/Sirupsen/logrus"
 
 	"github.com/codegangsta/cli"
 	"github.com/garyburd/redigo/redis"
@@ -34,20 +35,27 @@ var (
 	rpool   *redis.Pool
 	worker  *requestwork.Worker
 	rsocket redisocket.App
+	logger  *Logger
 )
+
+func init() {
+	logger = &Logger{logrus.New()}
+	logger.Level = logrus.DebugLevel
+	//logger.Formatter = &logrus.TextFormatter{}
+}
 
 func start(c *cli.Context) {
 
 	pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		log.Println(err)
+		logger.Warn(err)
 		os.Exit(1)
 	}
 	envfile := flag.String("env", pwd+"/.env", ".env file path")
 	flag.Parse()
 	err = godotenv.Load(*envfile)
 	if err != nil {
-		log.Println(err)
+		logger.Warn(err)
 		os.Exit(1)
 	}
 	var (
@@ -69,12 +77,11 @@ func start(c *cli.Context) {
 	/*api start*/
 	apiListener, err := net.Listen("tcp", public_api_addr)
 	if err != nil {
-		log.Println(err)
+		logger.Println(err)
 		os.Exit(1)
 	}
 	r := mux.NewRouter()
 
-	//TODO
 	worker = requestwork.New(50)
 	wm := &WsManager{
 		users:   make(map[*User]bool),
@@ -83,7 +90,7 @@ func start(c *cli.Context) {
 	}
 
 	r.HandleFunc("/ws/{app_key}", HttpUse(wm.Connect, AuthMiddleware))
-	http.Handle("/", handlers.LoggingHandler(os.Stdout, r))
+	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
 	serverError := make(chan error, 1)
 	go func() {
 		err := http.Serve(apiListener, nil)
@@ -91,15 +98,15 @@ func start(c *cli.Context) {
 	}()
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	log.Println(name, "Start ! ")
+	logger.Info(name, "Start ! ")
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:
-		log.Println("Receive signal")
+		logger.Info("Receive signal")
 	case err := <-serverError:
-		log.Println(err)
+		logger.Warn(err)
 	case err := <-rsocketErr:
-		log.Println(err)
+		logger.Warn(err)
 	}
 
 }

@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"sync"
 
@@ -41,13 +40,13 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}()
 	if err != nil {
-		log.Println(err)
+		logger.RequestWarn(r, err)
 		http.Error(w, err.Error(), 401)
 		return
 	}
 	s, err := rsocket.NewClient(w, r)
 	if err != nil {
-		log.Println(err)
+		logger.RequestWarn(r, err)
 		http.Error(w, err.Error(), 401)
 		return
 	}
@@ -63,7 +62,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		var packet Packet
 		err = json.Unmarshal(data, &packet)
 		if err != nil {
-			log.Println(err)
+			logger.RequestWarn(r, err)
 			return
 		}
 
@@ -90,7 +89,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	})
 	if err != nil {
-		log.Println(err)
+		logger.RequestWarn(r, err)
 	}
 	wm.Disconnect(u)
 
