@@ -12,16 +12,12 @@ Install from source
 
 `go get -u github.com/syhlion/gusher.cluster`
 
-And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/.env.expmple)
+And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/.env.example)
 
 ```
 $ ./gusher.cluster start 
 
 ```
-
-## Command
-
-
 
 ## Client Connect
 
@@ -43,9 +39,18 @@ Unsubscribe Command
 ```
 {
  "action":"UnSub",
- "content":["Channel1","Channel2"]
+ "content":["Channel1","Channel2"...]
 }
 ```
+
+## WebHook Protocol
+
+```
+{
+    "user_id":"BlackJack....",
+    "channel":["channel1","channel2"...]
+}
+``
 
 
 
