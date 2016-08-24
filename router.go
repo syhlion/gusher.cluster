@@ -39,6 +39,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}()
+	app_key := r.Context().Value("app_key").(string)
 	if err != nil {
 		logger.RequestWarn(r, err)
 		http.Error(w, err.Error(), 401)
@@ -62,7 +63,6 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		var packet Packet
 		err = json.Unmarshal(data, &packet)
 		if err != nil {
-			logger.RequestWarn(r, err)
 			return
 		}
 
@@ -70,7 +70,8 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		if packet.Action == Subscribe {
 			for _, c := range packet.Content {
 				if b, ok := u.channel[c]; ok && !b {
-					u.Subscribe(c, h)
+					logger.RequestDebug(r, app_key+"-"+c)
+					u.Subscribe(app_key+"-"+c, h)
 					u.channel[c] = true
 				}
 			}
@@ -80,7 +81,8 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		if packet.Action == UnSubscribe {
 			for _, c := range packet.Content {
 				if b, ok := u.channel[c]; ok && b {
-					u.Unsubscribe(c)
+					logger.RequestDebug(r, app_key+"-"+c)
+					u.Unsubscribe(app_key + "-" + c)
 					u.channel[c] = false
 				}
 			}
@@ -89,7 +91,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	})
 	if err != nil {
-		logger.RequestWarn(r, err)
+		logger.RequestInfo(r, err)
 	}
 	wm.Disconnect(u)
 

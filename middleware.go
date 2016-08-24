@@ -74,6 +74,7 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			}
 			ctx := r.Context()
 			ctx = context.WithValue(ctx, "auth", a)
+			ctx = context.WithValue(ctx, "app_key", app_key)
 			r = r.WithContext(ctx)
 			return
 		})
