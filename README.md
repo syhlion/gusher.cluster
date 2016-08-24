@@ -30,7 +30,7 @@ Subscribe Command
 ```
 {
  "action":"Sub",
- "content":["Channel1","Channel2"]
+ "content":["Channel1","Channel2"...]
 }
 ```
 
