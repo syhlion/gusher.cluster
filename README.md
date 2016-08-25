@@ -14,10 +14,7 @@ Install from source
 
 And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/.env.example)
 
-```
-$ ./gusher.cluster start 
-
-```
+`./gusher.cluster start`
 
 ## Client Connect
 
