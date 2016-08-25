@@ -89,7 +89,7 @@ func start(c *cli.Context) {
 		pool:    rpool,
 	}
 
-	r.HandleFunc("/ws/{app_key}", HttpUse(wm.Connect, AuthMiddleware))
+	r.HandleFunc("/ws/{app_key}", HttpUse(wm.Connect, AuthMiddleware)).Methods("GET")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
 	serverError := make(chan error, 1)
 	go func() {

@@ -41,13 +41,13 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	}()
 	app_key := r.Context().Value("app_key").(string)
 	if err != nil {
-		logger.RequestWarn(r, err)
+		logger.GetRequestEntry(r).Warn(err)
 		http.Error(w, err.Error(), 401)
 		return
 	}
 	s, err := rsocket.NewClient(w, r)
 	if err != nil {
-		logger.RequestWarn(r, err)
+		logger.GetRequestEntry(r).Warn(r, err)
 		http.Error(w, err.Error(), 401)
 		return
 	}
@@ -56,6 +56,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	wm.Lock()
 	wm.users[u] = true
 	wm.Unlock()
+	logger.GetRequestEntry(r).Debug("User Listen Start")
 	err = u.Listen(func(data []byte) (err error) {
 		h := func(data []byte) (d []byte, err error) {
 			return data, nil
@@ -70,7 +71,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		if packet.Action == Subscribe {
 			for _, c := range packet.Content {
 				if b, ok := u.channel[c]; ok && !b {
-					logger.RequestDebug(r, app_key+"-"+c)
+					logger.GetRequestEntry(r).Debug(app_key + "@" + c)
 					u.Subscribe(app_key+"-"+c, h)
 					u.channel[c] = true
 				}
@@ -81,7 +82,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		if packet.Action == UnSubscribe {
 			for _, c := range packet.Content {
 				if b, ok := u.channel[c]; ok && b {
-					logger.RequestDebug(r, app_key+"-"+c)
+					logger.GetRequestEntry(r).Debug(app_key + "@" + c)
 					u.Unsubscribe(app_key + "-" + c)
 					u.channel[c] = false
 				}
@@ -91,7 +92,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	})
 	if err != nil {
-		logger.RequestInfo(r, err)
+		logger.GetRequestEntry(r).Info(err)
 	}
 	wm.Disconnect(u)
 
