@@ -23,9 +23,9 @@ $ ./gusher.cluster start
 
 `GET /ws/{app_key}?auth={auth}`
 
-## Client Protocol
+## Client Request Protocol
 
-Subscribe Command
+Subscribe Command:
 
 ```
 {
@@ -34,7 +34,7 @@ Subscribe Command
 }
 ```
 
-Unsubscribe Command
+Unsubscribe Command:
 
 ```
 {
@@ -43,7 +43,7 @@ Unsubscribe Command
 }
 ```
 
-## WebHook Protocol
+## WebHook Response Protocol
 
 ```
 {
@@ -51,6 +51,16 @@ Unsubscribe Command
     "channel":["channel1","channel2"...]
 }
 ```
+
+## Admin Protocol
+
+Use Redis Hashes to stored
+
+WebHook Storage 
+
+Key|field|value
+---|---|---
+{app_key}|url|http://hook-domain/
 
 
 
