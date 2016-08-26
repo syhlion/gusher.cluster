@@ -39,9 +39,7 @@ gusher.unsubscribe_error|unsubscribe error
 {
     channel:"{channel1}",
     event:"{custom event}",
-    data:{
-        data:{},
-    }
+    data:{}
 }
 ```
 
