@@ -26,7 +26,6 @@ And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/maste
 
 Events|Discription
 ---|---
-gusher.push|general message
 gusher.subscribe|subscribe event
 gusher.unsubscribe|unsubscribe event
 gusher.subscribe_succeeded|subscribe sucess
@@ -38,10 +37,9 @@ gusher.unsubscribe_error|unsubscribe error
 
 ```
 {
-    channel:"channel1",
-    event:"gusher.push",
+    channel:"{channel1}",
+    event:"{custom event}",
     data:{
-        event:"start",
         data:{},
     }
 }
@@ -52,26 +50,32 @@ gusher.unsubscribe_error|unsubscribe error
 command:
 ```
 {
-    id:"{customId}",
     event:"gusher.subscribe",
-    Channel:"channel1"
+    data:{
+        id:"{customId}"
+        channel:"{channel}",
+    }
 }
 ```
 
 reply scuess:
 ```
 {
-    id:"{customId}",
     event:"gusher.subscribe_succeeded",
-    Channel:"channel2"
+    data:{
+        id:"{customId}"
+        channel:"{channel}",
+    }
 }
 ```
 reply error:
 ```
 {
-    id:"{customId}",
     event:"gusher.subscribe_error",
-    Channel:"channel2"
+    data:{
+        id:"{customId}"
+        channel:"{channel}",
+    }
 }
 ```
 
@@ -80,27 +84,33 @@ reply error:
 command:
 ```
 {
-    id:"{customId}",
-    event:"gusher:unsubscribe",
-    Channel:"channel1"
+    event:"gusher.unsubscribe",
+    data:{
+        id:"{customId}"
+        channel:"{channel}",
+    }
 }
 ```
 
 reply scuess:
 ```
 {
-    id:"{customId}",
     event:"gusher.unsubscribe_succeeded",
-    Channel:"channel2"
+    data:{
+        id:"{customId}"
+        channel:"{channel}",
+    }
 }
 ```
 
 reply error:
 ```
 {
-    id:"{customId}",
     event:"gusher.unsubscribe_error",
-    Channel:"channel2"
+    data:{
+        id:"{customId}"
+        channel:"{channel}",
+    }
 }
 ```
 
