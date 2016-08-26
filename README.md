@@ -24,20 +24,35 @@ And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/maste
 
 Subscribe Command:
 
+command:
 ```
-{
- "action":"Sub",
- "content":["Channel1","Channel2"...]
-}
+gusher:subscribe:{id}:{channel:'xxx'}
+```
+
+reply scuess:
+```
+gushe_internal:subscribe_scuessed:{id}:{channel:'xxx'}
+```
+reply error:
+```
+gusher_internal:subscribe_error:{id}:{channel:'xxx'}
 ```
 
 Unsubscribe Command:
 
+command:
 ```
-{
- "action":"UnSub",
- "content":["Channel1","Channel2"...]
-}
+gusher:unsubscribe:{id}:{channel:'xxx'}
+```
+
+reply scuess:
+```
+gusher_internal:unsubscribe_scuessed:{id}:{channel:'xxx'}
+```
+
+reply error:
+```
+gusher_internal:unsubscribe_error:{id}:{channel:'xxx'}
 ```
 
 ## WebHook Response Protocol
@@ -59,6 +74,12 @@ Key|field|value
 ---|---|---
 {app_key}|url|http://hook-domain/
 
+
+Push schema
+
+```
+gusher:backpush:{ channel: 'xxx', data: {}}
+```
 
 
 
