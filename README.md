@@ -22,37 +22,86 @@ And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/maste
 
 ## Client Request Protocol
 
-Subscribe Command:
+event list:
+
+Events|Discription
+---|---
+gusher.push|general message
+gusher.subscribe|subscribe event
+gusher.unsubscribe|unsubscribe event
+gusher.subscribe_succeeded|subscribe sucess
+gusher.subscribe_error|subscribe error
+gusher.unsubscribe_succeeded|unsubscribe sucess
+gusher.unsubscribe_error|unsubscribe error
+
+#### Common Receive Message:
+
+```
+{
+    channel:"channel1",
+    event:"gusher.push",
+    data:{
+        event:"start",
+        data:{},
+    }
+}
+```
+
+#### Subscribe Command:
 
 command:
 ```
-gusher:subscribe:{id}:{channel:'xxx'}
+{
+    id:"{customId}",
+    event:"gusher.subscribe",
+    Channel:"channel1"
+}
 ```
 
 reply scuess:
 ```
-gushe_internal:subscribe_scuessed:{id}:{channel:'xxx'}
+{
+    id:"{customId}",
+    event:"gusher.subscribe_succeeded",
+    Channel:"channel2"
+}
 ```
 reply error:
 ```
-gusher_internal:subscribe_error:{id}:{channel:'xxx'}
+{
+    id:"{customId}",
+    event:"gusher.subscribe_error",
+    Channel:"channel2"
+}
 ```
 
-Unsubscribe Command:
+#### Unsubscribe Command:
 
 command:
 ```
-gusher:unsubscribe:{id}:{channel:'xxx'}
+{
+    id:"{customId}",
+    event:"gusher:unsubscribe",
+    Channel:"channel1"
+}
 ```
 
 reply scuess:
 ```
-gusher_internal:unsubscribe_scuessed:{id}:{channel:'xxx'}
+{
+    id:"{customId}",
+    event:"gusher.unsubscribe_succeeded",
+    Channel:"channel2"
+}
 ```
 
 reply error:
 ```
-gusher_internal:unsubscribe_error:{id}:{channel:'xxx'}
+{
+    id:"{customId}",
+    event:"gusher.unsubscribe_error",
+    Channel:"channel2"
+}
 ```
 
 ## WebHook Response Protocol
