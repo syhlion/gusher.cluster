@@ -1,14 +1,34 @@
 package main
 
-const Subscribe = "Sub"
-const UnSubscribe = "UnSub"
+const (
+	SubscribeEvent            = "gusher.subscribe"
+	UnSubscribeEvent          = "gusher.unsubscribe"
+	SubscribeReplySucceeded   = "subscribe_succeeded"
+	SubscribeReplyError       = "subscribe_error"
+	UnSubscribeReplySucceeded = "unsubscribe_succeeded"
+	UnSubscribeReplyError     = "unsubscribe_error"
+)
 
-type Packet struct {
-	Action  string   `json:"action"`
-	Content []string `json:"content"`
+type InternalCommand struct {
+	Event string `json:"event"`
+}
+
+type ChannelCommand struct {
+	InternalCommand
+	Data ChannelData `json:"data"`
+}
+type ChannelData struct {
+	Id      string `json:"id"`
+	Channel string `json:"channel"`
+}
+
+type CommonMessage struct {
+	Channel string      `json:"channel"`
+	Event   string      `json:"event"`
+	Data    interface{} `json:"data"`
 }
 
 type Auth struct {
-	Channel []string `json:"channel"`
-	UserId  string   `json:"user_id"`
+	Channels []string `json:"channels"`
+	UserId   string   `json:"user_id"`
 }

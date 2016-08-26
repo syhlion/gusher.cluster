@@ -14,7 +14,7 @@ import (
 type User struct {
 	id      string
 	channel map[string]bool
-	redisocket.Subscriber
+	*redisocket.Client
 }
 
 type WsManager struct {
@@ -30,7 +30,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		channel = make(map[string]bool)
 		auth := r.Context().Value("auth")
 		if s, ok := auth.(Auth); ok {
-			for _, c := range s.Channel {
+			for _, c := range s.Channels {
 				channel[c] = false
 			}
 			id = s.UserId
@@ -58,35 +58,61 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	wm.Unlock()
 	logger.GetRequestEntry(r).Debug("User Listen Start")
 	err = u.Listen(func(data []byte) (err error) {
-		h := func(data []byte) (d []byte, err error) {
+		h := func(channel string, data []byte) (d []byte, err error) {
 			return data, nil
 		}
-		var packet Packet
-		err = json.Unmarshal(data, &packet)
+		var command = ChannelCommand{}
+		err = json.Unmarshal(data, &command)
 		if err != nil {
 			return
 		}
 
+		var reply []byte
+		logger.GetRequestEntry(r).Debug(command)
 		//訂閱處理
-		if packet.Action == Subscribe {
-			for _, c := range packet.Content {
-				if b, ok := u.channel[c]; ok && !b {
-					logger.GetRequestEntry(r).Debug(app_key + "@" + c)
-					u.Subscribe(app_key+"-"+c, h)
-					u.channel[c] = true
+		if command.Event == SubscribeEvent {
+			if b, ok := u.channel[command.Data.Channel]; ok && !b {
+				logger.GetRequestEntry(r).Debug(app_key + "@" + command.Data.Channel)
+				u.Subscribe(app_key+"-"+command.Data.Channel, h)
+				u.channel[command.Data.Channel] = true
+				command.Event = SubscribeReplySucceeded
+				reply, err = json.Marshal(command)
+				if err != nil {
+					logger.GetRequestEntry(r).Debug(err)
 				}
+			} else {
+				command.Event = SubscribeReplyError
+				reply, err = json.Marshal(command)
+				if err != nil {
+					logger.GetRequestEntry(r).Debug(err)
+				}
+
 			}
+
+			u.Send(reply)
+			return
 		}
 
 		//反訂閱處理
-		if packet.Action == UnSubscribe {
-			for _, c := range packet.Content {
-				if b, ok := u.channel[c]; ok && b {
-					logger.GetRequestEntry(r).Debug(app_key + "@" + c)
-					u.Unsubscribe(app_key + "-" + c)
-					u.channel[c] = false
+		if command.Event == UnSubscribeEvent {
+			if b, ok := u.channel[command.Data.Channel]; ok && b {
+				logger.GetRequestEntry(r).Debug(app_key + "@" + command.Data.Channel)
+				u.Unsubscribe(app_key + "-" + command.Data.Channel)
+				u.channel[command.Data.Channel] = false
+				command.Event = UnSubscribeReplySucceeded
+				reply, err = json.Marshal(command)
+				if err != nil {
+					logger.GetRequestEntry(r).Debug(err)
+				}
+			} else {
+				command.Event = UnSubscribeReplyError
+				reply, err = json.Marshal(command)
+				if err != nil {
+					logger.GetRequestEntry(r).Debug(err)
 				}
 			}
+			u.Send(reply)
+			return
 		}
 
 		return

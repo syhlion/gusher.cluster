@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -46,13 +50,19 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		url, err := redis.String(c.Do("HGET", app_key, "url"))
+		u, err := redis.String(c.Do("HGET", app_key, "url"))
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
 			http.Error(w, "auth process error", 401)
 			return
 		}
-		req, err := http.NewRequest("POST", url, nil)
+		v := url.Values{}
+
+		v.Add("auth", auth)
+		req, err := http.NewRequest("POST", u, bytes.NewBufferString(v.Encode()))
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
+
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
 			http.Error(w, "auth process error", 401)
@@ -69,6 +79,10 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			a := Auth{}
 			err = json.NewDecoder(resp.Body).Decode(&a)
 			if err != nil {
+				return
+			}
+			if len(a.Channels) == 0 {
+				err = errors.New("Channels empty")
 				return
 			}
 			ctx := r.Context()
