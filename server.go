@@ -59,13 +59,13 @@ func start(c *cli.Context) {
 		os.Exit(1)
 	}
 	var (
-		redis_err       = os.Getenv("REDIS_ADDR")
+		redis_addr      = os.Getenv("REDIS_ADDR")
 		public_api_addr = os.Getenv("PUBLIC_API_ADDR")
 	)
 
 	/*redis start*/
 	rpool = redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", redis_err)
+		return redis.Dial("tcp", redis_addr)
 	}, 10)
 	rsocket = redisocket.NewApp(rpool)
 	rsocketErr := make(chan error, 1)
@@ -73,6 +73,12 @@ func start(c *cli.Context) {
 		err := rsocket.Listen()
 		rsocketErr <- err
 	}()
+
+	ip, err := externalIP()
+	if err != nil {
+		logger.Warn(err)
+		os.Exit(1)
+	}
 
 	/*api start*/
 	apiListener, err := net.Listen("tcp", public_api_addr)
@@ -99,6 +105,9 @@ func start(c *cli.Context) {
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
 	logger.Info(name, "Start ! ")
+	logger.Infof("Listen redis in %s", redis_addr)
+	logger.Infof("Listen TCP  in %s", public_api_addr)
+	logger.Infof("Locahost IP is  %s", ip)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:
