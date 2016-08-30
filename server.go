@@ -60,40 +60,11 @@ func init() {
 	logger = &Logger{logrus.New()}
 	logger.Level = logrus.DebugLevel
 
-	/*env init*/
-	pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		logger.Warn(err)
-		os.Exit(1)
-	}
-	envfile := flag.String("env", pwd+"/.env", ".env file path")
-	flag.Parse()
-	err = godotenv.Load(*envfile)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	redis_addr = os.Getenv("REDIS_ADDR")
-	master_api_listen = os.Getenv("MASTER_API_LISTEN")
-	remote_listen = os.Getenv("REMOTE_LISTEN")
-	redis_addr = os.Getenv("REDIS_ADDR")
-	api_listen = os.Getenv("API_LISTEN")
-	return_serverinfo_interval = os.Getenv("RETURN_SERVERINFO_INTERVAL")
-
-	/*redis init*/
-	rpool = redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", redis_addr)
-	}, 10)
-
-	/*externl ip*/
-	externalIP, err = getExternalIP()
-	if err != nil {
-		logger.Fatal(err)
-	}
 }
 
 //slave server
 func slave(c *cli.Context) {
+	varInit()
 
 	r_interval, err := strconv.Atoi(return_serverinfo_interval)
 	if err != nil {
@@ -180,6 +151,8 @@ func slave(c *cli.Context) {
 // master server
 func master(c *cli.Context) {
 
+	varInit()
+
 	slaveInfos = &SlaveInfos{
 		servers: make(map[string]ServerInfo),
 		lock:    &sync.Mutex{},
@@ -231,6 +204,38 @@ func master(c *cli.Context) {
 		logger.Warn(err)
 	}
 
+}
+
+func varInit() {
+	/*env init*/
+	pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		logger.Fatal(err)
+	}
+	envfile := flag.String("env", pwd+"/.env", ".env file path")
+	flag.Parse()
+	err = godotenv.Load(*envfile)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	redis_addr = os.Getenv("REDIS_ADDR")
+	master_api_listen = os.Getenv("MASTER_API_LISTEN")
+	remote_listen = os.Getenv("REMOTE_LISTEN")
+	redis_addr = os.Getenv("REDIS_ADDR")
+	api_listen = os.Getenv("API_LISTEN")
+	return_serverinfo_interval = os.Getenv("RETURN_SERVERINFO_INTERVAL")
+
+	/*redis init*/
+	rpool = redis.NewPool(func() (redis.Conn, error) {
+		return redis.Dial("tcp", redis_addr)
+	}, 10)
+
+	/*externl ip*/
+	externalIP, err = getExternalIP()
+	if err != nil {
+		logger.Fatal(err)
+	}
 }
 
 func main() {
