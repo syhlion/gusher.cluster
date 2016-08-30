@@ -112,8 +112,8 @@ command:
 {
     "event":"gusher.subscribe",
     "data":{
-        "id":""
-        "channel":"",
+        "id":"",
+        "channel":""
     }
 }
 ```
@@ -123,8 +123,8 @@ reply scuess:
 {
     "event":"gusher.subscribe_succeeded",
     "data":{
-        "id":""
-        "channel":"",
+        "id":"",
+        "channel":""
     }
 }
 ```
@@ -133,8 +133,8 @@ reply error:
 {
     "event":"gusher.subscribe_error",
     "data":{
-        "id":""
-        "channel":"",
+        "id":"",
+        "channel":""
     }
 }
 ```
@@ -146,8 +146,8 @@ command:
 {
     "event":"gusher.unsubscribe",
     "data":{
-        "id":""
-        "channel":"",
+        "id":"",
+        "channel":""
     }
 }
 ```
@@ -157,8 +157,8 @@ reply scuess:
 {
     "event":"gusher.unsubscribe_succeeded",
     "data":{
-        "id":""
-        "channel":"",
+        "id":"",
+        "channel":""
     }
 }
 ```
