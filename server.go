@@ -130,7 +130,7 @@ func slave(c *cli.Context) {
 
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	logger.Info(name, " start ! ")
+	logger.Info(name, "slave start ! ")
 	logger.Infof("listen redis in %s", redis_addr)
 	logger.Infof("listen TCP  in %s", api_listen)
 	logger.Infof("locahost IP is  %s", externalIP)
@@ -192,7 +192,7 @@ func master(c *cli.Context) {
 	}()
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	logger.Info(name, "Start ! ")
+	logger.Info(name, "master start ! ")
 	logger.Infof("listen redis in %s", redis_addr)
 	logger.Infof("listen TCP  in %s", master_api_listen)
 	logger.Infof("locahost IP is  %s", externalIP)
