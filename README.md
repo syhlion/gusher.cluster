@@ -8,28 +8,36 @@
 
 ## Usage
 
-Install from source
+Install from source:
 
 `go get -u github.com/syhlion/gusher.cluster`
 
 And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/.env.example)
 
-master mode
+master mode:
+
 `./gusher.cluster master`
 
-slave mode
+slave mode:
+
 `./gusher.cluster slave`
 
 ## Slave  Api
 
 Connect:
+
 `GET /ws/{app_key}?auth={auth}`
 
 ## Master Api
 
 Check app_key exist:
+
 `GET /api/check/{app_key}`
+
+
 Scuess Response:
+
+
 ```
 {
     "app_key":""
@@ -37,7 +45,10 @@ Scuess Response:
 ```
 
 Push Message:
+
 `POST /api/push/{app_key}/{channel}/{event}?data={data}`
+
+
 Scuess Response:
 ```
 {
@@ -48,8 +59,12 @@ Scuess Response:
 ```
 
 Slave Server Info:
+
 `GET /api/system/slaveinfos`
+
+
 Scuess Response:
+
 ```
 {
     "'{ip}'+'@'+'{listen_port}'":{
