@@ -14,7 +14,11 @@ Install from source
 
 And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/.env.example)
 
-`./gusher.cluster start`
+master mode
+`./gusher.cluster master`
+
+slave mode
+`./gusher.cluster slave`
 
 ## Client Connect
 
@@ -117,7 +121,7 @@ reply error:
 ```
 {
     "user_id":"BlackJack....",
-    "channel":["channel1","channel2"...]
+    "channels":["channel1","channel2"...]
 }
 ```
 
