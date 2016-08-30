@@ -12,7 +12,7 @@ Install from source:
 
 `go get -u github.com/syhlion/gusher.cluster`
 
-And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/.env.example)
+And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/env.example)
 
 master mode:
 

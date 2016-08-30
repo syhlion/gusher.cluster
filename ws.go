@@ -39,19 +39,19 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 			}
 			id = s.UserId
 		} else {
-			err = errors.New("type error")
+			err = errors.New("auth type error")
 		}
 		return
 	}()
 	app_key := r.Context().Value("app_key").(string)
 	if err != nil {
-		logger.GetRequestEntry(r).Warn(err)
-		http.Error(w, err.Error(), 401)
+		logger.GetRequestEntry(r).Warnf("parse from context error %s", err)
+		http.Error(w, "app_key error", 401)
 		return
 	}
 	s, err := rsocket.NewClient(w, r)
 	if err != nil {
-		logger.GetRequestEntry(r).Warn(r, err)
+		logger.GetRequestEntry(r).Warnf("upgrade ws connection %s", err)
 		http.Error(w, err.Error(), 401)
 		return
 	}
@@ -60,7 +60,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	wm.Lock()
 	wm.users[u] = true
 	wm.Unlock()
-	logger.GetRequestEntry(r).Debug("User Listen Start")
+	logger.GetRequestEntry(r).Debug("user Listen Start")
 	err = u.Listen(func(data []byte) (err error) {
 		h := func(channel string, data []byte) (d []byte, err error) {
 			return data, nil
@@ -72,23 +72,23 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var reply []byte
-		logger.GetRequestEntry(r).Debug(command)
+		logger.GetRequestEntry(r).Debugf("client receive command %s", data)
 		//訂閱處理
 		if command.Event == SubscribeEvent {
-			if b, ok := u.channel[command.Data.Channel]; ok && !b {
-				logger.GetRequestEntry(r).Debug(app_key + "@" + command.Data.Channel)
+			if _, ok := u.channel[command.Data.Channel]; ok {
+				logger.GetRequestEntry(r).Debugf("sub %s@%s channel", app_key, command.Data.Channel)
 				u.Subscribe(app_key+"@"+command.Data.Channel, h)
 				u.channel[command.Data.Channel] = true
 				command.Event = SubscribeReplySucceeded
 				reply, err = json.Marshal(command)
 				if err != nil {
-					logger.GetRequestEntry(r).Debug(err)
+					logger.GetRequestEntry(r).Debugf("sub sucess reply %s", err)
 				}
 			} else {
 				command.Event = SubscribeReplyError
 				reply, err = json.Marshal(command)
 				if err != nil {
-					logger.GetRequestEntry(r).Debug(err)
+					logger.GetRequestEntry(r).Debugf("sub error reply %s", err)
 				}
 
 			}
@@ -99,20 +99,20 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 
 		//反訂閱處理
 		if command.Event == UnSubscribeEvent {
-			if b, ok := u.channel[command.Data.Channel]; ok && b {
-				logger.GetRequestEntry(r).Debug(app_key + "@" + command.Data.Channel)
+			if _, ok := u.channel[command.Data.Channel]; ok {
+				logger.GetRequestEntry(r).Debugf("unsub %s@%s channel", app_key, command.Data.Channel)
 				u.Unsubscribe(app_key + "@" + command.Data.Channel)
 				u.channel[command.Data.Channel] = false
 				command.Event = UnSubscribeReplySucceeded
 				reply, err = json.Marshal(command)
 				if err != nil {
-					logger.GetRequestEntry(r).Debug(err)
+					logger.GetRequestEntry(r).Debugf("unsub sucess reply %s", err)
 				}
 			} else {
 				command.Event = UnSubscribeReplyError
 				reply, err = json.Marshal(command)
 				if err != nil {
-					logger.GetRequestEntry(r).Debug(err)
+					logger.GetRequestEntry(r).Debugf("unsub error reply %s", err)
 				}
 			}
 			u.Send(reply)
@@ -122,7 +122,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	})
 	if err != nil {
-		logger.GetRequestEntry(r).Info(err)
+		logger.GetRequestEntry(r).Infof("disconnect %s", err)
 	}
 	wm.Disconnect(u)
 

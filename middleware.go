@@ -27,7 +27,7 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 		params := mux.Vars(r)
 		app_key := params["app_key"]
 		if app_key == "" {
-			logger.GetRequestEntry(r).Warn(r, "app_key nil")
+			logger.GetRequestEntry(r).Warn("app_key nil")
 			http.Error(w, "app_key nil", 401)
 			return
 		}
@@ -53,7 +53,7 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 		u, err := redis.String(c.Do("HGET", app_key, "url"))
 		if err != nil {
-			logger.GetRequestEntry(r).Warn("auth process %s", err)
+			logger.GetRequestEntry(r).Warnf("auth process %s", err)
 			http.Error(w, "auth process error", 401)
 			return
 		}
@@ -70,7 +70,6 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 		ctx, _ := context.WithTimeout(r.Context(), 30*time.Second)
 		err = worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
 			if e != nil {
-				logger.Debug(e)
 				return e
 			}
 			defer resp.Body.Close()

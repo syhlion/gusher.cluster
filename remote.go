@@ -21,6 +21,7 @@ func (s *SlaveInfos) Update(si ServerInfo) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	s.servers[si.Ip+"@"+si.LocalListen] = si
+	logger.Debugf("server info update %s", s.servers)
 	return
 }
 func (s *SlaveInfos) Info() map[string]ServerInfo {

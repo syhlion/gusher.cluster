@@ -26,11 +26,10 @@ import (
 
 var env *string
 var (
-	gusherDevState string
-	version        string
-	compileDate    string
-	name           string
-	cmdSlave       = cli.Command{
+	version     string
+	compileDate string
+	name        string
+	cmdSlave    = cli.Command{
 		Name:   "slave",
 		Usage:  "start gusher.slave server",
 		Action: slave,
@@ -45,6 +44,7 @@ var (
 	rsocket                    redisocket.App
 	logger                     *Logger
 	client                     *rpc.Client
+	loglevel                   string
 	externalIP                 string
 	api_listen                 string
 	master_api_listen          string
@@ -60,7 +60,7 @@ func init() {
 	/*logger init*/
 	logger = &Logger{logrus.New()}
 	//logger.Level = logrus.DebugLevel
-	switch gusherDevState {
+	switch loglevel {
 	case "DEV":
 		logger.Level = logrus.DebugLevel
 		break
@@ -142,7 +142,7 @@ func slave(c *cli.Context) {
 
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	logger.Info(gusherDevState, " mode")
+	logger.Info(loglevel, " mode")
 	logger.Info(name, " slave start ! ")
 	logger.Infof("listen redis in %s", redis_addr)
 	logger.Infof("listen TCP  in %s", api_listen)
@@ -205,7 +205,7 @@ func master(c *cli.Context) {
 	}()
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	logger.Info(gusherDevState, " mode")
+	logger.Info(loglevel, " mode")
 	logger.Info(name, " master start ! ")
 	logger.Infof("listen redis in %s", redis_addr)
 	logger.Infof("listen TCP  in %s", master_api_listen)
@@ -233,12 +233,26 @@ func varInit() {
 		logger.Fatal(err)
 	}
 
+	loglevel = os.Getenv("LOGLEVEL")
 	redis_addr = os.Getenv("REDIS_ADDR")
 	master_api_listen = os.Getenv("MASTER_API_LISTEN")
 	remote_listen = os.Getenv("REMOTE_LISTEN")
 	redis_addr = os.Getenv("REDIS_ADDR")
 	api_listen = os.Getenv("API_LISTEN")
 	return_serverinfo_interval = os.Getenv("RETURN_SERVERINFO_INTERVAL")
+
+	/*log init*/
+	switch loglevel {
+	case "DEV":
+		logger.Level = logrus.DebugLevel
+		break
+	case "PRODUCTION":
+		logger.Level = logrus.InfoLevel
+		break
+	default:
+		logger.Level = logrus.DebugLevel
+		break
+	}
 
 	/*redis init*/
 	rpool = redis.NewPool(func() (redis.Conn, error) {
