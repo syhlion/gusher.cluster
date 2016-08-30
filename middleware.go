@@ -34,7 +34,7 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 		auth := r.FormValue("auth")
 		if auth == "" {
-			logger.GetRequestEntry(r).Warn(r, "auth nil")
+			logger.GetRequestEntry(r).Warn("auth nil")
 			http.Error(w, "auth nil", 401)
 			return
 		}
@@ -46,14 +46,14 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 
 		reply, err := redis.Int(c.Do("HEXISTS", app_key, "url"))
 		if err != nil || reply == 0 {
-			logger.GetRequestEntry(r).Warn(err)
-			http.Error(w, "auth process error", 401)
+			logger.GetRequestEntry(r).Warnf("app_key no exists  %s", err)
+			http.Error(w, "app_key no exists", 401)
 			return
 		}
 
 		u, err := redis.String(c.Do("HGET", app_key, "url"))
 		if err != nil {
-			logger.GetRequestEntry(r).Warn(err)
+			logger.GetRequestEntry(r).Warn("auth process %s", err)
 			http.Error(w, "auth process error", 401)
 			return
 		}
@@ -67,11 +67,6 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
 
-		if err != nil {
-			logger.GetRequestEntry(r).Warn(err)
-			http.Error(w, "auth process error", 401)
-			return
-		}
 		ctx, _ := context.WithTimeout(r.Context(), 30*time.Second)
 		err = worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
 			if e != nil {
