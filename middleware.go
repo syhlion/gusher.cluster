@@ -97,7 +97,7 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 		})
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
-			http.Error(w, "auth error", 401)
+			http.Error(w, err.Error(), 401)
 			return
 		}
 		logger.GetRequestEntry(r).Debug("auth finsh")
