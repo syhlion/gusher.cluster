@@ -39,6 +39,7 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		/*redis*/
 		c := rpool.Get()
 
 		//redis 格式 app_key url http://test.com
@@ -56,6 +57,9 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "auth process error", 401)
 			return
 		}
+		c.Close()
+		/*redis end*/
+
 		v := url.Values{}
 
 		v.Add("auth", auth)
@@ -96,7 +100,7 @@ func AuthMiddleware(h http.HandlerFunc) http.HandlerFunc {
 			http.Error(w, "auth error", 401)
 			return
 		}
-		logger.GetRequestEntry(r).Debug(r, "auth finsh")
+		logger.GetRequestEntry(r).Debug("auth finsh")
 		h.ServeHTTP(w, r)
 
 	}

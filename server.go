@@ -4,9 +4,11 @@ import (
 	"flag"
 	"net"
 	"net/http"
+	"net/rpc"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -27,25 +29,38 @@ var (
 	version     string
 	compileDate string
 	name        string
-	cmdStart    = cli.Command{
-		Name:   "start",
-		Usage:  "Start gusher.cluster Server",
-		Action: start,
+	cmdSlave    = cli.Command{
+		Name:   "slave",
+		Usage:  "start gusher.slave server",
+		Action: slave,
 	}
-	rpool   *redis.Pool
-	worker  *requestwork.Worker
-	rsocket redisocket.App
-	logger  *Logger
+	cmdMaster = cli.Command{
+		Name:   "master",
+		Usage:  "start gusher.master server",
+		Action: master,
+	}
+	rpool                      *redis.Pool
+	worker                     *requestwork.Worker
+	rsocket                    redisocket.App
+	logger                     *Logger
+	client                     *rpc.Client
+	externalIP                 string
+	api_listen                 string
+	master_api_listen          string
+	master_addr                string
+	redis_addr                 string
+	remote_listen              string
+	return_serverinfo_interval string
+	wm                         *WsManager
+	slaveInfos                 *SlaveInfos
 )
 
 func init() {
+	/*logger init*/
 	logger = &Logger{logrus.New()}
 	logger.Level = logrus.DebugLevel
-	//logger.Formatter = &logrus.TextFormatter{}
-}
 
-func start(c *cli.Context) {
-
+	/*env init*/
 	pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		logger.Warn(err)
@@ -55,18 +70,36 @@ func start(c *cli.Context) {
 	flag.Parse()
 	err = godotenv.Load(*envfile)
 	if err != nil {
-		logger.Warn(err)
-		os.Exit(1)
+		logger.Fatal(err)
 	}
-	var (
-		redis_addr      = os.Getenv("REDIS_ADDR")
-		public_api_addr = os.Getenv("PUBLIC_API_ADDR")
-	)
 
-	/*redis start*/
+	redis_addr = os.Getenv("REDIS_ADDR")
+	master_api_listen = os.Getenv("MASTER_API_LISTEN")
+	remote_listen = os.Getenv("REMOTE_LISTEN")
+	redis_addr = os.Getenv("REDIS_ADDR")
+	api_listen = os.Getenv("API_LISTEN")
+	return_serverinfo_interval = os.Getenv("RETURN_SERVERINFO_INTERVAL")
+
+	/*redis init*/
 	rpool = redis.NewPool(func() (redis.Conn, error) {
 		return redis.Dial("tcp", redis_addr)
 	}, 10)
+
+	/*externl ip*/
+	externalIP, err = getExternalIP()
+	if err != nil {
+		logger.Fatal(err)
+	}
+}
+
+//slave server
+func slave(c *cli.Context) {
+
+	r_interval, err := strconv.Atoi(return_serverinfo_interval)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	rsocket = redisocket.NewApp(rpool)
 	rsocketErr := make(chan error, 1)
 	go func() {
@@ -74,28 +107,110 @@ func start(c *cli.Context) {
 		rsocketErr <- err
 	}()
 
-	ip, err := externalIP()
-	if err != nil {
-		logger.Warn(err)
-		os.Exit(1)
-	}
-
 	/*api start*/
-	apiListener, err := net.Listen("tcp", public_api_addr)
+	apiListener, err := net.Listen("tcp", api_listen)
 	if err != nil {
-		logger.Println(err)
-		os.Exit(1)
+		logger.Fatal(err)
 	}
 	r := mux.NewRouter()
 
 	worker = requestwork.New(50)
-	wm := &WsManager{
+	wm = &WsManager{
 		users:   make(map[*User]bool),
 		RWMutex: &sync.RWMutex{},
 		pool:    rpool,
 	}
+	/*api end*/
+
+	/*remote rpc*/
+	client, err = rpc.Dial("tcp", "127.0.0.1:1234")
+	if err != nil {
+		logger.Fatal("Cant remote rpc %s", err)
+	}
+
+	/*remote process*/
+	remoteErr := make(chan error, 1)
+	go func() {
+		t := time.NewTicker(time.Duration(r_interval) * time.Second)
+		for {
+			select {
+			case <-t.C:
+				var b bool
+				info := getInfo()
+				err = client.Call("HealthTrack.Put", &info, &b)
+				if err != nil {
+					remoteErr <- err
+					return
+				}
+
+			}
+		}
+	}()
+
+	/*remote preocess end*/
 
 	r.HandleFunc("/ws/{app_key}", HttpUse(wm.Connect, AuthMiddleware)).Methods("GET")
+	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
+	serverError := make(chan error, 1)
+	go func() {
+		err := http.Serve(apiListener, nil)
+		serverError <- err
+	}()
+
+	// block and listen syscall
+	shutdow_observer := make(chan os.Signal, 1)
+	logger.Info(name, " start ! ")
+	logger.Infof("listen redis in %s", redis_addr)
+	logger.Infof("listen TCP  in %s", api_listen)
+	logger.Infof("locahost IP is  %s", externalIP)
+	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	select {
+	case <-shutdow_observer:
+		logger.Info("receive signal")
+	case err := <-serverError:
+		logger.Fatal(err)
+	case err := <-rsocketErr:
+		logger.Fatal(err)
+	case err := <-remoteErr:
+		logger.Fatal(err)
+	}
+
+}
+
+// master server
+func master(c *cli.Context) {
+
+	slaveInfos = &SlaveInfos{
+		servers: make(map[string]ServerInfo),
+		lock:    &sync.Mutex{},
+	}
+	/*remote start*/
+	healthTrack := &HealthTrack{
+		s: slaveInfos,
+	}
+	addr, err := net.ResolveTCPAddr("tcp", remote_listen)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	in, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	rpc.Register(healthTrack)
+	go func() {
+		rpc.Accept(in)
+	}()
+
+	/*api start*/
+	apiListener, err := net.Listen("tcp", master_api_listen)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	r := mux.NewRouter()
+
+	r.HandleFunc("/api/System/ServerInfo", SystemInfo).Methods("GET")
+	r.HandleFunc("/api/check/{app_key}", CheckAppKey).Methods("GET")
+	r.HandleFunc("/api/push/{app_key}/{channel}/{event}", PushMessage).Methods("POST")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
 	serverError := make(chan error, 1)
 	go func() {
@@ -105,16 +220,14 @@ func start(c *cli.Context) {
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
 	logger.Info(name, "Start ! ")
-	logger.Infof("Listen redis in %s", redis_addr)
-	logger.Infof("Listen TCP  in %s", public_api_addr)
-	logger.Infof("Locahost IP is  %s", ip)
+	logger.Infof("listen redis in %s", redis_addr)
+	logger.Infof("listen TCP  in %s", master_api_listen)
+	logger.Infof("locahost IP is  %s", externalIP)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:
 		logger.Info("Receive signal")
 	case err := <-serverError:
-		logger.Warn(err)
-	case err := <-rsocketErr:
 		logger.Warn(err)
 	}
 
@@ -125,7 +238,8 @@ func main() {
 	gusher.Name = name
 	gusher.Version = version
 	gusher.Commands = []cli.Command{
-		cmdStart,
+		cmdSlave,
+		cmdMaster,
 	}
 	gusher.Compiled = time.Now()
 	gusher.Run(os.Args)

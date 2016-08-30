@@ -3,8 +3,8 @@ GOPATH := $(GOPATH)
 GO := $(GOROOT)/bin/go
 PWD := $(PWD)
 NAME := gusher.cluster
-#TAG := `git describe --tags | cut -d '-' -f 1 `.`git rev-parse --short HEAD`
-TAG := "DEV"
+TAG := `git describe --tags | cut -d '-' -f 1 `.`git rev-parse --short HEAD`
+#TAG := "DEV"
 TZ := Asia/Taipei
 DATETIME := `TZ=$(TZ) date +%Y%m%d.%H%M%S`
 show-tag:

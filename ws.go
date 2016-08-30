@@ -24,6 +24,10 @@ type WsManager struct {
 	worker *requestwork.Worker
 }
 
+func (wm *WsManager) Count() int {
+	return len(wm.users)
+}
+
 func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 
 	id, channel, err := func() (id string, channel map[string]bool, err error) {
@@ -73,7 +77,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		if command.Event == SubscribeEvent {
 			if b, ok := u.channel[command.Data.Channel]; ok && !b {
 				logger.GetRequestEntry(r).Debug(app_key + "@" + command.Data.Channel)
-				u.Subscribe(app_key+"-"+command.Data.Channel, h)
+				u.Subscribe(app_key+"@"+command.Data.Channel, h)
 				u.channel[command.Data.Channel] = true
 				command.Event = SubscribeReplySucceeded
 				reply, err = json.Marshal(command)
@@ -97,7 +101,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		if command.Event == UnSubscribeEvent {
 			if b, ok := u.channel[command.Data.Channel]; ok && b {
 				logger.GetRequestEntry(r).Debug(app_key + "@" + command.Data.Channel)
-				u.Unsubscribe(app_key + "-" + command.Data.Channel)
+				u.Unsubscribe(app_key + "@" + command.Data.Channel)
 				u.channel[command.Data.Channel] = false
 				command.Event = UnSubscribeReplySucceeded
 				reply, err = json.Marshal(command)

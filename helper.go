@@ -3,9 +3,30 @@ package main
 import (
 	"errors"
 	"net"
+	"runtime"
+	"time"
 )
 
-func externalIP() (string, error) {
+func getInfo() (s ServerInfo) {
+	m := new(runtime.MemStats)
+	runtime.ReadMemStats(m)
+	s = ServerInfo{
+
+		Ip:             externalIP,
+		LocalListen:    api_listen,
+		Version:        version,
+		RunTimeVersion: runtime.Version(),
+		NumCpu:         runtime.NumCPU(),
+		MemAllcoated:   m.Alloc,
+		Goroutines:     runtime.NumGoroutine(),
+		UpdateTime:     time.Now().Unix(),
+		SendInterval:   return_serverinfo_interval,
+		Connections:    wm.Count(),
+	}
+	return
+}
+
+func getExternalIP() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return "", err

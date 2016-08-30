@@ -32,3 +32,17 @@ type Auth struct {
 	Channels []string `json:"channels"`
 	UserId   string   `json:"user_id"`
 }
+
+/*rpc use*/
+type ServerInfo struct {
+	Ip             string `json:"ip"`
+	LocalListen    string `json:"local_listen"`
+	Version        string `json:"Version"`
+	RunTimeVersion string `json:"runtime_version"`
+	NumCpu         int    `json:"cpu"`
+	MemAllcoated   uint64 `json:"usage-memory"`
+	Goroutines     int    `json:"goroutines"`
+	Connections    int    `json:"connections"`
+	SendInterval   string `json:"send_interval"`
+	UpdateTime     int64  `json:"time"`
+}
