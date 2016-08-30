@@ -181,7 +181,7 @@ func master(c *cli.Context) {
 	}
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/System/ServerInfo", SystemInfo).Methods("GET")
+	r.HandleFunc("/api/system/slaveinfos", SystemInfo).Methods("GET")
 	r.HandleFunc("/api/check/{app_key}", CheckAppKey).Methods("GET")
 	r.HandleFunc("/api/push/{app_key}/{channel}/{event}", PushMessage).Methods("POST")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
