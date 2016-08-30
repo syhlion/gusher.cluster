@@ -20,9 +20,52 @@ master mode
 slave mode
 `./gusher.cluster slave`
 
-## Client Connect
+## Slave  Api
 
+Connect:
 `GET /ws/{app_key}?auth={auth}`
+
+## Master Api
+
+Check app_key exist:
+`GET /api/check/{app_key}`
+Scuess Response:
+```
+{
+    "app_key":""
+}
+```
+
+Push Message:
+`POST /api/push/{app_key}/{channel}/{event}?data={data}`
+Scuess Response:
+```
+{
+    "channel":"",
+    "event":"",
+    "data":""
+}
+```
+
+Slave Server Info:
+`GET /api/system/slaveinfos`
+Scuess Response:
+```
+{
+    "'{ip}'+'@'+'{listen_port}'":{
+        "ip":"",
+        "local_listen":"",
+        "version":"",
+        "runtime_version":"",
+        "cpu":,
+        "usage-memory":,
+        "goroutines":6,
+        "connections":,
+        "send_interval":"",
+        "update_time":
+    }
+}
+```
 
 ## Client Request Protocol
 
@@ -41,9 +84,9 @@ gusher.unsubscribe_error|unsubscribe error
 
 ```
 {
-    channel:"{channel1}",
-    event:"{custom event}",
-    data:{}
+    "channel":"",
+    "event":"",
+    "data":
 }
 ```
 
@@ -52,10 +95,10 @@ gusher.unsubscribe_error|unsubscribe error
 command:
 ```
 {
-    event:"gusher.subscribe",
-    data:{
-        id:"{customId}"
-        channel:"{channel}",
+    "event":"gusher.subscribe",
+    "data":{
+        "id":""
+        "channel":"",
     }
 }
 ```
@@ -63,20 +106,20 @@ command:
 reply scuess:
 ```
 {
-    event:"gusher.subscribe_succeeded",
-    data:{
-        id:"{customId}"
-        channel:"{channel}",
+    "event":"gusher.subscribe_succeeded",
+    "data":{
+        "id":""
+        "channel":"",
     }
 }
 ```
 reply error:
 ```
 {
-    event:"gusher.subscribe_error",
-    data:{
-        id:"{customId}"
-        channel:"{channel}",
+    "event":"gusher.subscribe_error",
+    "data":{
+        "id":""
+        "channel":"",
     }
 }
 ```
@@ -86,10 +129,10 @@ reply error:
 command:
 ```
 {
-    event:"gusher.unsubscribe",
-    data:{
-        id:"{customId}"
-        channel:"{channel}",
+    "event":"gusher.unsubscribe",
+    "data":{
+        "id":""
+        "channel":"",
     }
 }
 ```
@@ -97,10 +140,10 @@ command:
 reply scuess:
 ```
 {
-    event:"gusher.unsubscribe_succeeded",
-    data:{
-        id:"{customId}"
-        channel:"{channel}",
+    "event":"gusher.unsubscribe_succeeded",
+    "data":{
+        "id":""
+        "channel":"",
     }
 }
 ```
@@ -108,10 +151,10 @@ reply scuess:
 reply error:
 ```
 {
-    event:"gusher.unsubscribe_error",
-    data:{
-        id:"{customId}"
-        channel:"{channel}",
+    "event":"gusher.unsubscribe_error",
+    "data":{
+        "id":""
+        "channel":"",
     }
 }
 ```
@@ -136,17 +179,6 @@ Key|field|value
 {app_key}|url|http://hook-domain/
 
 
-Push schema
-
-```
-gusher:backpush:{ channel: 'xxx', data: {}}
-```
 
 
-
-## TODO
-
-* gusher api implement
-* <del>support gracefulll shutdown</del>
-* <del>decide auth pattern</del>
 
