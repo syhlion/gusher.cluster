@@ -34,7 +34,7 @@ Check app_key exist:
 
 `GET /api/exist/{app_key}`
 
-Scuess Response:
+Sucess Response:
 
 
 ```
@@ -48,7 +48,7 @@ Push Message:
 `POST /api/push/{app_key}/{channel}/{event}?data={data}`
 
 
-Scuess Response:
+Sucess Response:
 
 ```
 {
@@ -63,7 +63,7 @@ Query AppKey:
 `GET /api/query/{app_key}`
 
 
-Scuess Response:
+Sucess Response:
 ```
 {
     "app_key":"",
@@ -75,7 +75,7 @@ Register AppKey:
 
 `POST /api/register/{app_key}?url={url}`
 
-Scuess Response:
+Sucess Response:
 
 ```
 {
@@ -89,7 +89,7 @@ Slave Server Info:
 `GET /api/system/slaveinfos`
 
 
-Scuess Response:
+Sucess Response:
 
 ```
 {
