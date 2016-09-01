@@ -10,7 +10,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func checkKey(app_key string) (err error) {
+func existKey(app_key string) (err error) {
 	conn := rpool.Get()
 	defer conn.Close()
 	reply, err := redis.Int(conn.Do("HEXISTS", app_key, "url"))
@@ -29,7 +29,7 @@ func CheckAppKey(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("empty app_key"))
 		return
 	}
-	err := checkKey(app_key)
+	err := existKey(app_key)
 	if err != nil {
 		logger.GetRequestEntry(r).Warn(err)
 		w.WriteHeader(400)
@@ -57,7 +57,7 @@ func PushMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := checkKey(app_key)
+	err := existKey(app_key)
 	if err != nil {
 		logger.GetRequestEntry(r).Warn(err)
 		w.WriteHeader(400)

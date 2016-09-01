@@ -195,7 +195,7 @@ func master(c *cli.Context) {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/api/system/slaveinfos", SystemInfo).Methods("GET")
-	r.HandleFunc("/api/check/{app_key}", CheckAppKey).Methods("GET")
+	r.HandleFunc("/api/exist/{app_key}", CheckAppKey).Methods("GET")
 	r.HandleFunc("/api/push/{app_key}/{channel}/{event}", PushMessage).Methods("POST")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
 	serverError := make(chan error, 1)
