@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -15,13 +14,13 @@ import (
 
 	"github.com/Sirupsen/logrus"
 
-	"github.com/codegangsta/cli"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/syhlion/redisocket.v2"
 	"github.com/syhlion/requestwork.v2"
+	"github.com/urfave/cli"
 )
 
 var env *string
@@ -33,11 +32,23 @@ var (
 		Name:   "slave",
 		Usage:  "start gusher.slave server",
 		Action: slave,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "env",
+				Value: "/.env",
+			},
+		},
 	}
 	cmdMaster = cli.Command{
 		Name:   "master",
 		Usage:  "start gusher.master server",
 		Action: master,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "env",
+				Value: "/.env",
+			},
+		},
 	}
 	rpool                      *redis.Pool
 	worker                     *requestwork.Worker
@@ -76,7 +87,7 @@ func init() {
 
 //slave server
 func slave(c *cli.Context) {
-	varInit()
+	varInit(c)
 
 	r_interval, err := strconv.Atoi(return_serverinfo_interval)
 	if err != nil {
@@ -165,7 +176,7 @@ func slave(c *cli.Context) {
 // master server
 func master(c *cli.Context) {
 
-	varInit()
+	varInit(c)
 
 	slaveInfos = &SlaveInfos{
 		servers: make(map[string]ServerInfo),
@@ -231,15 +242,16 @@ func master(c *cli.Context) {
 
 }
 
-func varInit() {
+func varInit(c *cli.Context) {
 	/*env init*/
 	pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
 		logger.Fatal(err)
 	}
-	envfile := flag.String("env", pwd+"/.env", ".env file path")
-	flag.Parse()
-	err = godotenv.Load(*envfile)
+
+	envfile := pwd + "/" + c.String("env")
+	//flag.Parse()
+	err = godotenv.Load(envfile)
 	if err != nil {
 		logger.Fatal(err)
 	}
