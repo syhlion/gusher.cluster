@@ -50,11 +50,38 @@ Push Message:
 
 
 Scuess Response:
+
 ```
 {
     "channel":"",
     "event":"",
     "data":""
+}
+```
+
+Query AppKey:
+
+`GET /api/query/{app_key}`
+
+
+Scuess Response:
+```
+{
+    "app_key":"",
+    "url":""
+}
+```
+
+Register AppKey:
+
+`POST /api/register/{app_key}?url={url}`
+
+Scuess Response:
+
+```
+{
+    "app_key":"",
+    "url":""
 }
 ```
 

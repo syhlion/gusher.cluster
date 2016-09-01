@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
@@ -15,9 +16,83 @@ func existKey(app_key string) (err error) {
 	defer conn.Close()
 	reply, err := redis.Int(conn.Do("HEXISTS", app_key, "url"))
 	if err != nil || reply == 0 {
-		err = errors.New("empty app_key")
+		err = errors.New("app_key not found")
 	}
 	return
+}
+func QueryAppKey(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	app_key := params["app_key"]
+	if app_key == "" {
+		logger.GetRequestEntry(r).Warn("empty app_key")
+		w.WriteHeader(400)
+		w.Write([]byte("empty app_key"))
+		return
+	}
+	err := existKey(app_key)
+	if err != nil {
+		logger.GetRequestEntry(r).Warn("app_key not found")
+		w.WriteHeader(400)
+		fmt.Fprintln(w, "app_key not found")
+		return
+	}
+	conn := rpool.Get()
+	defer conn.Close()
+	u, err := redis.String(conn.Do("HGET", app_key, "url"))
+	if err != nil {
+		logger.GetRequestEntry(r).Warn(err)
+		w.WriteHeader(400)
+		fmt.Fprintln(w, err)
+		return
+	}
+	json.NewEncoder(w).Encode(struct {
+		AppKey string `json:"app_key"`
+		Url    string `json:"url"`
+	}{
+		app_key,
+		u,
+	})
+}
+func RegisterAppKey(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	app_key := params["app_key"]
+	if app_key == "" {
+		logger.GetRequestEntry(r).Warn("empty app_key")
+		w.WriteHeader(400)
+		w.Write([]byte("empty app_key"))
+		return
+	}
+	err := existKey(app_key)
+	if err == nil {
+		logger.GetRequestEntry(r).Warn("app_key exist")
+		w.WriteHeader(400)
+		fmt.Fprintln(w, "app_key exist")
+		return
+	}
+	u := r.FormValue("url")
+	uu, err := url.Parse(u)
+	if err != nil {
+		logger.GetRequestEntry(r).Warn(err)
+		w.WriteHeader(400)
+		fmt.Fprintln(w, err)
+		return
+	}
+	conn := rpool.Get()
+	defer conn.Close()
+	_, err = conn.Do("HSET", app_key, "url", uu.String())
+	if err != nil {
+		logger.GetRequestEntry(r).Warn(err)
+		w.WriteHeader(400)
+		fmt.Fprintln(w, err)
+		return
+	}
+	json.NewEncoder(w).Encode(struct {
+		AppKey string `json:"app_key"`
+		Url    string `json:"url"`
+	}{
+		app_key,
+		uu.String(),
+	})
 }
 
 func CheckAppKey(w http.ResponseWriter, r *http.Request) {

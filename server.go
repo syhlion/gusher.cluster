@@ -196,6 +196,8 @@ func master(c *cli.Context) {
 
 	r.HandleFunc("/api/system/slaveinfos", SystemInfo).Methods("GET")
 	r.HandleFunc("/api/exist/{app_key}", CheckAppKey).Methods("GET")
+	r.HandleFunc("/api/register/{app_key}", RegisterAppKey).Methods("POST")
+	r.HandleFunc("/api/query/{app_key}", QueryAppKey).Methods("GET")
 	r.HandleFunc("/api/push/{app_key}/{channel}/{event}", PushMessage).Methods("POST")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
 	serverError := make(chan error, 1)
