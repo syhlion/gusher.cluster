@@ -219,8 +219,8 @@ func master(c *cli.Context) {
 	logger.Info(name, " master start ! ")
 	logger.Infof("listen redis in %s", redis_addr)
 	logger.Infof("listen web api in %s", master_api_listen)
-	logger.Infof("localhost ip is  %s", externalIP)
 	logger.Infof("listen master in  %s", remote_listen)
+	logger.Infof("localhost ip is  %s", externalIP)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:
