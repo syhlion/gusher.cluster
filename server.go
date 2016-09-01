@@ -106,7 +106,7 @@ func slave(c *cli.Context) {
 	/*api end*/
 
 	/*remote rpc*/
-	client, err = rpc.Dial("tcp", "127.0.0.1:1234")
+	client, err = rpc.Dial("tcp", master_addr)
 	if err != nil {
 		logger.Fatal("Cant remote rpc %s", err)
 	}
@@ -242,6 +242,10 @@ func varInit() {
 	err = godotenv.Load(*envfile)
 	if err != nil {
 		logger.Fatal(err)
+	}
+	master_addr = os.Getenv("MASTER_ADDR")
+	if master_addr == "" {
+		logger.Fatal("empty master_addr")
 	}
 
 	loglevel = os.Getenv("LOGLEVEL")
