@@ -32,8 +32,7 @@ Connect:
 
 Check app_key exist:
 
-`GET /api/check/{app_key}`
-
+`GET /api/exist/{app_key}`
 
 Scuess Response:
 
