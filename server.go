@@ -203,6 +203,13 @@ func master(c *cli.Context) {
 		err := http.Serve(apiListener, nil)
 		serverError <- err
 	}()
+
+	/*Test redis connect*/
+	_, err = rpool.Get().Do("PING")
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
 	logger.Info(loglevel, " mode")
