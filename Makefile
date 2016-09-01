@@ -13,6 +13,8 @@ build:
 	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
 run: build
 	./$(NAME)
+tar: build
+	tar zcvf $(NAME).$(TAG).tar.gz $(NAME) env.example
 todo:
 	find -type f \( -iname '*.go' ! -wholename './vendor/*' \) -exec grep -Hn 'TODO' {} \;
 

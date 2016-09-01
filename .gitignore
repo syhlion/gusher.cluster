@@ -1,3 +1,4 @@
 gusher.cluster
 .env
+gusher.cluster.*
 
