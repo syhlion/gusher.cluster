@@ -243,12 +243,33 @@ func varInit() {
 	}
 
 	loglevel = os.Getenv("LOGLEVEL")
+	if loglevel == "" {
+		logger.Fatal("empty loglevel")
+	}
 	redis_addr = os.Getenv("REDIS_ADDR")
+	if redis_addr == "" {
+		logger.Fatal("empty redis_addr")
+	}
 	master_api_listen = os.Getenv("MASTER_API_LISTEN")
+	if master_api_listen == "" {
+		logger.Fatal("empty master_api_listen")
+	}
 	remote_listen = os.Getenv("REMOTE_LISTEN")
+	if remote_listen == "" {
+		logger.Fatal("empty remote_listen")
+	}
 	redis_addr = os.Getenv("REDIS_ADDR")
+	if redis_addr == "" {
+		logger.Fatal("empty redis_addr")
+	}
 	api_listen = os.Getenv("API_LISTEN")
+	if api_listen == "" {
+		logger.Fatal("empty api_listen")
+	}
 	return_serverinfo_interval = os.Getenv("RETURN_SERVERINFO_INTERVAL")
+	if return_serverinfo_interval == "" {
+		logger.Fatal("empty return_serverinfo_interval")
+	}
 
 	/*log init*/
 	switch loglevel {
