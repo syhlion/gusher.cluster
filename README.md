@@ -12,7 +12,17 @@ Install from source:
 
 `go get -u github.com/syhlion/gusher.cluster`
 
+
+Download:
+
+[Debian & Ubuntu use](https://github.com/syhlion/gusher.cluster/releases)
+
+
+
 And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/env.example)
+
+
+Than Use
 
 master mode:
 
@@ -22,204 +32,26 @@ slave mode:
 
 `./gusher.cluster slave`
 
-## Slave  Api
+## Third party lib
 
-Connect:
+client js:
 
-`GET /ws/{app_key}?auth={auth}`
+[gusher-js](https://github.com/cswleocsw/gusher-js)
 
-## Master Api
+backend php:
 
-Check app_key exist:
+[gusher-php](https://github.com/benjaminchen/gusher-php)
 
-`GET /api/exist/{app_key}`
+## Api
 
-Sucess Response:
-
-
-```
-{
-    "app_key":""
-}
-```
-
-Push Message:
-
-`POST /api/push/{app_key}/{channel}/{event}?data={data}`
+[Api Doc](https://github.com/syhlion/gusher.cluster/blob/master/doc/api.md)
 
 
-Sucess Response:
+## Internal Protocal
 
-```
-{
-    "channel":"",
-    "event":"",
-    "data":""
-}
-```
+[Protocal Doc](https://github.com/syhlion/gusher.cluster/blob/master/doc/protocal.md)
 
-Query AppKey:
+## Thanks
 
-`GET /api/query/{app_key}`
-
-
-Sucess Response:
-```
-{
-    "app_key":"",
-    "url":""
-}
-```
-
-Register AppKey:
-
-`POST /api/register/{app_key}?url={url}`
-
-Sucess Response:
-
-```
-{
-    "app_key":"",
-    "url":""
-}
-```
-
-Slave Server Info:
-
-`GET /api/system/slaveinfos`
-
-
-Sucess Response:
-
-```
-{
-    "'{ip}'+'@'+'{listen_port}'":{
-        "ip":"",
-        "local_listen":"",
-        "version":"",
-        "runtime_version":"",
-        "cpu":,
-        "usage-memory":,
-        "goroutines":6,
-        "connections":,
-        "send_interval":"",
-        "update_time":
-    }
-}
-```
-
-## Client Request Protocol
-
-### Event list:
-
-Events|Discription
----|---
-gusher.subscribe|subscribe event
-gusher.unsubscribe|unsubscribe event
-gusher.subscribe_succeeded|subscribe sucess
-gusher.subscribe_error|subscribe error
-gusher.unsubscribe_succeeded|unsubscribe sucess
-gusher.unsubscribe_error|unsubscribe error
-
-#### Common Receive Message:
-
-```
-{
-    "channel":"",
-    "event":"",
-    "data":
-}
-```
-
-#### Subscribe Command:
-
-command:
-```
-{
-    "event":"gusher.subscribe",
-    "data":{
-        "id":"",
-        "channel":""
-    }
-}
-```
-
-reply scuess:
-```
-{
-    "event":"gusher.subscribe_succeeded",
-    "data":{
-        "id":"",
-        "channel":""
-    }
-}
-```
-reply error:
-```
-{
-    "event":"gusher.subscribe_error",
-    "data":{
-        "id":"",
-        "channel":""
-    }
-}
-```
-
-#### Unsubscribe Command:
-
-command:
-```
-{
-    "event":"gusher.unsubscribe",
-    "data":{
-        "id":"",
-        "channel":""
-    }
-}
-```
-
-reply scuess:
-```
-{
-    "event":"gusher.unsubscribe_succeeded",
-    "data":{
-        "id":"",
-        "channel":""
-    }
-}
-```
-
-reply error:
-```
-{
-    "event":"gusher.unsubscribe_error",
-    "data":{
-        "id":""
-        "channel":"",
-    }
-}
-```
-
-## WebHook Response Protocol
-
-```
-{
-    "user_id":"BlackJack....",
-    "channels":["channel1","channel2"...]
-}
-```
-
-## Admin Protocol
-
-Use Redis Hashes to stored
-
-WebHook Storage 
-
-Key|field|value
----|---|---
-{app_key}|url|http://hook-domain/
-
-
-
-
-
+* [@leo](https://github.com/cswleocsw) , [@benjamin](https://github.com/benjaminchen) support api lib
+* [pusher](https://pusher.com) inspiration
