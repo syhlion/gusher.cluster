@@ -151,6 +151,14 @@ func slave(c *cli.Context) {
 		serverError <- err
 	}()
 
+	defer func() {
+		apiListener.Close()
+		client.Close()
+		wm.Close()
+		rsocket.Close()
+		rpool.Close()
+	}()
+
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
 	logger.Info(loglevel, " mode")
@@ -164,12 +172,13 @@ func slave(c *cli.Context) {
 	case <-shutdow_observer:
 		logger.Info("receive signal")
 	case err := <-serverError:
-		logger.Fatal(err)
+		logger.Error(err)
 	case err := <-rsocketErr:
-		logger.Fatal(err)
+		logger.Error(err)
 	case err := <-remoteErr:
-		logger.Fatal(err)
+		logger.Error(err)
 	}
+	return
 
 }
 
