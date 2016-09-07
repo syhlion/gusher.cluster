@@ -94,11 +94,13 @@ func slave(c *cli.Context) {
 		logger.Fatal(err)
 	}
 
-	rsocket = redisocket.NewApp(rpool)
+	rsocket, err = redisocket.NewApp(rpool)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	rsocketErr := make(chan error, 1)
 	go func() {
-		err := rsocket.Listen()
-		rsocketErr <- err
+		rsocketErr <- rsocket.Listen()
 	}()
 
 	/*api start*/
@@ -174,7 +176,7 @@ func slave(c *cli.Context) {
 	case err := <-serverError:
 		logger.Error(err)
 	case err := <-rsocketErr:
-		logger.Error(err)
+		logger.Error("HIHI", err)
 	case err := <-remoteErr:
 		logger.Error(err)
 	}
