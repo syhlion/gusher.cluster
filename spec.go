@@ -1,6 +1,11 @@
 package main
 
+import (
+	jwt "github.com/dgrijalva/jwt-go"
+)
+
 const (
+	LoginEvent                = "gusher.login"
 	SubscribeEvent            = "gusher.subscribe"
 	UnSubscribeEvent          = "gusher.unsubscribe"
 	SubscribeReplySucceeded   = "subscribe_succeeded"
@@ -31,6 +36,8 @@ type CommonMessage struct {
 type Auth struct {
 	Channels []string `json:"channels"`
 	UserId   string   `json:"user_id"`
+	AppKey   string   `json:"app_key"`
+	jwt.StandardClaims
 }
 
 /*rpc use*/

@@ -1,6 +1,35 @@
 package main
 
-import "sync"
+import (
+	"crypto/rsa"
+	"errors"
+	"sync"
+
+	jwt "github.com/dgrijalva/jwt-go"
+)
+
+type JWT_RSA_Decoder struct {
+	key *rsa.PublicKey
+}
+
+func (j *JWT_RSA_Decoder) Decode(data []byte, auth *Auth) (err error) {
+	_, err = jwt.ParseWithClaims(string(data), auth, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, errors.New("token parse error")
+		}
+		return j.key, nil
+	})
+	if err != nil {
+		logger.Debugf("data: %s , err: %v", data, err)
+		return
+	}
+	/*
+		if claims, ok := token.Claims.(Auth); ok && token.Valid {
+		} else {
+			err = errors.New("token no valid")
+		}*/
+	return
+}
 
 type HealthTrack struct {
 	s *SlaveInfos

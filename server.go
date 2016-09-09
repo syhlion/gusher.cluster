@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/rsa"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	jwt "github.com/dgrijalva/jwt-go"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/handlers"
@@ -62,6 +65,8 @@ var (
 	master_addr                string
 	redis_addr                 string
 	remote_listen              string
+	public_pem                 *rsa.PublicKey
+	public_pem_file            string
 	return_serverinfo_interval string
 	wm                         *WsManager
 	slaveInfos                 *SlaveInfos
@@ -145,7 +150,7 @@ func slave(c *cli.Context) {
 
 	/*remote preocess end*/
 
-	r.HandleFunc("/ws/{app_key}", HttpUse(wm.Connect, AuthMiddleware)).Methods("GET")
+	r.HandleFunc("/ws/{app_key}", wm.Connect).Methods("GET")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
 	serverError := make(chan error, 1)
 	go func() {
@@ -189,6 +194,14 @@ func master(c *cli.Context) {
 
 	varInit(c)
 
+	b, err := ioutil.ReadFile(public_pem_file)
+	if err != nil {
+		logger.Fatal(err)
+	}
+	public_pem, err = jwt.ParseRSAPublicKeyFromPEM(b)
+	if err != nil {
+		logger.Fatal(err)
+	}
 	slaveInfos = &SlaveInfos{
 		servers: make(map[string]ServerInfo),
 		lock:    &sync.Mutex{},
@@ -196,6 +209,9 @@ func master(c *cli.Context) {
 	/*remote start*/
 	healthTrack := &HealthTrack{
 		s: slaveInfos,
+	}
+	jrdecoder := &JWT_RSA_Decoder{
+		key: public_pem,
 	}
 	addr, err := net.ResolveTCPAddr("tcp", remote_listen)
 	if err != nil {
@@ -206,6 +222,7 @@ func master(c *cli.Context) {
 		logger.Fatal(err)
 	}
 	rpc.Register(healthTrack)
+	rpc.Register(jrdecoder)
 	go func() {
 		rpc.Accept(in)
 	}()
@@ -265,6 +282,10 @@ func varInit(c *cli.Context) {
 	err = godotenv.Load(envfile)
 	if err != nil {
 		logger.Fatal(err)
+	}
+	public_pem_file = os.Getenv("PUBLIC_PEM_FILE")
+	if public_pem_file == "" {
+		logger.Fatal("empty public_pem_file")
 	}
 	master_addr = os.Getenv("MASTER_ADDR")
 	if master_addr == "" {

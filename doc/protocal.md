@@ -22,6 +22,36 @@ gusher.unsubscribe_error|unsubscribe error
 }
 ```
 
+#### Login Command:
+
+command:
+```
+{
+    "event":"gusher.login",
+    "data":{
+        "jwt":"",
+    }
+}
+```
+
+reply scuess:
+```
+{
+    "event":"gusher.login_succeeded",
+    "data":{
+        "jwt":""
+    }
+}
+```
+reply error:
+```
+{
+    "event":"gusher.login_error",
+    "data":{
+        "jwt":""
+    }
+}
+```
 #### Subscribe Command:
 
 command:
@@ -29,7 +59,6 @@ command:
 {
     "event":"gusher.subscribe",
     "data":{
-        "id":"",
         "channel":""
     }
 }
@@ -40,7 +69,6 @@ reply scuess:
 {
     "event":"gusher.subscribe_succeeded",
     "data":{
-        "id":"",
         "channel":""
     }
 }
@@ -50,7 +78,6 @@ reply error:
 {
     "event":"gusher.subscribe_error",
     "data":{
-        "id":"",
         "channel":""
     }
 }
@@ -63,7 +90,6 @@ command:
 {
     "event":"gusher.unsubscribe",
     "data":{
-        "id":"",
         "channel":""
     }
 }
@@ -74,7 +100,6 @@ reply scuess:
 {
     "event":"gusher.unsubscribe_succeeded",
     "data":{
-        "id":"",
         "channel":""
     }
 }
@@ -85,7 +110,6 @@ reply error:
 {
     "event":"gusher.unsubscribe_error",
     "data":{
-        "id":""
         "channel":"",
     }
 }

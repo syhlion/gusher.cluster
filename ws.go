@@ -5,9 +5,11 @@ import (
 	"errors"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/buger/jsonparser"
 	"github.com/garyburd/redigo/redis"
+	"github.com/gorilla/mux"
 	"github.com/syhlion/redisocket.v2"
 	"github.com/syhlion/requestwork.v2"
 )
@@ -17,11 +19,12 @@ var DefaultSubHandler = func(channel string, data []byte) (d []byte, err error) 
 }
 
 type User struct {
-	id      string
-	channel map[string]bool
-	app_key string
-	request *http.Request
+	id       string
+	channels map[string]bool
+	app_key  string
+	request  *http.Request
 	*redisocket.Client
+	isLogin bool
 }
 
 type WsManager struct {
@@ -36,24 +39,11 @@ func (wm *WsManager) Count() int {
 }
 
 func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
-
-	id, channel, err := func() (id string, channel map[string]bool, err error) {
-		channel = make(map[string]bool)
-		auth := r.Context().Value("auth")
-		if s, ok := auth.(Auth); ok {
-			for _, c := range s.Channels {
-				channel[c] = false
-			}
-			id = s.UserId
-		} else {
-			err = errors.New("auth type error")
-		}
-		return
-	}()
-	app_key := r.Context().Value("app_key").(string)
-	if err != nil {
-		logger.GetRequestEntry(r).Warnf("parse from context error %s", err)
-		http.Error(w, "app_key error", 401)
+	params := mux.Vars(r)
+	app_key := params["app_key"]
+	if app_key == "" {
+		logger.GetRequestEntry(r).Warn("app_key is nil")
+		http.Error(w, "app_key is nil", 401)
 		return
 	}
 	s, err := rsocket.NewClient(w, r)
@@ -63,11 +53,22 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u := &User{id, channel, app_key, r, s}
+	u := &User{
+		app_key: app_key,
+		request: r,
+		isLogin: false,
+		Client:  s,
+	}
 	wm.Lock()
 	wm.users[u] = true
 	wm.Unlock()
 	logger.GetRequestEntry(r).Debug("user Listen Start")
+	time.AfterFunc(15*time.Second, func() {
+		if !u.isLogin {
+			logger.GetRequestEntry(u.request).Debug("login timeout")
+			u.Close()
+		}
+	})
 	err = u.Listen(func(data []byte) (err error) {
 		logger.GetRequestEntry(r).Debugf("client receive command %s", data)
 		//訂閱處理
@@ -96,6 +97,38 @@ func (wm *WsManager) Close() {
 		u.Close()
 	}
 }
+func LoginCommand(data []byte, u *User) (err error) {
+	if u.isLogin {
+		return
+	}
+	d, _, _, err := jsonparser.Get(data, "jwt")
+	if err != nil {
+		logger.GetRequestEntry(u.request).Debug(err)
+		return
+	}
+
+	a := &Auth{}
+	logger.GetRequestEntry(u.request).Debugf("login message: %s", d)
+	err = client.Call("JWT_RSA_Decoder.Decode", d, a)
+	if err != nil {
+		return
+	}
+	logger.GetRequestEntry(u.request).Debugf("login parse scuess: %v", a)
+	if len(a.Channels) == 0 {
+		err = errors.New("no channels")
+		return
+	}
+	u.id = a.UserId
+	channels := make(map[string]bool)
+	for _, c := range a.Channels {
+		channels[c] = false
+	}
+	u.id = a.UserId
+	u.channels = channels
+	u.isLogin = true
+	return
+
+}
 func SubscribeCommand(data []byte, u *User) (err error) {
 
 	channel, err := jsonparser.GetString(data, "channel")
@@ -104,10 +137,10 @@ func SubscribeCommand(data []byte, u *User) (err error) {
 	}
 	command := &ChannelCommand{}
 	var reply []byte
-	if _, ok := u.channel[channel]; ok {
+	if _, ok := u.channels[channel]; ok {
 		logger.GetRequestEntry(u.request).Debugf("sub %s@%s channel", u.app_key, channel)
 		u.Subscribe(u.app_key+"@"+channel, DefaultSubHandler)
-		u.channel[channel] = true
+		u.channels[channel] = true
 		command.Event = SubscribeReplySucceeded
 		reply, err = json.Marshal(command)
 		if err != nil {
@@ -133,10 +166,10 @@ func UnSubscribeCommand(data []byte, u *User) (err error) {
 	command := &ChannelCommand{}
 	var reply []byte
 	//反訂閱處理
-	if _, ok := u.channel[command.Data.Channel]; ok {
+	if _, ok := u.channels[command.Data.Channel]; ok {
 		logger.GetRequestEntry(u.request).Debugf("unsub %s@%s channel", u.app_key, channel)
 		u.Unsubscribe(u.app_key + "@" + channel)
-		u.channel[command.Data.Channel] = false
+		u.channels[command.Data.Channel] = false
 		command.Event = UnSubscribeReplySucceeded
 		reply, err = json.Marshal(command)
 		if err != nil {
@@ -164,6 +197,9 @@ func CommanRouter(data []byte, u *User) (err error) {
 		return
 	}
 	switch val {
+	case LoginEvent:
+		err = LoginCommand(d, u)
+		break
 	case SubscribeEvent:
 		err = SubscribeCommand(d, u)
 		break
