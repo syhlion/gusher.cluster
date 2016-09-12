@@ -113,7 +113,7 @@ func LoginCommand(data []byte, u *User) (err error) {
 	if err != nil {
 		return
 	}
-	logger.GetRequestEntry(u.request).Debugf("login parse scuess: %v", a)
+	logger.GetRequestEntry(u.request).Debugf("login parse sucess: %v", a)
 	if len(a.Channels) == 0 {
 		err = errors.New("no channels")
 		return
