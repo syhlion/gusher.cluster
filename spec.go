@@ -23,7 +23,6 @@ type ChannelCommand struct {
 	Data ChannelData `json:"data"`
 }
 type ChannelData struct {
-	Id      string `json:"id"`
 	Channel string `json:"channel"`
 }
 
