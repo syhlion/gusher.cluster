@@ -5,6 +5,7 @@
 
 Events|Discription
 ---|---
+gusher.login|login event
 gusher.subscribe|subscribe event
 gusher.unsubscribe|unsubscribe event
 gusher.subscribe_succeeded|subscribe sucess
