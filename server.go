@@ -55,7 +55,7 @@ var (
 	}
 	rpool                      *redis.Pool
 	worker                     *requestwork.Worker
-	rsocket                    redisocket.App
+	rsHub                      *redisocket.Hub
 	logger                     *Logger
 	client                     *rpc.Client
 	loglevel                   string
@@ -99,13 +99,10 @@ func slave(c *cli.Context) {
 		logger.Fatal(err)
 	}
 
-	rsocket, err = redisocket.NewApp(rpool)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	rsocketErr := make(chan error, 1)
+	rsHub = redisocket.NewHub(rpool)
+	rsHubErr := make(chan error, 1)
 	go func() {
-		rsocketErr <- rsocket.Listen()
+		rsHubErr <- rsHub.Listen()
 	}()
 
 	/*api start*/
@@ -162,7 +159,7 @@ func slave(c *cli.Context) {
 		apiListener.Close()
 		client.Close()
 		wm.Close()
-		rsocket.Close()
+		rsHub.Close()
 		rpool.Close()
 	}()
 
@@ -180,8 +177,8 @@ func slave(c *cli.Context) {
 		logger.Info("receive signal")
 	case err := <-serverError:
 		logger.Error(err)
-	case err := <-rsocketErr:
-		logger.Error("HIHI", err)
+	case err := <-rsHubErr:
+		logger.Error(err)
 	case err := <-remoteErr:
 		logger.Error(err)
 	}
