@@ -34,24 +34,8 @@ command:
 }
 ```
 
-reply scuess:
-```
-{
-    "event":"gusher.login_succeeded",
-    "data":{
-        "jwt":""
-    }
-}
-```
-reply error:
-```
-{
-    "event":"gusher.login_error",
-    "data":{
-        "jwt":""
-    }
-}
-```
+
+
 #### Subscribe Command:
 
 command:
