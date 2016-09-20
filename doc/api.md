@@ -6,17 +6,6 @@ Connect:
 
 ## Master Api
 
-### Check app_key exist:
-
-`GET /api/exist/{app_key}`
-
-Sucess Response:
-
-```
-{
-    "app_key":""
-}
-```
 
 ### Push Message:
 
@@ -33,31 +22,6 @@ Sucess Response:
 }
 ```
 
-### Query AppKey:
-
-`GET /api/query/{app_key}`
-
-
-Sucess Response:
-```
-{
-    "app_key":"",
-    "url":""
-}
-```
-
-### Register AppKey:
-
-`POST /api/register/{app_key}?url={url}`
-
-Sucess Response:
-
-```
-{
-    "app_key":"",
-    "url":""
-}
-```
 
 ### Slave Server Info:
 
