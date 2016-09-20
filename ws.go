@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/rpc"
 	"sync"
 	"time"
 
@@ -11,7 +13,6 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/syhlion/redisocket.v2"
-	"github.com/syhlion/requestwork.v2"
 )
 
 type UserHandler func(u *User) (err error)
@@ -32,8 +33,9 @@ type User struct {
 type WsManager struct {
 	users map[*User]bool
 	*sync.RWMutex
-	pool   *redis.Pool
-	worker *requestwork.Worker
+	pool *redis.Pool
+	*redisocket.Hub
+	rpc *rpc.Client
 }
 
 func (wm *WsManager) Count() int {
@@ -48,7 +50,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "app_key is nil", 401)
 		return
 	}
-	s, err := rsHub.Upgrade(w, r, nil)
+	s, err := wm.Upgrade(w, r, nil)
 	if err != nil {
 		logger.GetRequestEntry(r).Warnf("upgrade ws connection %s", err)
 		http.Error(w, err.Error(), 401)
@@ -64,7 +66,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	wm.Lock()
 	wm.users[u] = true
 	wm.Unlock()
-	logger.GetRequestEntry(r).Debug("user Listen Start")
+	logger.GetRequestEntry(r).Debug("user listen start")
 	time.AfterFunc(15*time.Second, func() {
 		if !u.isLogin {
 			logger.GetRequestEntry(u.request).Debug("login timeout")
@@ -74,6 +76,46 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	err = u.Listen(func(data []byte) (err error) {
 		logger.GetRequestEntry(r).Debugf("client receive command %s", data)
 		//訂閱處理
+		if !u.isLogin {
+			val, err := jsonparser.GetString(data, "event")
+			if err != nil {
+				return err
+			}
+			if val != LoginEvent {
+				s := fmt.Sprintf("event error %s", val)
+				return errors.New(s)
+			}
+			d, _, _, err := jsonparser.Get(data, "data", "jwt")
+			if err != nil {
+				logger.Debug(err)
+				return err
+			}
+			a := &Auth{}
+			logger.GetRequestEntry(u.request).Debugf("login message: %s", d)
+			err = wm.rpc.Call("JWT_RSA_Decoder.Decode", d, a)
+			if err != nil {
+				return err
+			}
+			if a.AppKey != u.appKey {
+				err = errors.New("app_key error")
+				return err
+			}
+			logger.GetRequestEntry(u.request).Debugf("login parse sucess: %v", a)
+			if len(a.Channels) == 0 {
+				err = errors.New("no channels")
+				return err
+			}
+			u.id = a.UserId
+			channels := make(map[string]bool)
+			for _, c := range a.Channels {
+				channels[c] = false
+			}
+			u.id = a.UserId
+			u.channels = channels
+			u.isLogin = true
+			return nil
+		}
+
 		h, err := CommanRouter(data)
 		if err != nil {
 			return
@@ -102,45 +144,6 @@ func (wm *WsManager) Close() {
 	for u, _ := range wm.users {
 		u.Close()
 	}
-}
-func LoginCommand(data []byte) (h UserHandler, err error) {
-	d, _, _, err := jsonparser.Get(data, "jwt")
-	if err != nil {
-		logger.Debug(err)
-		return
-	}
-
-	h = func(u *User) (err error) {
-		if u.isLogin {
-			return
-		}
-		a := &Auth{}
-		logger.GetRequestEntry(u.request).Debugf("login message: %s", d)
-		err = client.Call("JWT_RSA_Decoder.Decode", d, a)
-		if err != nil {
-			return
-		}
-		if a.AppKey != u.appKey {
-			err = errors.New("app_key error")
-			return
-		}
-		logger.GetRequestEntry(u.request).Debugf("login parse sucess: %v", a)
-		if len(a.Channels) == 0 {
-			err = errors.New("no channels")
-			return
-		}
-		u.id = a.UserId
-		channels := make(map[string]bool)
-		for _, c := range a.Channels {
-			channels[c] = false
-		}
-		u.id = a.UserId
-		u.channels = channels
-		u.isLogin = true
-		return
-	}
-	return
-
 }
 func SubscribeCommand(data []byte) (h UserHandler, err error) {
 
@@ -218,14 +221,14 @@ func CommanRouter(data []byte) (h UserHandler, err error) {
 		return
 	}
 	switch val {
-	case LoginEvent:
-		h, err = LoginCommand(d)
-		break
 	case SubscribeEvent:
 		h, err = SubscribeCommand(d)
 		break
 	case UnSubscribeEvent:
 		h, err = UnSubscribeCommand(d)
+		break
+	default:
+		err = errors.New("event errors")
 		break
 	}
 	return

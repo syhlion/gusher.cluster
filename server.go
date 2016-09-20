@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/rsa"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -22,7 +21,6 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/syhlion/redisocket.v2"
-	"github.com/syhlion/requestwork.v2"
 	"github.com/urfave/cli"
 )
 
@@ -53,11 +51,7 @@ var (
 			},
 		},
 	}
-	rpool                      *redis.Pool
-	worker                     *requestwork.Worker
-	rsHub                      *redisocket.Hub
 	logger                     *Logger
-	client                     *rpc.Client
 	loglevel                   string
 	externalIP                 string
 	api_listen                 string
@@ -65,11 +59,8 @@ var (
 	master_addr                string
 	redis_addr                 string
 	remote_listen              string
-	public_pem                 *rsa.PublicKey
 	public_pem_file            string
 	return_serverinfo_interval string
-	wm                         *WsManager
-	slaveInfos                 *SlaveInfos
 )
 
 func init() {
@@ -98,12 +89,33 @@ func slave(c *cli.Context) {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	/*redis init*/
+	rpool := redis.NewPool(func() (redis.Conn, error) {
+		return redis.Dial("tcp", redis_addr)
+	}, 10)
+	/*Test redis connect*/
+	_, err = rpool.Get().Do("PING")
+	if err != nil {
+		logger.Fatal(err)
+	}
 
-	rsHub = redisocket.NewHub(rpool)
+	rsHub := redisocket.NewHub(rpool)
 	rsHubErr := make(chan error, 1)
 	go func() {
 		rsHubErr <- rsHub.Listen()
 	}()
+
+	/*externl ip*/
+	externalIP, err := getExternalIP()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	/*remote rpc*/
+	client, err := rpc.Dial("tcp", master_addr)
+	if err != nil {
+		logger.Fatal("Cant remote rpc %s", err)
+	}
 
 	/*api start*/
 	apiListener, err := net.Listen("tcp", api_listen)
@@ -112,40 +124,14 @@ func slave(c *cli.Context) {
 	}
 	r := mux.NewRouter()
 
-	worker = requestwork.New(50)
-	wm = &WsManager{
+	wm := &WsManager{
 		users:   make(map[*User]bool),
 		RWMutex: &sync.RWMutex{},
 		pool:    rpool,
+		Hub:     rsHub,
+		rpc:     client,
 	}
 	/*api end*/
-
-	/*remote rpc*/
-	client, err = rpc.Dial("tcp", master_addr)
-	if err != nil {
-		logger.Fatal("Cant remote rpc %s", err)
-	}
-
-	/*remote process*/
-	remoteErr := make(chan error, 1)
-	go func() {
-		t := time.NewTicker(time.Duration(r_interval) * time.Second)
-		for {
-			select {
-			case <-t.C:
-				var b bool
-				info := getInfo()
-				err = client.Call("HealthTrack.Put", &info, &b)
-				if err != nil {
-					remoteErr <- err
-					return
-				}
-
-			}
-		}
-	}()
-
-	/*remote preocess end*/
 
 	r.HandleFunc("/ws/{app_key}", wm.Connect).Methods("GET")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
@@ -155,6 +141,25 @@ func slave(c *cli.Context) {
 		serverError <- err
 	}()
 
+	/*remote process*/
+	remoteErr := make(chan error, 1)
+	go func() {
+		t := time.NewTicker(time.Duration(r_interval) * time.Second)
+		for {
+			select {
+			case <-t.C:
+				var b bool
+				info := getInfo(externalIP, wm.Count())
+
+				err = client.Call("HealthTrack.Put", &info, &b)
+				if err != nil {
+					remoteErr <- err
+					return
+				}
+
+			}
+		}
+	}()
 	defer func() {
 		apiListener.Close()
 		client.Close()
@@ -195,11 +200,11 @@ func master(c *cli.Context) {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	public_pem, err = jwt.ParseRSAPublicKeyFromPEM(b)
+	public_pem, err := jwt.ParseRSAPublicKeyFromPEM(b)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	slaveInfos = &SlaveInfos{
+	slaveInfos := &SlaveInfos{
 		servers: make(map[string]ServerInfo),
 		lock:    &sync.Mutex{},
 	}
@@ -224,6 +229,22 @@ func master(c *cli.Context) {
 		rpc.Accept(in)
 	}()
 
+	/*redis init*/
+	rpool := redis.NewPool(func() (redis.Conn, error) {
+		return redis.Dial("tcp", redis_addr)
+	}, 10)
+	/*Test redis connect*/
+	_, err = rpool.Get().Do("PING")
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	/*externl ip*/
+	externalIP, err := getExternalIP()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
 	/*api start*/
 	apiListener, err := net.Listen("tcp", master_api_listen)
 	if err != nil {
@@ -231,23 +252,14 @@ func master(c *cli.Context) {
 	}
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/system/slaveinfos", SystemInfo).Methods("GET")
-	r.HandleFunc("/api/exist/{app_key}", CheckAppKey).Methods("GET")
-	r.HandleFunc("/api/register/{app_key}", RegisterAppKey).Methods("POST")
-	r.HandleFunc("/api/query/{app_key}", QueryAppKey).Methods("GET")
-	r.HandleFunc("/api/push/{app_key}/{channel}/{event}", PushMessage).Methods("POST")
+	r.HandleFunc("/api/system/slaveinfos", SystemInfo(slaveInfos)).Methods("GET")
+	r.HandleFunc("/api/push/{app_key}/{channel}/{event}", PushMessage(rpool)).Methods("POST")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
 	serverError := make(chan error, 1)
 	go func() {
 		err := http.Serve(apiListener, nil)
 		serverError <- err
 	}()
-
-	/*Test redis connect*/
-	_, err = rpool.Get().Do("PING")
-	if err != nil {
-		logger.Fatal(err)
-	}
 
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
@@ -331,16 +343,6 @@ func varInit(c *cli.Context) {
 		break
 	}
 
-	/*redis init*/
-	rpool = redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", redis_addr)
-	}, 10)
-
-	/*externl ip*/
-	externalIP, err = getExternalIP()
-	if err != nil {
-		logger.Fatal(err)
-	}
 }
 
 func main() {

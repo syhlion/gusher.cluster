@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-func getInfo() (s ServerInfo) {
+func getInfo(ip string, c int) (s ServerInfo) {
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
 	s = ServerInfo{
 
-		Ip:             externalIP,
+		Ip:             ip,
 		LocalListen:    api_listen,
 		Version:        version,
 		RunTimeVersion: runtime.Version(),
@@ -21,7 +21,7 @@ func getInfo() (s ServerInfo) {
 		Goroutines:     runtime.NumGoroutine(),
 		UpdateTime:     time.Now().Unix(),
 		SendInterval:   return_serverinfo_interval,
-		Connections:    wm.Count(),
+		Connections:    c,
 	}
 	return
 }
