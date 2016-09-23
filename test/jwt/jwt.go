@@ -28,7 +28,7 @@ func main() {
 		jwt.StandardClaims
 	}
 	claims := MyCustomClaims{
-		"TEST", []string{"AA", "BB"}, jwt.StandardClaims{},
+		"Test_User", []string{"AA", "BB"}, jwt.StandardClaims{},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	tokenString, err := token.SignedString(priKey)
