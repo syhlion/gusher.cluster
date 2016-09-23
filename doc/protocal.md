@@ -100,12 +100,13 @@ reply error:
 }
 ```
 
-## WebHook Response Protocol
+## JWT Protocol
 
 ```
 {
     "user_id":"BlackJack....",
-    "channels":["channel1","channel2"...]
+    "channels":["channel1","channel2"...],
+    "app_key":"TEST"
 }
 ```
 

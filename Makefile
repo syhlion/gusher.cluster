@@ -10,11 +10,12 @@ DATETIME := `TZ=$(TZ) date +%Y%m%d.%H%M%S`
 show-tag:
 	echo $(TAG)
 build: 
+	go run test/jwt/jwt.go >> jwt
 	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
 run: build
 	./$(NAME)
 tar: build
-	tar zcvf $(NAME).$(TAG).tar.gz $(NAME) env.example
+	tar zcvf $(NAME).$(TAG).linux-amd64.tar.gz $(NAME) env.example test
 todo:
 	find -type f \( -iname '*.go' ! -wholename './vendor/*' \) -exec grep -Hn 'TODO' {} \;
 rsakey:
