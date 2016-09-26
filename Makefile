@@ -10,7 +10,14 @@ TZ := Asia/Taipei
 DATETIME := `TZ=$(TZ) date +%Y%m%d.%H%M%S`
 show-tag:
 	echo $(TAG)
-build: 
+verify-glide:
+	if [ ! -e `which godep` ] ; then\
+		echo 'please run "go get github.com/tools/godep"';\
+		exit 1;\
+	fi
+build: verify-glide 
+	glide install
+	glide up
 	go build test/jwt/jwtgenerate.go
 	./jwtgenerate > jwt.example
 	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
