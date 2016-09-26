@@ -1,4 +1,5 @@
 GOROOT := $(GOROOT)
+OS:=linux-amd64
 GOPATH := $(GOPATH)
 GO := $(GOROOT)/bin/go
 PWD := $(PWD)
@@ -11,12 +12,12 @@ show-tag:
 	echo $(TAG)
 build: 
 	go build test/jwt/jwtgenerate.go
-	./jwtgenerate >> jwt
+	./jwtgenerate > jwt.example
 	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
 run: build
 	./$(NAME)
 tar: build
-	tar zcvf $(NAME).$(TAG).linux-amd64.tar.gz $(NAME) env.example test/key jwt
+	tar zcvf $(NAME).$(TAG).$(OS).tar.gz $(NAME) env.example test/key jwt.example
 todo:
 	find -type f \( -iname '*.go' ! -wholename './vendor/*' \) -exec grep -Hn 'TODO' {} \;
 rsakey:

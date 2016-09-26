@@ -100,6 +100,8 @@ func slave(c *cli.Context) {
 	}
 
 	rsHub := redisocket.NewHub(rpool)
+	rsHub.Config.Upgrader.WriteBufferSize = 8192
+	rsHub.Config.Upgrader.ReadBufferSize = 8192
 	rsHubErr := make(chan error, 1)
 	go func() {
 		rsHubErr <- rsHub.Listen()
