@@ -10,8 +10,15 @@
 
 Install from source:
 
-`go get -u github.com/syhlion/gusher.cluster`
+Package Management use [glide](https://github.com/Masterminds/glide)
 
+```
+$ git clone github.com/syhlion/gusher.cluster && cd gusher.cluster
+$ glide install
+$ glide up
+$ make build
+
+```
 
 Download:
 

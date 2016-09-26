@@ -11,8 +11,8 @@ DATETIME := `TZ=$(TZ) date +%Y%m%d.%H%M%S`
 show-tag:
 	echo $(TAG)
 verify-glide:
-	if [ ! -e `which godep` ] ; then\
-		echo 'please run "go get github.com/tools/godep"';\
+	if [ ! -e `which glide` ] ; then\
+		echo 'please install "https://github.com/Masterminds/glide"';\
 		exit 1;\
 	fi
 build: verify-glide 

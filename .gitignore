@@ -2,4 +2,5 @@ gusher.cluster
 .env
 gusher.cluster.*
 jwtgenerate
+glide.lock
 
