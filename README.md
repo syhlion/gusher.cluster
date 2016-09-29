@@ -14,8 +14,6 @@ Package Management use [glide](https://github.com/Masterminds/glide)
 
 ```
 $ git clone github.com/syhlion/gusher.cluster && cd gusher.cluster
-$ glide install
-$ glide up
 $ make build
 
 ```
@@ -26,18 +24,18 @@ Download:
 
 
 
-And Set .env like [example](https://github.com/syhlion/gusher.cluster/blob/master/env.example)
+And Set ENV  like [example](https://github.com/syhlion/gusher.cluster/blob/master/env.example)
 
 
 Than Use
 
 master mode:
 
-`./gusher.cluster master`
+`./gusher.cluster master` or `./gusher.cluster master --env-file env.example`
 
 slave mode:
 
-`./gusher.cluster slave`
+`./gusher.cluster slave` or `./gusher.cluster slave --env-file env.example`
 
 ## Third party lib
 
