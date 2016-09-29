@@ -9,7 +9,7 @@ import (
 )
 
 func makePrivateKey() (pkey *rsa.PrivateKey, err error) {
-	private, err := ioutil.ReadFile("testkey/private.pem")
+	private, err := ioutil.ReadFile("test/key/private.pem")
 	if err != nil {
 		return
 	}
@@ -20,7 +20,7 @@ func makePrivateKey() (pkey *rsa.PrivateKey, err error) {
 	return
 }
 func makePublicKey() (pkey *rsa.PublicKey, err error) {
-	public, err := ioutil.ReadFile("testkey/public.pem")
+	public, err := ioutil.ReadFile("test/key/public.pem")
 	if err != nil {
 		return
 	}
@@ -62,9 +62,7 @@ func TestDecode(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	decoder := &JWT_RSA_Decoder{publicKey}
-	a := &Auth{}
-	err = decoder.Decode([]byte(token), a)
+	a, err := Decode(publicKey, token)
 	if err != nil {
 		t.Error(err)
 	}

@@ -16,6 +16,7 @@ verify-glide:
 		exit 1;\
 	fi
 build: 
+	go test
 	go build test/jwt/jwtgenerate.go
 	./jwtgenerate > jwt.example
 	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);

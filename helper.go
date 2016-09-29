@@ -1,13 +1,31 @@
 package main
 
 import (
+	"crypto/rsa"
 	"errors"
 	"net"
 	"runtime"
 	"time"
+
+	jwt "github.com/dgrijalva/jwt-go"
 )
 
-func getInfo(ip string, c int) (s ServerInfo) {
+func Decode(key *rsa.PublicKey, data string) (auth Auth, err error) {
+
+	_, err = jwt.ParseWithClaims(data, &auth, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, errors.New("token parse error")
+		}
+		return key, nil
+	})
+	if err != nil {
+		logger.Debugf("data: %s , err: %v", data, err)
+		return
+	}
+	return
+}
+
+func GetInfo(ip string, c int) (s ServerInfo) {
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
 	s = ServerInfo{
@@ -26,7 +44,7 @@ func getInfo(ip string, c int) (s ServerInfo) {
 	return
 }
 
-func getExternalIP() (string, error) {
+func GetExternalIP() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return "", err

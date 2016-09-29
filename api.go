@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rsa"
 	"encoding/json"
 	"net/http"
 
@@ -58,9 +59,18 @@ func PushMessage(rpool *redis.Pool) func(w http.ResponseWriter, r *http.Request)
 		return
 	}
 }
-func SystemInfo(s *SlaveInfos) func(w http.ResponseWriter, r *http.Request) {
+func DecodeJWT(key *rsa.PublicKey) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode(s.Info())
+
+		data := r.FormValue("data")
+		auth, err := Decode(key, data)
+		if err != nil {
+			logger.GetRequestEntry(r).Warnf("data: %s, error:%s", data, err)
+			w.WriteHeader(400)
+			w.Write([]byte("data error"))
+			return
+		}
+		json.NewEncoder(w).Encode(auth)
 		return
 	}
 }

@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/rpc"
+	"net/url"
+	"strconv"
 	"sync"
 	"time"
 
@@ -13,6 +16,7 @@ import (
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/syhlion/redisocket.v2"
+	"github.com/syhlion/requestwork.v2"
 )
 
 type UserHandler func(u *User) (err error)
@@ -35,7 +39,7 @@ type WsManager struct {
 	*sync.RWMutex
 	pool *redis.Pool
 	*redisocket.Hub
-	rpc *rpc.Client
+	worker *requestwork.Worker
 }
 
 func (wm *WsManager) Count() int {
@@ -90,12 +94,32 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 				logger.Debug(err)
 				return err
 			}
-			a := &Auth{}
-			logger.GetRequestEntry(u.request).Debugf("login message: %s", d)
-			err = wm.rpc.Call("JWT_RSA_Decoder.Decode", d, a)
+			v := url.Values{}
+
+			v.Add("data", string(d))
+			req, err := http.NewRequest("POST", decode_service, bytes.NewBufferString(v.Encode()))
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
+
 			if err != nil {
+				logger.GetRequestEntry(r).Warn(err)
 				return err
 			}
+			logger.GetRequestEntry(u.request).Debugf("login message: %s", d)
+			ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+			a := &Auth{}
+			err = wm.worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
+				if e != nil {
+					logger.Debug(e)
+					return
+				}
+				defer resp.Body.Close()
+				err = json.NewDecoder(resp.Body).Decode(a)
+				if err != nil {
+					return
+				}
+				return
+			})
 			if a.AppKey != u.appKey {
 				err = errors.New("app_key error")
 				return err

@@ -4,10 +4,8 @@ import (
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/rpc"
 	"os"
 	"os/signal"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -20,6 +18,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/syhlion/redisocket.v2"
+	"github.com/syhlion/requestwork.v2"
 	"github.com/urfave/cli"
 )
 
@@ -48,15 +47,16 @@ var (
 			},
 		},
 	}
-	logger                     *Logger
-	loglevel                   string
-	externalIP                 string
-	api_listen                 string
-	master_api_listen          string
-	master_addr                string
-	redis_addr                 string
-	remote_listen              string
+	logger            *Logger
+	loglevel          string
+	externalIP        string
+	api_listen        string
+	master_api_listen string
+	//master_remote_addr         string
+	redis_addr string
+	//remote_listen              string
 	public_pem_file            string
+	decode_service             string
 	return_serverinfo_interval string
 )
 
@@ -82,16 +82,12 @@ func init() {
 func slave(c *cli.Context) {
 	varInit(c)
 
-	r_interval, err := strconv.Atoi(return_serverinfo_interval)
-	if err != nil {
-		logger.Fatal(err)
-	}
 	/*redis init*/
 	rpool := redis.NewPool(func() (redis.Conn, error) {
 		return redis.Dial("tcp", redis_addr)
 	}, 10)
 	/*Test redis connect*/
-	_, err = rpool.Get().Do("PING")
+	_, err := rpool.Get().Do("PING")
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -105,16 +101,13 @@ func slave(c *cli.Context) {
 	}()
 
 	/*externl ip*/
-	externalIP, err := getExternalIP()
+	externalIP, err := GetExternalIP()
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	/*remote rpc*/
-	client, err := rpc.Dial("tcp", master_addr)
-	if err != nil {
-		logger.Fatal("Cant remote rpc %s", err)
-	}
+	/*request worker*/
+	worker := requestwork.New(50)
 
 	/*api start*/
 	apiListener, err := net.Listen("tcp", api_listen)
@@ -128,7 +121,7 @@ func slave(c *cli.Context) {
 		RWMutex: &sync.RWMutex{},
 		pool:    rpool,
 		Hub:     rsHub,
-		rpc:     client,
+		worker:  worker,
 	}
 	/*api end*/
 
@@ -140,28 +133,8 @@ func slave(c *cli.Context) {
 		serverError <- err
 	}()
 
-	/*remote process*/
-	remoteErr := make(chan error, 1)
-	go func() {
-		t := time.NewTicker(time.Duration(r_interval) * time.Second)
-		for {
-			select {
-			case <-t.C:
-				var b bool
-				info := getInfo(externalIP, wm.Count())
-
-				err = client.Call("HealthTrack.Put", &info, &b)
-				if err != nil {
-					remoteErr <- err
-					return
-				}
-
-			}
-		}
-	}()
 	defer func() {
 		apiListener.Close()
-		client.Close()
 		wm.Close()
 		rsHub.Close()
 		rpool.Close()
@@ -174,7 +147,7 @@ func slave(c *cli.Context) {
 	logger.Infof("listen redis in %s", redis_addr)
 	logger.Infof("listen web api  in %s", api_listen)
 	logger.Infof("localhost ip is  %s", externalIP)
-	logger.Infof("master ip  %s", master_addr)
+	logger.Infof("decode service  %s", decode_service)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:
@@ -182,8 +155,6 @@ func slave(c *cli.Context) {
 	case err := <-serverError:
 		logger.Error(err)
 	case err := <-rsHubErr:
-		logger.Error(err)
-	case err := <-remoteErr:
 		logger.Error(err)
 	}
 	return
@@ -203,30 +174,6 @@ func master(c *cli.Context) {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	slaveInfos := &SlaveInfos{
-		servers: make(map[string]ServerInfo),
-		lock:    &sync.Mutex{},
-	}
-	/*remote start*/
-	healthTrack := &HealthTrack{
-		s: slaveInfos,
-	}
-	jrdecoder := &JWT_RSA_Decoder{
-		key: public_pem,
-	}
-	addr, err := net.ResolveTCPAddr("tcp", remote_listen)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	in, err := net.ListenTCP("tcp", addr)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	rpc.Register(healthTrack)
-	rpc.Register(jrdecoder)
-	go func() {
-		rpc.Accept(in)
-	}()
 
 	/*redis init*/
 	rpool := redis.NewPool(func() (redis.Conn, error) {
@@ -239,7 +186,7 @@ func master(c *cli.Context) {
 	}
 
 	/*externl ip*/
-	externalIP, err := getExternalIP()
+	externalIP, err := GetExternalIP()
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -251,8 +198,8 @@ func master(c *cli.Context) {
 	}
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/system/slaveinfos", SystemInfo(slaveInfos)).Methods("GET")
 	r.HandleFunc("/api/push/{app_key}/{channel}/{event}", PushMessage(rpool)).Methods("POST")
+	r.HandleFunc("/api/decode", DecodeJWT(public_pem)).Methods("POST")
 	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
 	serverError := make(chan error, 1)
 	go func() {
@@ -266,7 +213,7 @@ func master(c *cli.Context) {
 	logger.Info(name, " master start ! ")
 	logger.Infof("listen redis in %s", redis_addr)
 	logger.Infof("listen web api in %s", master_api_listen)
-	logger.Infof("listen master in  %s", remote_listen)
+	//	logger.Infof("listen master in  %s", remote_listen)
 	logger.Infof("localhost ip is  %s", externalIP)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
@@ -292,9 +239,9 @@ func varInit(c *cli.Context) {
 	if public_pem_file == "" {
 		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")
 	}
-	master_addr = os.Getenv("GUSHER_MASTER_ADDR")
-	if master_addr == "" {
-		logger.Fatal("empty env GUSHER_MASTER_ADDR")
+	decode_service = os.Getenv("GUSHER_DECODE_SERVICE")
+	if decode_service == "" {
+		logger.Fatal("empty env GUSHER_DECODE_SERVICE")
 	}
 
 	loglevel = os.Getenv("GUSHER_LOGLEVEL")
@@ -309,10 +256,6 @@ func varInit(c *cli.Context) {
 	if master_api_listen == "" {
 		logger.Fatal("empty env GUSHER_MASTER_API_LISTEN")
 	}
-	remote_listen = os.Getenv("GUSHER_REMOTE_LISTEN")
-	if remote_listen == "" {
-		logger.Fatal("empty env GUSHER_REMOTE_LISTEN")
-	}
 	redis_addr = os.Getenv("GUSHER_REDIS_ADDR")
 	if redis_addr == "" {
 		logger.Fatal("empty env GUSHER_REDIS_ADDR")
@@ -320,10 +263,6 @@ func varInit(c *cli.Context) {
 	api_listen = os.Getenv("GUSHER_API_LISTEN")
 	if api_listen == "" {
 		logger.Fatal("empty env GUSHER_API_LISTEN")
-	}
-	return_serverinfo_interval = os.Getenv("GUSHER_RETURN_SERVERINFO_INTERVAL")
-	if return_serverinfo_interval == "" {
-		logger.Fatal("empty env GUSHER_RETURN_SERVERINFO_INTERVAL")
 	}
 
 	/*log init*/
