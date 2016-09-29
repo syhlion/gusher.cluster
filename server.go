@@ -7,7 +7,6 @@ import (
 	"net/rpc"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strconv"
 	"sync"
 	"syscall"
@@ -35,8 +34,7 @@ var (
 		Action: slave,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "env",
-				Value: "/.env",
+				Name: "env-file",
 			},
 		},
 	}
@@ -46,8 +44,7 @@ var (
 		Action: master,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name:  "env",
-				Value: "/.env",
+				Name: "env-file",
 			},
 		},
 	}
@@ -283,53 +280,50 @@ func master(c *cli.Context) {
 
 func varInit(c *cli.Context) {
 	/*env init*/
-	pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		logger.Fatal(err)
+	if c.String("env-file") != "" {
+		envfile := c.String("env-file")
+		//flag.Parse()
+		err := godotenv.Load(envfile)
+		if err != nil {
+			logger.Fatal(err)
+		}
 	}
-
-	envfile := pwd + "/" + c.String("env")
-	//flag.Parse()
-	err = godotenv.Load(envfile)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	public_pem_file = os.Getenv("PUBLIC_PEM_FILE")
+	public_pem_file = os.Getenv("GUSHER_PUBLIC_PEM_FILE")
 	if public_pem_file == "" {
-		logger.Fatal("empty public_pem_file")
+		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")
 	}
-	master_addr = os.Getenv("MASTER_ADDR")
+	master_addr = os.Getenv("GUSHER_MASTER_ADDR")
 	if master_addr == "" {
-		logger.Fatal("empty master_addr")
+		logger.Fatal("empty env GUSHER_MASTER_ADDR")
 	}
 
-	loglevel = os.Getenv("LOGLEVEL")
+	loglevel = os.Getenv("GUSHER_LOGLEVEL")
 	if loglevel == "" {
-		logger.Fatal("empty loglevel")
+		logger.Fatal("empty env GUSHER_LOGLEVEL")
 	}
-	redis_addr = os.Getenv("REDIS_ADDR")
+	redis_addr = os.Getenv("GUSHER_REDIS_ADDR")
 	if redis_addr == "" {
-		logger.Fatal("empty redis_addr")
+		logger.Fatal("empty env GUSHER_REDIS_ADDR")
 	}
-	master_api_listen = os.Getenv("MASTER_API_LISTEN")
+	master_api_listen = os.Getenv("GUSHER_MASTER_API_LISTEN")
 	if master_api_listen == "" {
-		logger.Fatal("empty master_api_listen")
+		logger.Fatal("empty env GUSHER_MASTER_API_LISTEN")
 	}
-	remote_listen = os.Getenv("REMOTE_LISTEN")
+	remote_listen = os.Getenv("GUSHER_REMOTE_LISTEN")
 	if remote_listen == "" {
-		logger.Fatal("empty remote_listen")
+		logger.Fatal("empty env GUSHER_REMOTE_LISTEN")
 	}
-	redis_addr = os.Getenv("REDIS_ADDR")
+	redis_addr = os.Getenv("GUSHER_REDIS_ADDR")
 	if redis_addr == "" {
-		logger.Fatal("empty redis_addr")
+		logger.Fatal("empty env GUSHER_REDIS_ADDR")
 	}
-	api_listen = os.Getenv("API_LISTEN")
+	api_listen = os.Getenv("GUSHER_API_LISTEN")
 	if api_listen == "" {
-		logger.Fatal("empty api_listen")
+		logger.Fatal("empty env GUSHER_API_LISTEN")
 	}
-	return_serverinfo_interval = os.Getenv("RETURN_SERVERINFO_INTERVAL")
+	return_serverinfo_interval = os.Getenv("GUSHER_RETURN_SERVERINFO_INTERVAL")
 	if return_serverinfo_interval == "" {
-		logger.Fatal("empty return_serverinfo_interval")
+		logger.Fatal("empty env GUSHER_RETURN_SERVERINFO_INTERVAL")
 	}
 
 	/*log init*/
