@@ -1,0 +1,12 @@
+# common
+GUSHER_REDIS_ADDR=gusher-redis:6379
+# DEV or PRODUCTION
+GUSHER_LOGLEVEL=DEV
+
+# slave mode
+GUSHER_API_LISTEN=:8000
+GUSHER_DECODE_SERVICE=http://gusher-master:8000/api/decode
+
+## master mode
+GUSHER_MASTER_API_LISTEN=:8000
+GUSHER_PUBLIC_PEM_FILE=/data/key/public.pem

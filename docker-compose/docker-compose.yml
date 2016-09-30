@@ -1,0 +1,23 @@
+gusher-redis:
+    image: redis
+gusher-master:
+    image: syhlion/gusher.cluster
+    volumes: 
+        - /public_key_path:/data/key
+    links: 
+        - gusher-redis
+    command: master
+    env_file:
+        - ./docker-env.example
+    ports: 
+        - "7999:8000"
+gusher-slave:
+    image: syhlion/gusher.cluster
+    command: slave
+    env_file:
+        - ./docker-env.example
+    links: 
+        - gusher-redis
+        - gusher-master
+    ports:
+        - "8000:8000"

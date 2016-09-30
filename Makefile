@@ -17,13 +17,16 @@ verify-glide:
 	fi
 build: 
 	go test
-	go build test/jwt/jwtgenerate.go
+	go build test/jwtgenerate/jwtgenerate.go
+	go build -o test/conn-test/conn-test test/conn-test/conn-test.go
 	./jwtgenerate > jwt.example
+	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
+docker-build:
 	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
 run: build
 	./$(NAME)
 tar: build
-	tar zcvf $(NAME).$(TAG).$(OS).tar.gz $(NAME) env.example test/key jwt.example
+	tar zcvf $(NAME).$(TAG).$(OS).tar.gz $(NAME) env.example test/key jwt.example test/conn-test --exclude=test/conn-test/conn-test.go docker-compose docker
 todo:
 	find -type f \( -iname '*.go' ! -wholename './vendor/*' \) -exec grep -Hn 'TODO' {} \;
 rsakey:
