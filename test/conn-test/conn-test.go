@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -77,12 +76,12 @@ func start(c *cli.Context) {
 	}
 	rawConn, err := net.Dial("tcp", wsurl.Host)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
 	conn, _, err := websocket.NewClient(rawConn, wsurl, wsHeaders, 1024, 1024)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
 	err = conn.WriteMessage(websocket.TextMessage, []byte(login_msg))
@@ -99,6 +98,7 @@ func start(c *cli.Context) {
 			data, _ := jsonparser.GetString(d, "data")
 			if data == push_msg {
 				sucess_chan <- 1
+				return
 			}
 		}
 	}()
