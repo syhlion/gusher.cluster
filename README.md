@@ -8,6 +8,15 @@
 
 ## Usage
 
+Docker example use
+
+```
+docker pull syhlion/gusher.cluster
+docker run --name docker-redis -d redis
+docker run --env-file env.example --link docker-redis --name gusher-master -p 7999:8000 -d syhlion/gusher.cluster master //master mode
+docker run --env-file env.example --link docker-redis --link gusher-master --name gusher-slave -p 8000:8000 -d syhlion/gusher.cluster slave //slave mode
+```
+
 Install from source:
 
 Package Management use [glide](https://github.com/Masterminds/glide)
@@ -36,6 +45,8 @@ master mode:
 slave mode:
 
 `./gusher.cluster slave` or `./gusher.cluster slave --env-file env.example`
+
+
 
 ## Third party lib
 
