@@ -128,7 +128,7 @@ func start(c *cli.Context) {
 	})
 	log.Println("Waiting...")
 	<-sucess_chan
-	log.Println("Scuess")
+	log.Println("Sucess")
 	defer func() {
 		conn.Close()
 	}()
