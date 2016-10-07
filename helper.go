@@ -10,9 +10,9 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
-func Decode(key *rsa.PublicKey, data string) (auth Auth, err error) {
+func Decode(key *rsa.PublicKey, data string) (jp JwtPack, err error) {
 
-	_, err = jwt.ParseWithClaims(data, &auth, func(token *jwt.Token) (interface{}, error) {
+	_, err = jwt.ParseWithClaims(data, &jp, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
 			return nil, errors.New("token parse error")
 		}

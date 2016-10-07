@@ -107,7 +107,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 			}
 			logger.GetRequestEntry(u.request).Debugf("login message: %s", d)
 			ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-			a := &Auth{}
+			a := &JwtPack{}
 			err = wm.worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
 				if e != nil {
 					logger.Debug(e)
@@ -120,21 +120,20 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 				}
 				return
 			})
-			if a.AppKey != u.appKey {
+			if a.Gusher.AppKey != u.appKey {
 				err = errors.New("app_key error")
 				return err
 			}
 			logger.GetRequestEntry(u.request).Debugf("login parse sucess: %v", a)
-			if len(a.Channels) == 0 {
+			if len(a.Gusher.Channels) == 0 {
 				err = errors.New("no channels")
 				return err
 			}
-			u.id = a.UserId
 			channels := make(map[string]bool)
-			for _, c := range a.Channels {
+			for _, c := range a.Gusher.Channels {
 				channels[c] = false
 			}
-			u.id = a.UserId
+			u.id = a.Gusher.UserId
 			u.channels = channels
 			u.isLogin = true
 			return nil
