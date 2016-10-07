@@ -119,9 +119,11 @@ reply error:
 this is default test jwt look [this](https://github.com/syhlion/gusher.cluster/blob/master/test/jwt/jwt.go)
 ```
 {
-    "user_id":"Test_User",
-    "channels":["AA","BB"],
-    "app_key":"TEST"
+    "gusher":{
+        "user_id":"Test_User",
+        "channels":["AA","BB"],
+        "app_key":"TEST"
+    }
 }
 ```
 

@@ -32,11 +32,14 @@ type CommonMessage struct {
 	Data    interface{} `json:"data"`
 }
 
+type JwtPack struct {
+	Gusher Auth `json:"gusher"`
+	jwt.StandardClaims
+}
 type Auth struct {
 	Channels []string `json:"channels"`
 	UserId   string   `json:"user_id"`
 	AppKey   string   `json:"app_key"`
-	jwt.StandardClaims
 }
 
 /*rpc use*/

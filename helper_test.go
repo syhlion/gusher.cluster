@@ -36,14 +36,20 @@ func getJwtToken() (t string, err error) {
 	if err != nil {
 		return
 	}
-	type MyCustomClaims struct {
+	type GusherData struct {
 		UserId   string   `json:"user_id"`
 		Channels []string `json:"channels"`
 		AppKey   string   `json:"app_key"`
+	}
+	type MyCustomClaims struct {
+		Gusher GusherData `json:"gusher"`
 		jwt.StandardClaims
 	}
+	gd := GusherData{
+		"test", []string{"AA", "BB"}, "TEST1",
+	}
 	claims := MyCustomClaims{
-		"test", []string{"AA", "BB"}, "TEST1", jwt.StandardClaims{},
+		gd, jwt.StandardClaims{},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	t, err = token.SignedString(privateKey)
@@ -66,14 +72,15 @@ func TestDecode(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if a.UserId != "test" {
-		t.Errorf("user_id parse error %s", a.UserId)
+
+	if a.Gusher.UserId != "test" {
+		t.Errorf("user_id parse error %s", a.Gusher.UserId)
 	}
-	if a.AppKey != "TEST1" {
-		t.Errorf("app_key parse error %s", a.AppKey)
+	if a.Gusher.AppKey != "TEST1" {
+		t.Errorf("app_key parse error %s", a.Gusher.AppKey)
 	}
-	if a.Channels[0] != "AA" && a.Channels[1] != "BB" {
-		t.Errorf("channels parse error %v", a.Channels)
+	if a.Gusher.Channels[0] != "AA" && a.Gusher.Channels[1] != "BB" {
+		t.Errorf("channels parse error %v", a.Gusher.Channels)
 	}
 
 }
