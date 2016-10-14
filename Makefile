@@ -26,7 +26,7 @@ docker-build:
 run: build
 	./$(NAME)
 tar: build
-	tar zcvf $(NAME).$(TAG).$(OS).tar.gz $(NAME) env.example test/key jwt.example test/conn-test --exclude=test/conn-test/conn-test.go docker-compose docker
+	tar zcvf $(NAME).$(TAG).$(OS).tar.gz $(NAME) env.example LICENSE test/key jwt.example test/conn-test --exclude=test/conn-test/conn-test.go docker-compose docker
 todo:
 	find -type f \( -iname '*.go' ! -wholename './vendor/*' \) -exec grep -Hn 'TODO' {} \;
 rsakey:
