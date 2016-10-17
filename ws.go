@@ -57,7 +57,6 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	s, err := wm.Upgrade(w, r, nil)
 	if err != nil {
 		logger.GetRequestEntry(r).Warnf("upgrade ws connection %s", err)
-		http.Error(w, err.Error(), 401)
 		return
 	}
 
