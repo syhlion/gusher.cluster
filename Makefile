@@ -17,9 +17,9 @@ verify-glide:
 	fi
 build: 
 	go test
-	go build test/jwtgenerate/jwtgenerate.go
-	go build -o test/conn-test/conn-test test/conn-test/conn-test.go
-	./jwtgenerate > jwt.example
+	go build -a -o jwt-generate test/jwtgenerate/jwtgenerate.go 
+	go build -a -o test/conn-test/conn-test test/conn-test/conn-test.go
+	./jwt-generate > jwt.example
 	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
 docker-build:
 	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);

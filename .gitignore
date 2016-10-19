@@ -1,5 +1,7 @@
 gusher.cluster
 .env
 gusher.cluster.*
-jwtgenerate
+jwt-generate
+*.tar
+glide.lock
 
