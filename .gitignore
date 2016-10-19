@@ -2,6 +2,4 @@ gusher.cluster
 .env
 gusher.cluster.*
 jwtgenerate
-test/conn-test/conn-test
-glide.lock
 
