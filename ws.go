@@ -97,13 +97,14 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 
 			v.Add("data", string(d))
 			req, err := http.NewRequest("POST", decode_service, bytes.NewBufferString(v.Encode()))
-			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
 
 			if err != nil {
 				logger.GetRequestEntry(r).Warn(err)
 				return err
 			}
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
+
 			logger.GetRequestEntry(u.request).Debugf("login message: %s", d)
 			ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 			a := &JwtPack{}
