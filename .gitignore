@@ -4,4 +4,5 @@ gusher.cluster.*
 jwt-generate
 *.tar
 glide.lock
+test/conn-test/conn-test
 
