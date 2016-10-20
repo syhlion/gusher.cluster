@@ -20,6 +20,7 @@ import (
 	"github.com/syhlion/redisocket.v2"
 	"github.com/syhlion/requestwork.v2"
 	"github.com/urfave/cli"
+	"github.com/urfave/negroni"
 )
 
 var env *string
@@ -51,6 +52,8 @@ var (
 	loglevel          string
 	externalIP        string
 	api_listen        string
+	api_uri_prefix    string
+	master_uri_prefix string
 	master_api_listen string
 	//master_remote_addr         string
 	redis_addr string
@@ -126,8 +129,11 @@ func slave(c *cli.Context) {
 	}
 	/*api end*/
 
-	r.HandleFunc("/ws/{app_key}", wm.Connect).Methods("GET")
-	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
+	sub := r.PathPrefix(api_uri_prefix).Subrouter()
+	sub.HandleFunc("/{app_key}", wm.Connect).Methods("GET")
+	n := negroni.New()
+	n.UseHandler(handlers.CombinedLoggingHandler(logger.Out, r))
+	http.Handle("/", n)
 	serverError := make(chan error, 1)
 	go func() {
 		err := http.Serve(apiListener, nil)
@@ -145,10 +151,11 @@ func slave(c *cli.Context) {
 	shutdow_observer := make(chan os.Signal, 1)
 	logger.Info(loglevel, " mode")
 	logger.Info(name, " slave start ! ")
-	logger.Infof("listen redis in %s", redis_addr)
-	logger.Infof("listen web api  in %s", api_listen)
-	logger.Infof("localhost ip is  %s", externalIP)
-	logger.Infof("decode service  %s", decode_service)
+	logger.Infof("listen redis in \"%s\"", redis_addr)
+	logger.Infof("listen web api in \"%s\"", api_listen)
+	logger.Infof("api uri preifx \"%s\"", api_uri_prefix)
+	logger.Infof("localhost ip is \"%s\"", externalIP)
+	logger.Infof("decode service \"%s\"", decode_service)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:
@@ -199,9 +206,12 @@ func master(c *cli.Context) {
 	}
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/push/{app_key}/{channel}/{event}", PushMessage(rpool)).Methods("POST")
-	r.HandleFunc("/api/decode", DecodeJWT(public_pem)).Methods("POST")
-	http.Handle("/", handlers.CombinedLoggingHandler(os.Stdout, r))
+	sub := r.PathPrefix(master_uri_prefix).Subrouter()
+	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rpool)).Methods("POST")
+	sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
+	n := negroni.New()
+	n.UseHandler(handlers.CombinedLoggingHandler(logger.Out, r))
+	http.Handle("/", n)
 	serverError := make(chan error, 1)
 	go func() {
 		err := http.Serve(apiListener, nil)
@@ -212,10 +222,10 @@ func master(c *cli.Context) {
 	shutdow_observer := make(chan os.Signal, 1)
 	logger.Info(loglevel, " mode")
 	logger.Info(name, " master start ! ")
-	logger.Infof("listen redis in %s", redis_addr)
-	logger.Infof("listen web api in %s", master_api_listen)
-	//	logger.Infof("listen master in  %s", remote_listen)
-	logger.Infof("localhost ip is  %s", externalIP)
+	logger.Infof("listen redis in \"%s\"", redis_addr)
+	logger.Infof("listen web api in \"%s\"", master_api_listen)
+	logger.Infof("master uri preifx \"%s\"", master_uri_prefix)
+	logger.Infof("localhost ip is \"%s\"", externalIP)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:
@@ -264,6 +274,14 @@ func varInit(c *cli.Context) {
 	api_listen = os.Getenv("GUSHER_API_LISTEN")
 	if api_listen == "" {
 		logger.Fatal("empty env GUSHER_API_LISTEN")
+	}
+	api_uri_prefix = os.Getenv("GUSHER_API_URI_PREFIX")
+	if api_listen == "" {
+		logger.Fatal("empty env GUSHER_API_URI_PREIFX")
+	}
+	master_uri_prefix = os.Getenv("GUSHER_MASTER_URI_PREFIX")
+	if api_listen == "" {
+		logger.Fatal("empty env GUSHER_MASTER_URI_PREFIX")
 	}
 
 	/*log init*/

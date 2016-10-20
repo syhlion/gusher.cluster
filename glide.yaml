@@ -18,3 +18,5 @@ import:
 - package: github.com/syhlion/redisocket.v2
 - package: github.com/urfave/cli
   version: ^1.18.1
+- package: github.com/urfave/negroni
+  version: ^0.2.0

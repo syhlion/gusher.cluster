@@ -2,14 +2,14 @@
 
 Connect:
 
-`GET /ws/{app_key}?auth={auth}`
+`GET /{ws}/{app_key}?auth={auth}`
 
 ## Master Api
 
 
 ### Push Message:
 
-`POST /api/push/{app_key}/{channel}/{event}?data={data}`
+`POST /{api}/push/{app_key}/{channel}/{event}?data={data}`
 
 
 Sucess Response:
@@ -23,26 +23,19 @@ Sucess Response:
 ```
 
 
-### Slave Server Info:
+### Decode:
 
-`GET /api/system/slaveinfos`
+`GET /{api}/decode`
 
 
 Sucess Response:
 
 ```
 {
-    "{ip}@{listen_port}":{
-        "ip":"",
-        "local_listen":"",
-        "version":"",
-        "runtime_version":"",
-        "cpu":,
-        "usage-memory":,
-        "goroutines":6,
-        "connections":,
-        "send_interval":"",
-        "update_time":
+    "gusher":{
+        "channels":[],
+        "user_id":"",
+        "app_key":""
     }
 }
 ```
