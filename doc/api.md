@@ -25,7 +25,7 @@ Sucess Response:
 
 ### Decode:
 
-`GET /{api}/decode`
+`POST /{api}/decode?data={jwt}`
 
 
 Sucess Response:
