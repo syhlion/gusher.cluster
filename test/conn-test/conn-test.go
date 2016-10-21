@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -84,9 +85,6 @@ func start(c *cli.Context) {
 		log.Fatal(err)
 		return
 	}
-	err = conn.WriteMessage(websocket.TextMessage, []byte(login_msg))
-	err = conn.WriteMessage(websocket.TextMessage, []byte(sub_msg))
-	time.Sleep(1 * time.Second)
 	sucess_chan := make(chan int)
 	go func() {
 		for {
@@ -95,6 +93,8 @@ func start(c *cli.Context) {
 				log.Fatal(err)
 				return
 			}
+
+			log.Println("slave repsonse message", string(d))
 			data, _ := jsonparser.GetString(d, "data")
 			if data == push_msg {
 				sucess_chan <- 1
@@ -102,6 +102,10 @@ func start(c *cli.Context) {
 			}
 		}
 	}()
+	err = conn.WriteMessage(websocket.TextMessage, []byte(login_msg))
+	time.Sleep(1 * time.Second)
+	err = conn.WriteMessage(websocket.TextMessage, []byte(sub_msg))
+	time.Sleep(1 * time.Second)
 
 	//push start
 	work := requestwork.New(5)
@@ -124,6 +128,11 @@ func start(c *cli.Context) {
 			return
 		}
 		defer resp.Body.Close()
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		log.Println("master response", string(b))
 		return
 	})
 	log.Println("Waiting...")

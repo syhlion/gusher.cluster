@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
+	redisocket "github.com/syhlion/redisocket.v2"
 )
 
-func PushMessage(rpool *redis.Pool) func(w http.ResponseWriter, r *http.Request) {
+func PushMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		app_key := params["app_key"]
@@ -46,9 +46,7 @@ func PushMessage(rpool *redis.Pool) func(w http.ResponseWriter, r *http.Request)
 			w.Write([]byte("data error"))
 			return
 		}
-		conn := rpool.Get()
-		defer conn.Close()
-		_, err = conn.Do("PUBLISH", listenChannelPrefix+"."+app_key+"@"+channel, d)
+		_, err = rsender.Push(listenChannelPrefix, app_key+"@"+channel, d)
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
 			w.WriteHeader(400)
@@ -65,12 +63,16 @@ func DecodeJWT(key *rsa.PublicKey) func(w http.ResponseWriter, r *http.Request) 
 		data := r.FormValue("data")
 		auth, err := Decode(key, data)
 		if err != nil {
-			logger.GetRequestEntry(r).Warnf("data: %s, error:%s", data, err)
+			logger.GetRequestEntry(r).Warnf("error:%s, post data:%s", err, data)
 			w.WriteHeader(400)
 			w.Write([]byte("data error"))
 			return
 		}
-		json.NewEncoder(w).Encode(auth)
+		if err = json.NewEncoder(w).Encode(auth); err != nil {
+			logger.GetRequestEntry(r).Warnf("error:%s", err)
+			w.WriteHeader(400)
+			w.Write([]byte("parse error"))
+		}
 		return
 	}
 }

@@ -3,14 +3,13 @@ package redisocket
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/websocket"
 )
-
-const eventPrefix = "[redisocket.v2]:"
 
 type User interface {
 	Trigger(event string, data []byte) (err error)
@@ -45,6 +44,25 @@ type EventHandler func(event string, b []byte) ([]byte, error)
 
 type ReceiveMsgHandler func([]byte) error
 
+func NewSender(m *redis.Pool) (e *Sender) {
+
+	return &Sender{
+		redisManager: m,
+	}
+}
+
+type Sender struct {
+	redisManager *redis.Pool
+}
+
+func (s *Sender) Push(channelPrefix, event string, data []byte) (val int, err error) {
+	conn := s.redisManager.Get()
+	defer conn.Close()
+	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+event, data))
+	err = s.redisManager.Get().Flush()
+	return
+}
+
 //NewApp It's create a Hub
 func NewHub(m *redis.Pool) (e *Hub) {
 
@@ -74,13 +92,14 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 }
 
 type Hub struct {
-	Config       WebsocketOptional
-	psc          *redis.PubSubConn
-	redisManager *redis.Pool
-	subjects     map[string]map[User]bool
-	subscribers  map[User]map[string]bool
-	closeSign    chan int
-	closeflag    bool
+	ChannelPrefix string
+	Config        WebsocketOptional
+	psc           *redis.PubSubConn
+	redisManager  *redis.Pool
+	subjects      map[string]map[User]bool
+	subscribers   map[User]map[string]bool
+	closeSign     chan int
+	closeflag     bool
 	*sync.RWMutex
 }
 
@@ -115,6 +134,7 @@ func (a *Hub) Register(event string, c User) (err error) {
 }
 
 func (a *Hub) Unregister(event string, c User) (err error) {
+
 	a.Lock()
 	defer a.Unlock()
 
@@ -154,14 +174,15 @@ func (a *Hub) listenRedis() <-chan error {
 		for {
 			switch v := a.psc.Receive().(type) {
 			case redis.PMessage:
+				channel := strings.Replace(v.Channel, a.ChannelPrefix, "", 1)
 				a.RLock()
-				clients, ok := a.subjects[v.Channel]
+				clients, ok := a.subjects[channel]
 				a.RUnlock()
 				if !ok {
 					continue
 				}
 				for c, _ := range clients {
-					c.Trigger(v.Channel, v.Data)
+					c.Trigger(channel, v.Data)
 				}
 
 			case error:
@@ -180,8 +201,9 @@ func (a *Hub) close() {
 		c.Close()
 	}
 }
-func (a *Hub) Listen(channel string) error {
-	a.psc.PSubscribe(channel)
+func (a *Hub) Listen(channelPrefix string) error {
+	a.ChannelPrefix = channelPrefix
+	a.psc.PSubscribe(channelPrefix + "*")
 	redisErr := a.listenRedis()
 	select {
 	case e := <-redisErr:
@@ -200,13 +222,4 @@ func (a *Hub) Close() {
 	}
 	return
 
-}
-
-func (e *Hub) Publish(event string, data []byte) (val int, err error) {
-
-	conn := e.redisManager.Get()
-	defer conn.Close()
-	val, err = redis.Int(conn.Do("PUBLISH", event, data))
-	err = e.redisManager.Get().Flush()
-	return
 }

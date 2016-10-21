@@ -65,7 +65,7 @@ var (
 )
 
 func init() {
-	listenChannelPrefix = name + "." + version
+	listenChannelPrefix = name + "." + version + "."
 	/*logger init*/
 	logger = GetLogger()
 	//logger.Level = logrus.DebugLevel
@@ -103,7 +103,7 @@ func slave(c *cli.Context) {
 	rsHub.Config.MaxMessageSize = 4096
 	rsHubErr := make(chan error, 1)
 	go func() {
-		rsHubErr <- rsHub.Listen(listenChannelPrefix + ".*")
+		rsHubErr <- rsHub.Listen(listenChannelPrefix)
 	}()
 
 	/*externl ip*/
@@ -194,6 +194,7 @@ func master(c *cli.Context) {
 	if err != nil {
 		logger.Fatal(err)
 	}
+	rsender := redisocket.NewSender(rpool)
 
 	/*externl ip*/
 	externalIP, err := GetExternalIP()
@@ -209,7 +210,7 @@ func master(c *cli.Context) {
 	r := mux.NewRouter()
 
 	sub := r.PathPrefix(master_uri_prefix).Subrouter()
-	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rpool)).Methods("POST")
+	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rsender)).Methods("POST")
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
