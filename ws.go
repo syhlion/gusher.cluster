@@ -111,7 +111,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 			err = wm.worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
 				if e != nil {
 					logger.Debug(e)
-					return
+					return e
 				}
 				defer resp.Body.Close()
 				err = json.NewDecoder(resp.Body).Decode(a)
@@ -178,8 +178,8 @@ func SubscribeCommand(data []byte) (h UserHandler, err error) {
 		command := &ChannelCommand{}
 		var reply []byte
 		if _, ok := u.channels[channel]; ok {
-			logger.GetRequestEntry(u.request).Debugf("sub %s@%s channel", u.appKey, channel)
-			u.On(u.appKey+"@"+channel, DefaultSubHandler)
+			logger.GetRequestEntry(u.request).Debugf("sub %s.%s@%s channel", listenChannelPrefix, u.appKey, channel)
+			u.On(listenChannelPrefix+"."+u.appKey+"@"+channel, DefaultSubHandler)
 			u.channels[channel] = true
 			command.Event = SubscribeReplySucceeded
 			command.Data.Channel = channel
@@ -211,8 +211,8 @@ func UnSubscribeCommand(data []byte) (h UserHandler, err error) {
 		var reply []byte
 		//反訂閱處理
 		if _, ok := u.channels[channel]; ok {
-			logger.GetRequestEntry(u.request).Debugf("unsub %s@%s channel", u.appKey, channel)
-			u.Off(u.appKey + "@" + channel)
+			logger.GetRequestEntry(u.request).Debugf("unsub %s.%s@%s channel", listenChannelPrefix, u.appKey, channel)
+			u.Off(listenChannelPrefix + "." + u.appKey + "@" + channel)
 			u.channels[command.Data.Channel] = false
 			command.Event = UnSubscribeReplySucceeded
 			command.Data.Channel = channel

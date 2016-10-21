@@ -25,10 +25,11 @@ import (
 
 var env *string
 var (
-	version     string
-	compileDate string
-	name        string
-	cmdSlave    = cli.Command{
+	version             string
+	compileDate         string
+	name                string
+	listenChannelPrefix string
+	cmdSlave            = cli.Command{
 		Name:   "slave",
 		Usage:  "start gusher.slave server",
 		Action: slave,
@@ -64,8 +65,9 @@ var (
 )
 
 func init() {
+	listenChannelPrefix = name + "." + version
 	/*logger init*/
-	logger = &Logger{logrus.New()}
+	logger = GetLogger()
 	//logger.Level = logrus.DebugLevel
 	switch loglevel {
 	case "DEV":
@@ -101,7 +103,7 @@ func slave(c *cli.Context) {
 	rsHub.Config.MaxMessageSize = 4096
 	rsHubErr := make(chan error, 1)
 	go func() {
-		rsHubErr <- rsHub.Listen()
+		rsHubErr <- rsHub.Listen(listenChannelPrefix + ".*")
 	}()
 
 	/*externl ip*/
@@ -132,7 +134,7 @@ func slave(c *cli.Context) {
 	sub := r.PathPrefix(api_uri_prefix).Subrouter()
 	sub.HandleFunc("/{app_key}", wm.Connect).Methods("GET")
 	n := negroni.New()
-	n.UseHandler(handlers.CombinedLoggingHandler(logger.Out, r))
+	n.UseHandler(handlers.CombinedLoggingHandler(os.Stdout, r))
 	http.Handle("/", n)
 	serverError := make(chan error, 1)
 	go func() {
@@ -176,11 +178,11 @@ func master(c *cli.Context) {
 
 	b, err := ioutil.ReadFile(public_pem_file)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Warn(err)
 	}
-	public_pem, err := jwt.ParseRSAPublicKeyFromPEM(b)
-	if err != nil {
-		logger.Fatal(err)
+	public_pem, rsaKeyErr := jwt.ParseRSAPublicKeyFromPEM(b)
+	if rsaKeyErr != nil {
+		logger.Warnf("Did not start \"%sdecode\" api", master_uri_prefix)
 	}
 
 	/*redis init*/
@@ -208,9 +210,11 @@ func master(c *cli.Context) {
 
 	sub := r.PathPrefix(master_uri_prefix).Subrouter()
 	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rpool)).Methods("POST")
-	sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
+	if rsaKeyErr == nil {
+		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
+	}
 	n := negroni.New()
-	n.UseHandler(handlers.CombinedLoggingHandler(logger.Out, r))
+	n.UseHandler(handlers.CombinedLoggingHandler(os.Stdout, r))
 	http.Handle("/", n)
 	serverError := make(chan error, 1)
 	go func() {

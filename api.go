@@ -48,7 +48,7 @@ func PushMessage(rpool *redis.Pool) func(w http.ResponseWriter, r *http.Request)
 		}
 		conn := rpool.Get()
 		defer conn.Close()
-		_, err = conn.Do("PUBLISH", app_key+"@"+channel, d)
+		_, err = conn.Do("PUBLISH", listenChannelPrefix+"."+app_key+"@"+channel, d)
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
 			w.WriteHeader(400)

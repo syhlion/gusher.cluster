@@ -180,8 +180,8 @@ func (a *Hub) close() {
 		c.Close()
 	}
 }
-func (a *Hub) Listen() error {
-	a.psc.PSubscribe("*")
+func (a *Hub) Listen(channel string) error {
+	a.psc.PSubscribe(channel)
 	redisErr := a.listenRedis()
 	select {
 	case e := <-redisErr:
