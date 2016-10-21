@@ -42,9 +42,11 @@ jwt [example](https://github.com/syhlion/gusher.cluster/blob/master/jwt.example)
 example payload decode
 ```
 {
-    "user_id":"Test_User",
-    "channels":["AA","BB"],
-    "app_key":"TEST"
+    "gusher":{
+        "user_id":"Test_User",
+        "channels":["AA","BB"],
+        "app_key":"TEST"
+    }
 }
 ```
 
