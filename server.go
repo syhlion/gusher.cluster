@@ -55,22 +55,9 @@ func init() {
 	listenChannelPrefix = name + "." + version + "."
 	/*logger init*/
 	logger = GetLogger()
-	//logger.Level = logrus.DebugLevel
-	switch loglevel {
-	case "DEV":
-		logger.Level = logrus.DebugLevel
-		break
-	case "PRODUCTION":
-		logger.Level = logrus.InfoLevel
-		break
-	default:
-		logger.Level = logrus.DebugLevel
-		break
-	}
-
 }
 
-func varInit(c *cli.Context) {
+func envInit(c *cli.Context) {
 	/*env init*/
 	if c.String("env-file") != "" {
 		envfile := c.String("env-file")

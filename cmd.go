@@ -22,7 +22,7 @@ import (
 // master server
 func master(c *cli.Context) {
 
-	varInit(c)
+	envInit(c)
 
 	b, err := ioutil.ReadFile(public_pem_file)
 	if err != nil {
@@ -91,7 +91,7 @@ func master(c *cli.Context) {
 
 //slave server
 func slave(c *cli.Context) {
-	varInit(c)
+	envInit(c)
 
 	/*redis init*/
 	rpool := redis.NewPool(func() (redis.Conn, error) {
