@@ -26,12 +26,6 @@ type ChannelData struct {
 	Channel string `json:"channel"`
 }
 
-type CommonMessage struct {
-	Channel string      `json:"channel"`
-	Event   string      `json:"event"`
-	Data    interface{} `json:"data"`
-}
-
 type JwtPack struct {
 	Gusher Auth `json:"gusher"`
 	jwt.StandardClaims
