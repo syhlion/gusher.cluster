@@ -1,55 +1,91 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
+	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/SermoDigital/jose/crypto"
+	"github.com/SermoDigital/jose/jws"
+	"github.com/urfave/cli"
 )
 
 var tokenString = ""
 
-func main() {
+var (
+	name     string
+	version  string
+	cmdStart = cli.Command{
+		Name:   "start",
+		Usage:  "connect ws cli",
+		Action: start,
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "payload",
+				Value: "{\"gusher\":{\"user_id\":\"Test_User\",\"channels\":[\"AA\",\"BB\"],\"app_key\":\"TEST\"}}",
+			},
+			cli.StringFlag{
+				Name: "private-key",
+			},
+		},
+	}
+	payload       string
+	privateKeyPwd string
+)
+
+func start(c *cli.Context) {
+	payload = c.String("payload")
+
+	var claims map[string]interface{}
+	err := json.Unmarshal([]byte(payload), &claims)
+	if err != nil {
+		log.Println(err, payload)
+		os.Exit(1)
+	}
+
 	pwd, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
-	private, err := ioutil.ReadFile(pwd + "/test/key/private.pem")
+	if c.String("private-key") == "" {
+		privateKeyPwd = pwd + "/test/key/private.pem"
+	} else {
+		privateKeyPwd = c.String("private-key")
+	}
+	privateKey, err := ioutil.ReadFile(privateKeyPwd)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
-	priKey, err := jwt.ParseRSAPrivateKeyFromPEM(private)
+	rsaPrivate, err := crypto.ParseRSAPrivateKeyFromPEM(privateKey)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 
-	type GusherData struct {
-		UserId   string   `json:"user_id"`
-		Channels []string `json:"channels"`
-		AppKey   string   `json:"app_key"`
-	}
-	type MyCustomClaims struct {
-		Gusher GusherData `json:"gusher"`
-		jwt.StandardClaims
-	}
-	gd := GusherData{
-		"Test_User", []string{"AA", "BB"}, "TEST",
-	}
-	claims := MyCustomClaims{
-		gd, jwt.StandardClaims{},
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
-	tokenString, err := token.SignedString(priKey)
+	jwt := jws.NewJWT(jws.Claims(claims), crypto.SigningMethodRS256)
+	token, err := jwt.Serialize(rsaPrivate)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
-	fmt.Println(tokenString)
+	fmt.Printf("\033[40;31mprivate key \033[0m : \n %s \n\n \033[40;31mpayload\033[0m: \n %s \n\n \033[40;31mtoken\033[0m: \n %s \n", privateKey, payload, token)
+
+}
+
+func main() {
+	gusher := cli.NewApp()
+	gusher.Name = name
+	gusher.Version = version
+	gusher.Commands = []cli.Command{
+		cmdStart,
+	}
+	gusher.Compiled = time.Now()
+	gusher.Run(os.Args)
 
 }
