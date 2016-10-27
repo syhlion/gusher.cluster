@@ -159,7 +159,10 @@ func (a *Hub) Unregister(event string, c User) (err error) {
 }
 
 func (a *Hub) UnregisterAll(c *Client) {
-	if m, ok := a.subscribers[c]; ok {
+	a.Lock()
+	m, ok := a.subscribers[c]
+	a.Unlock()
+	if ok {
 		for e, _ := range m {
 			a.Unregister(e, c)
 		}
