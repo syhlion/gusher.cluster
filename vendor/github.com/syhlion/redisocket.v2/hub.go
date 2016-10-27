@@ -125,10 +125,12 @@ func (a *Hub) Register(event string, c User) (err error) {
 	}
 
 	//event map
-	if _, ok := a.subjects[event]; !ok {
+	if clients, ok := a.subjects[event]; !ok {
 		clients := make(map[User]bool)
 		clients[c] = true
 		a.subjects[event] = clients
+	} else {
+		clients[c] = true
 	}
 	return
 }
