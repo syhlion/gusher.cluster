@@ -13,6 +13,7 @@ func GetLogger() *Logger {
 		"Version":        version,
 		"RuntimeVersion": runtime.Version(),
 	})
+
 	return &Logger{
 		e,
 	}

@@ -108,13 +108,13 @@ func envInit(c *cli.Context) {
 	/*log init*/
 	switch loglevel {
 	case "DEV":
-		logger.Level = logrus.DebugLevel
+		logger.Logger.Level = logrus.DebugLevel
 		break
 	case "PRODUCTION":
-		logger.Level = logrus.InfoLevel
+		logger.Logger.Level = logrus.InfoLevel
 		break
 	default:
-		logger.Level = logrus.DebugLevel
+		logger.Logger.Level = logrus.DebugLevel
 		break
 	}
 
