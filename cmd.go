@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/garyburd/redigo/redis"
@@ -64,7 +65,7 @@ func master(c *cli.Context) {
 	}
 	n := negroni.New()
 	n.UseHandler(handlers.CombinedLoggingHandler(os.Stdout, r))
-	http.Handle("/", n)
+	http.Handle("/", http.TimeoutHandler(n, 3*time.Second, "Timeout"))
 	serverError := make(chan error, 1)
 	go func() {
 		err := http.Serve(apiListener, nil)

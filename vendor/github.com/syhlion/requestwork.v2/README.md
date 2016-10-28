@@ -5,7 +5,7 @@ a lib for go to batch processing send web request
 
 ## Install
 
-`go get github.com/syhlion/requestwork`
+`go get github.com/syhlion/requestwork.v2`
 
 ### Usage
 

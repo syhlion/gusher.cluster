@@ -2,7 +2,10 @@ package requestwork
 
 import (
 	"context"
+	"net"
 	"net/http"
+	"net/url"
+	"time"
 )
 
 type job struct {
@@ -17,21 +20,27 @@ type result struct {
 	err  error
 }
 
+const DEFAULT_IDLE_TIMEOUT = 5 * time.Second
+
 func New(threads int) *Worker {
 
 	w := &Worker{
 		jobQuene: make(chan *job),
 		threads:  threads,
 	}
+
 	go w.start()
 	return w
 
 }
 
+func NoProxyAllowed(request *http.Request) (*url.URL, error) {
+	return nil, nil
+}
+
 type Worker struct {
-	jobQuene   chan *job
-	threads    int
-	httpClient *http.Client
+	jobQuene chan *job
+	threads  int
 }
 
 func (w *Worker) Execute(ctx context.Context, req *http.Request, h func(resp *http.Response, err error) error) (err error) {
@@ -44,9 +53,16 @@ func (w *Worker) Execute(ctx context.Context, req *http.Request, h func(resp *ht
 
 func (w *Worker) run() {
 	for j := range w.jobQuene {
-		tr := &http.Transport{}
-		client := &http.Client{Transport: tr}
 		c := make(chan error, 1)
+		tr := &http.Transport{
+			Proxy: NoProxyAllowed,
+			Dial: func(network, addr string) (net.Conn, error) {
+				return NewTimeoutConnDial(network, addr, DEFAULT_IDLE_TIMEOUT)
+			},
+		}
+		client := &http.Client{
+			Transport: tr,
+		}
 		go func() {
 			c <- j.h(client.Do(j.req))
 		}()
