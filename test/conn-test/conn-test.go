@@ -163,6 +163,7 @@ func start(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	var firstTime time.Time
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	err = work.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
 		if e != nil {
@@ -174,11 +175,14 @@ func start(c *cli.Context) {
 			return err
 		}
 		log.Println("master response", string(b))
+		firstTime = time.Now()
 		return
 	})
 	log.Println("Waiting...")
 	wg.Wait()
 	log.Println("Sucess")
+	t := time.Now().Sub(firstTime)
+	log.Printf("Total Use time:%s", t)
 
 	return
 }
