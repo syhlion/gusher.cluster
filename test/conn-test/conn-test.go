@@ -91,6 +91,7 @@ func start(c *cli.Context) {
 		"Sec-WebSocket-Extensions": {"permessage-deflate; client_max_window_bits, x-webkit-deflate-frame"},
 	}
 	conns := make([]*websocket.Conn, 0)
+	listenStart := time.Now()
 	for i := 0; i < conn_total; i++ {
 		wg.Add(1)
 		rawConn, err := net.Dial("tcp", wsurl.Host)
@@ -148,6 +149,7 @@ func start(c *cli.Context) {
 	}
 
 	listen_wg.Wait()
+	listenTime := time.Now().Sub(listenStart)
 	//push start
 	work := requestwork.New(5)
 	v := url.Values{}
@@ -163,7 +165,7 @@ func start(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	var firstTime time.Time
+	var pushStart time.Time
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	err = work.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
 		if e != nil {
@@ -175,14 +177,14 @@ func start(c *cli.Context) {
 			return err
 		}
 		log.Println("master response", string(b))
-		firstTime = time.Now()
+		pushStart = time.Now()
 		return
 	})
 	log.Println("Waiting...")
 	wg.Wait()
 	log.Println("Sucess")
-	t := time.Now().Sub(firstTime)
-	log.Printf("Total Use time:%s", t)
+	t := time.Now().Sub(pushStart)
+	log.Printf("All Client receive msg time:%s, All Client connect time:%s", t, listenTime)
 
 	return
 }
