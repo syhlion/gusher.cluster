@@ -2,10 +2,8 @@ package requestwork
 
 import (
 	"context"
-	"net"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 type job struct {
@@ -20,7 +18,7 @@ type result struct {
 	err  error
 }
 
-const DEFAULT_IDLE_TIMEOUT = 5 * time.Second
+const DefaultMaxIdleConnPerHost = 20
 
 func New(threads int) *Worker {
 
@@ -52,17 +50,16 @@ func (w *Worker) Execute(ctx context.Context, req *http.Request, h func(resp *ht
 }
 
 func (w *Worker) run() {
+	tr := &http.Transport{
+		Proxy:               NoProxyAllowed,
+		Dial:                Dial,
+		MaxIdleConnsPerHost: w.threads * DefaultMaxIdleConnPerHost,
+	}
+	client := &http.Client{
+		Transport: tr,
+	}
 	for j := range w.jobQuene {
 		c := make(chan error, 1)
-		tr := &http.Transport{
-			Proxy: NoProxyAllowed,
-			Dial: func(network, addr string) (net.Conn, error) {
-				return NewTimeoutConnDial(network, addr, DEFAULT_IDLE_TIMEOUT)
-			},
-		}
-		client := &http.Client{
-			Transport: tr,
-		}
 		go func() {
 			c <- j.h(client.Do(j.req))
 		}()
