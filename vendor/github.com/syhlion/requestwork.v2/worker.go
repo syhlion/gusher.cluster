@@ -7,9 +7,10 @@ import (
 )
 
 type job struct {
-	ctx context.Context
-	req *http.Request
-	h   func(resp *http.Response, err error) error
+	ctx     context.Context
+	req     *http.Request
+	handler func(resp *http.Response, err error) error
+
 	end chan error
 }
 
@@ -22,9 +23,19 @@ const DefaultMaxIdleConnPerHost = 20
 
 func New(threads int) *Worker {
 
+	tr := &http.Transport{
+		Proxy:               NoProxyAllowed,
+		Dial:                Dial,
+		MaxIdleConnsPerHost: threads * DefaultMaxIdleConnPerHost,
+	}
+	client := &http.Client{
+		Transport: tr,
+	}
 	w := &Worker{
 		jobQuene: make(chan *job),
 		threads:  threads,
+		tr:       tr,
+		client:   client,
 	}
 
 	go w.start()
@@ -39,6 +50,8 @@ func NoProxyAllowed(request *http.Request) (*url.URL, error) {
 type Worker struct {
 	jobQuene chan *job
 	threads  int
+	tr       *http.Transport
+	client   *http.Client
 }
 
 func (w *Worker) Execute(ctx context.Context, req *http.Request, h func(resp *http.Response, err error) error) (err error) {
@@ -50,22 +63,14 @@ func (w *Worker) Execute(ctx context.Context, req *http.Request, h func(resp *ht
 }
 
 func (w *Worker) run() {
-	tr := &http.Transport{
-		Proxy:               NoProxyAllowed,
-		Dial:                Dial,
-		MaxIdleConnsPerHost: w.threads * DefaultMaxIdleConnPerHost,
-	}
-	client := &http.Client{
-		Transport: tr,
-	}
 	for j := range w.jobQuene {
 		c := make(chan error, 1)
 		go func() {
-			c <- j.h(client.Do(j.req))
+			c <- j.handler(w.client.Do(j.req))
 		}()
 		select {
 		case <-j.ctx.Done():
-			tr.CancelRequest(j.req)
+			w.tr.CancelRequest(j.req)
 			j.end <- j.ctx.Err()
 			close(j.end)
 		case err := <-c:
