@@ -74,7 +74,6 @@ func master(c *cli.Context) {
 
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	logger.Info(loglevel, " mode")
 	logger.Info(name, " master start ! ")
 	logger.Infof("listen redis in \"%s\"", redis_addr)
 	logger.Infof("listen web api in \"%s\"", master_api_listen)
@@ -158,7 +157,6 @@ func slave(c *cli.Context) {
 
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	logger.Info(loglevel, " mode")
 	logger.Info(name, " slave start ! ")
 	logger.Infof("listen redis in \"%s\"", redis_addr)
 	logger.Infof("listen web api in \"%s\"", api_listen)
