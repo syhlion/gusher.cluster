@@ -24,6 +24,9 @@ var (
 			cli.StringFlag{
 				Name: "env-file,e",
 			},
+			cli.BoolFlag{
+				Name: "debug,d",
+			},
 		},
 	}
 	cmdMaster = cli.Command{
@@ -33,6 +36,9 @@ var (
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name: "env-file,e",
+			},
+			cli.BoolFlag{
+				Name: "debug,d",
 			},
 		},
 	}
@@ -76,10 +82,6 @@ func envInit(c *cli.Context) {
 		logger.Fatal("empty env GUSHER_DECODE_SERVICE")
 	}
 
-	loglevel = os.Getenv("GUSHER_LOGLEVEL")
-	if loglevel == "" {
-		logger.Fatal("empty env GUSHER_LOGLEVEL")
-	}
 	redis_addr = os.Getenv("GUSHER_REDIS_ADDR")
 	if redis_addr == "" {
 		logger.Fatal("empty env GUSHER_REDIS_ADDR")
@@ -105,17 +107,10 @@ func envInit(c *cli.Context) {
 		logger.Fatal("empty env GUSHER_MASTER_URI_PREFIX")
 	}
 
-	/*log init*/
-	switch loglevel {
-	case "DEV":
+	if c.Bool("debug") {
 		logger.Logger.Level = logrus.DebugLevel
-		break
-	case "PRODUCTION":
+	} else {
 		logger.Logger.Level = logrus.InfoLevel
-		break
-	default:
-		logger.Logger.Level = logrus.DebugLevel
-		break
 	}
 
 }
