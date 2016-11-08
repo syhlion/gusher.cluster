@@ -22,7 +22,7 @@ var (
 		Action: slave,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name: "env-file",
+				Name: "env-file,e",
 			},
 		},
 	}
@@ -32,7 +32,7 @@ var (
 		Action: master,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name: "env-file",
+				Name: "env-file,e",
 			},
 		},
 	}
