@@ -29,7 +29,10 @@ var (
 		Action: start,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name: "env-file",
+				Name: "env-file,e",
+			},
+			cli.BoolFlag{
+				Name: "debug,d",
 			},
 		},
 	}
@@ -101,7 +104,7 @@ func start(c *cli.Context) {
 			continue
 		}
 
-		conn, _, err := websocket.NewClient(rawConn, wsurl, wsHeaders, 1024, 1024)
+		conn, _, err := websocket.NewClient(rawConn, wsurl, wsHeaders, 8192, 8192)
 		if err != nil {
 			rawConn.Close()
 			wg.Done()
@@ -133,7 +136,9 @@ func start(c *cli.Context) {
 				if string(d) == sub_resp {
 					listen_wg.Done()
 				}
-				log.Println(i, " slave repsonse message", string(d))
+				if c.Bool("debug") {
+					log.Println(i, " slave repsonse message", string(d))
+				}
 				data, _ := jsonparser.GetString(d, "data")
 				if data == push_msg {
 					wg.Done()
