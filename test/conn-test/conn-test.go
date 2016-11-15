@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -94,46 +95,51 @@ func start(c *cli.Context) {
 		"Sec-WebSocket-Extensions": {"permessage-deflate; client_max_window_bits, x-webkit-deflate-frame"},
 	}
 	conns := make([]*websocket.Conn, 0)
-	listenStart := time.Now()
+	log.Infof("%v connect start!", conn_total)
 	for i := 0; i < conn_total; i++ {
-		wg.Add(1)
 		rawConn, err := net.Dial("tcp", wsurl.Host)
 		if err != nil {
-			log.Fatal(err)
-			wg.Done()
 			continue
 		}
 
 		conn, _, err := websocket.NewClient(rawConn, wsurl, wsHeaders, 8192, 8192)
 		if err != nil {
 			rawConn.Close()
-			wg.Done()
-			log.Fatal(err)
 			continue
 		}
 		err = conn.WriteMessage(websocket.TextMessage, []byte(login_msg))
 		if err != nil {
 			rawConn.Close()
 			conn.Close()
-			wg.Done()
-			log.Warn(err)
+			if c.Bool("debug") {
+				log.Warn(err)
+			}
 			continue
 		}
 		conns = append(conns, conn)
 	}
+	var counter uint64
 	for i, conn := range conns {
+		wg.Add(1)
 		listen_wg.Add(1)
 		go func(i int, conn *websocket.Conn) {
+			subStatus := false
 			for {
 				_, d, err := conn.ReadMessage()
 				if err != nil {
-					log.Fatal(err)
-					listen_wg.Done()
+					if c.Bool("debug") {
+						log.Error(err)
+					}
+					if !subStatus {
+						listen_wg.Done()
+					}
 					wg.Done()
+					atomic.AddUint64(&counter, 1)
 					return
 				}
 
 				if string(d) == sub_resp {
+					subStatus = true
 					listen_wg.Done()
 				}
 				if c.Bool("debug") {
@@ -154,7 +160,7 @@ func start(c *cli.Context) {
 	}
 
 	listen_wg.Wait()
-	listenTime := time.Now().Sub(listenStart)
+	log.Infof("%v connect finish", len(conns))
 	//push start
 	work := requestwork.New(5)
 	v := url.Values{}
@@ -181,15 +187,20 @@ func start(c *cli.Context) {
 		if err != nil {
 			return err
 		}
-		log.Println("master response", string(b))
+		if c.Bool("debug") {
+			log.Println("master response", string(b))
+		}
 		pushStart = time.Now()
 		return
 	})
 	log.Println("Waiting...")
 	wg.Wait()
-	log.Println("Sucess")
 	t := time.Now().Sub(pushStart)
-	log.Printf("All Client receive msg time:%s, All Client connect time:%s", t, listenTime)
+	if len(conns) > 0 {
+		log.Infof("%v client connect, %v error read , receive msg time:%s", len(conns), counter, t)
+	} else {
+		log.Error("0 client connect, please check slave server!")
+	}
 
 	return
 }
