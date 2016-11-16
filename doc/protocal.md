@@ -74,6 +74,7 @@ reply scuess:
     }
 }
 ```
+
 reply error:
 ```
 {
@@ -130,12 +131,3 @@ this is default test jwt look [this](https://github.com/syhlion/gusher.cluster/b
 ```
 
 
-## Admin Protocol
-
-Use Redis Hashes to stored
-
-WebHook Storage 
-
-Key|field|value
----|---|---
-{app_key}|url|http://hook-domain/
