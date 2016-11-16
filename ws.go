@@ -155,7 +155,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	})
 	if err != nil {
-		logger.GetRequestEntry(r).Infof("disconnect %s", err)
+		logger.GetRequestEntry(r).Debugf("disconnect %s", err)
 	}
 	wm.Disconnect(u)
 

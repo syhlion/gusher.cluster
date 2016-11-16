@@ -63,12 +63,13 @@ func master(c *cli.Context) {
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
+	server := http.NewServeMux()
 	n := negroni.New()
 	n.UseHandler(handlers.CombinedLoggingHandler(os.Stdout, r))
-	http.Handle("/", http.TimeoutHandler(n, 3*time.Second, "Timeout"))
+	server.Handle("/", http.TimeoutHandler(n, 3*time.Second, "Timeout"))
 	serverError := make(chan error, 1)
 	go func() {
-		err := http.Serve(apiListener, nil)
+		err := http.Serve(apiListener, server)
 		serverError <- err
 	}()
 
@@ -137,18 +138,40 @@ func slave(c *cli.Context) {
 	}
 	/*api end*/
 
+	server := http.NewServeMux()
+
 	sub := r.PathPrefix(api_uri_prefix).Subrouter()
 	sub.HandleFunc("/{app_key}", wm.Connect).Methods("GET")
 	n := negroni.New()
 	n.UseHandler(handlers.CombinedLoggingHandler(os.Stdout, r))
-	http.Handle("/", n)
+	server.Handle("/", n)
 	serverError := make(chan error, 1)
 	go func() {
-		err := http.Serve(apiListener, nil)
+		err := http.Serve(apiListener, server)
 		serverError <- err
 	}()
 
+	closeConnTotal := make(chan int, 0)
+	//固定30秒log出 現在連線人數
+	go func() {
+		t := time.NewTicker(30 * time.Second)
+		defer func() {
+			t.Stop()
+		}()
+
+		for {
+			select {
+			case <-t.C:
+				logger.Infof("connection now: %v", wm.Count())
+			case <-closeConnTotal:
+				return
+			}
+		}
+
+	}()
+
 	defer func() {
+		closeConnTotal <- 1
 		apiListener.Close()
 		wm.Close()
 		rsHub.Close()
