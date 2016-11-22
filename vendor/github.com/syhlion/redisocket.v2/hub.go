@@ -2,7 +2,9 @@ package redisocket
 
 import (
 	"errors"
+	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -64,8 +66,9 @@ func (s *Sender) Push(channelPrefix, event string, data []byte) (val int, err er
 }
 
 //NewApp It's create a Hub
-func NewHub(m *redis.Pool) (e *Hub) {
+func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 
+	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
 	return &Hub{
 
 		Config:       DefaultWebsocketOptional,
@@ -76,6 +79,8 @@ func NewHub(m *redis.Pool) (e *Hub) {
 		subscribers:  make(map[User]map[string]bool),
 		closeSign:    make(chan int),
 		closeflag:    false,
+		debug:        debug,
+		log:          l,
 	}
 
 }
@@ -100,7 +105,9 @@ type Hub struct {
 	subscribers   map[User]map[string]bool
 	closeSign     chan int
 	closeflag     bool
+	debug         bool
 	*sync.RWMutex
+	log *log.Logger
 }
 
 func (a *Hub) Ping() (err error) {
@@ -109,6 +116,11 @@ func (a *Hub) Ping() (err error) {
 		return
 	}
 	return
+}
+func (a *Hub) logger(format string, v ...interface{}) {
+	if a.debug {
+		a.log.Printf(format, v...)
+	}
 }
 
 func (a *Hub) Register(event string, c User) (err error) {
@@ -186,9 +198,12 @@ func (a *Hub) listenRedis() <-chan error {
 				if !ok {
 					continue
 				}
+
+				a.logger("channel:%s\taction:push start\tmsg:%s\tconnect clients:%v", channel, v.Data, len(clients))
 				for c, _ := range clients {
 					c.Trigger(channel, v.Data)
 				}
+				a.logger("channel:%s\taction:push over\tmsg:%s\tconnect clients:%v", channel, v.Data, len(clients))
 
 			case error:
 				errChan <- v

@@ -11,7 +11,7 @@ var (
 	rpool       = redis.NewPool(func() (conn redis.Conn, err error) {
 		return
 	}, 10)
-	hub    = NewHub(rpool)
+	hub    = NewHub(rpool, true)
 	client = &Client{}
 )
 
