@@ -17,28 +17,34 @@ var (
 	name                string
 	listenChannelPrefix string
 	cmdSlave            = cli.Command{
-		Name:   "slave",
-		Usage:  "start gusher.slave server",
-		Action: slave,
+		Name:    "slave",
+		Usage:   "start gusher.slave server",
+		Aliases: []string{"sl"},
+		Action:  slave,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name: "env-file,e",
+				Name:  "env-file,e",
+				Usage: "import env file",
 			},
 			cli.BoolFlag{
-				Name: "debug,d",
+				Name:  "debug,d",
+				Usage: "open debug mode",
 			},
 		},
 	}
 	cmdMaster = cli.Command{
-		Name:   "master",
-		Usage:  "start gusher.master server",
-		Action: master,
+		Name:    "master",
+		Usage:   "start gusher.master server",
+		Action:  master,
+		Aliases: []string{"ma"},
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name: "env-file,e",
+				Name:  "env-file,e",
+				Usage: "import env file",
 			},
 			cli.BoolFlag{
-				Name: "debug,d",
+				Name:  "debug,d",
+				Usage: "open debug mode",
 			},
 		},
 	}
@@ -116,8 +122,12 @@ func envInit(c *cli.Context) {
 }
 
 func main() {
+
 	gusher := cli.NewApp()
 	gusher.Name = name
+	gusher.Author = "Scott (syhlion)"
+	gusher.Usage = "websocket push server"
+	gusher.UsageText = "very simple to use http request push message to websocket and very easy to scale"
 	gusher.Version = version
 	gusher.Commands = []cli.Command{
 		cmdSlave,
