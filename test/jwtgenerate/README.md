@@ -12,7 +12,7 @@ $ go get -u github.com/syhlion/gusher.cluster/test/jwtgenerate
 Crypto method use RSA256
 
 ```
-$ ./jwtgenerate start --private-key private.pem  --payload "{\"gusher\":{\"user_id\":\"Test_User\",\"channels\":[\"AA\",\"BB\"],\"app_key\":\"TEST\"}}"
+$ ./jwtgenerate gen --private-key private.pem  --payload "{\"gusher\":{\"user_id\":\"Test_User\",\"channels\":[\"AA\",\"BB\"],\"app_key\":\"TEST\"}}"
 
 ```
 
@@ -30,3 +30,8 @@ default value
 ```
 
 
+Other help
+
+```
+$ ./conn-test -h
+```

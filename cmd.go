@@ -104,7 +104,7 @@ func slave(c *cli.Context) {
 		logger.Fatal(err)
 	}
 
-	rsHub := redisocket.NewHub(rpool)
+	rsHub := redisocket.NewHub(rpool, c.Bool("debug"))
 	rsHub.Config.Upgrader.WriteBufferSize = 8192
 	rsHub.Config.Upgrader.ReadBufferSize = 8192
 	rsHub.Config.MaxMessageSize = 4096

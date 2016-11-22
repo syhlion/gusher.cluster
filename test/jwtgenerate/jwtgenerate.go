@@ -20,16 +20,19 @@ var (
 	name     string
 	version  string
 	cmdStart = cli.Command{
-		Name:   "start",
-		Usage:  "connect ws cli",
-		Action: start,
+		Name:    "gen",
+		Aliases: []string{"g"},
+		Usage:   "generate jwt token",
+		Action:  start,
 		Flags: []cli.Flag{
 			cli.StringFlag{
 				Name:  "payload",
+				Usage: "You want to hash payload",
 				Value: "{\"gusher\":{\"user_id\":\"Test_User\",\"channels\":[\"AA\",\"BB\"],\"app_key\":\"TEST\"}}",
 			},
 			cli.StringFlag{
-				Name: "private-key",
+				Name:  "private-key",
+				Usage: "Assign rsa256 private key",
 			},
 		},
 	}
@@ -79,7 +82,10 @@ func start(c *cli.Context) {
 }
 
 func main() {
+	cli.AppHelpTemplate += "WEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster/tree/master/test/jwtgenerate\n\n"
 	gusher := cli.NewApp()
+	gusher.Author = "Scott (syhlion)"
+	gusher.Usage = "simple jwt generate"
 	gusher.Name = name
 	gusher.Version = version
 	gusher.Commands = []cli.Command{

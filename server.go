@@ -122,7 +122,7 @@ func envInit(c *cli.Context) {
 }
 
 func main() {
-
+	cli.AppHelpTemplate += "WEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster\n\n"
 	gusher := cli.NewApp()
 	gusher.Name = name
 	gusher.Author = "Scott (syhlion)"

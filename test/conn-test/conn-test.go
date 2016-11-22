@@ -25,15 +25,18 @@ var (
 	name     string
 	version  string
 	cmdStart = cli.Command{
-		Name:   "start",
-		Usage:  "connect ws cli",
-		Action: start,
+		Name:    "run",
+		Aliases: []string{"r"},
+		Usage:   "test connect to websocket ",
+		Action:  start,
 		Flags: []cli.Flag{
 			cli.StringFlag{
-				Name: "env-file,e",
+				Name:  "env-file,e",
+				Usage: "import env file",
 			},
 			cli.BoolFlag{
-				Name: "debug,d",
+				Name:  "debug,d",
+				Usage: "open debug mode",
 			},
 		},
 	}
@@ -196,18 +199,24 @@ func start(c *cli.Context) {
 	log.Println("Waiting...")
 	wg.Wait()
 	t := time.Now().Sub(pushStart)
-	if len(conns) > 0 {
-		log.Infof("%v client connect, %v error read , receive msg time:%s", len(conns), counter, t)
-	} else {
+	if len(conns) == 0 {
 		log.Error("0 client connect, please check slave server!")
+	} else if len(conns) == int(counter) {
+		log.Error("no client read message, please check master server!")
+	} else {
+
+		log.Infof("%v client connect, %v error read , receive msg time:%s", len(conns), counter, t)
 	}
 
 	return
 }
 
 func main() {
+	cli.AppHelpTemplate += "WEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster/test/tree/master/test/conn-test\n\n"
 	gusher := cli.NewApp()
+	gusher.Usage = "simple connection test for gusher.cluster"
 	gusher.Name = name
+	gusher.Author = "Scott (syhlion)"
 	gusher.Version = version
 	gusher.Commands = []cli.Command{
 		cmdStart,
