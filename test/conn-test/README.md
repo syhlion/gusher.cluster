@@ -1,5 +1,6 @@
-# gusher conn-test
+# gusher.cluster connection test
 
+it's connection test for gusher.cluster 
 
 ## Install
 

@@ -122,18 +122,18 @@ func envInit(c *cli.Context) {
 }
 
 func main() {
-	cli.AppHelpTemplate += "WEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster\n\n"
+	cli.AppHelpTemplate += "\nWEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster\n\n"
 	gusher := cli.NewApp()
 	gusher.Name = name
 	gusher.Author = "Scott (syhlion)"
 	gusher.Usage = "websocket push server"
 	gusher.UsageText = "very simple to use http request push message to websocket and very easy to scale"
 	gusher.Version = version
+	gusher.Compiled = time.Now()
 	gusher.Commands = []cli.Command{
 		cmdSlave,
 		cmdMaster,
 	}
-	gusher.Compiled = time.Now()
 	gusher.Run(os.Args)
 
 }

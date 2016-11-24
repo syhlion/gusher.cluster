@@ -212,15 +212,15 @@ func start(c *cli.Context) {
 }
 
 func main() {
-	cli.AppHelpTemplate += "WEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster/test/tree/master/test/conn-test\n\n"
+	cli.AppHelpTemplate += "\nWEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster/tree/master/test/conn-test\n\n"
 	gusher := cli.NewApp()
 	gusher.Usage = "simple connection test for gusher.cluster"
 	gusher.Name = name
 	gusher.Author = "Scott (syhlion)"
 	gusher.Version = version
+	gusher.Compiled = time.Now()
 	gusher.Commands = []cli.Command{
 		cmdStart,
 	}
-	gusher.Compiled = time.Now()
 	gusher.Run(os.Args)
 }

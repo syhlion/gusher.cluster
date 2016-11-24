@@ -22,7 +22,7 @@ var (
 	cmdStart = cli.Command{
 		Name:    "gen",
 		Aliases: []string{"g"},
-		Usage:   "generate jwt token",
+		Usage:   "generate jwt token (only support RSA256)",
 		Action:  start,
 		Flags: []cli.Flag{
 			cli.StringFlag{
@@ -82,16 +82,16 @@ func start(c *cli.Context) {
 }
 
 func main() {
-	cli.AppHelpTemplate += "WEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster/tree/master/test/jwtgenerate\n\n"
+	cli.AppHelpTemplate += "\nWEBSITE:\n\t\thttps://github.com/syhlion/gusher.cluster/tree/master/test/jwtgenerate\n\n"
 	gusher := cli.NewApp()
 	gusher.Author = "Scott (syhlion)"
-	gusher.Usage = "simple jwt generate"
+	gusher.Usage = "simple jwt generate (only support RSA256)"
 	gusher.Name = name
 	gusher.Version = version
+	gusher.Compiled = time.Now()
 	gusher.Commands = []cli.Command{
 		cmdStart,
 	}
-	gusher.Compiled = time.Now()
 	gusher.Run(os.Args)
 
 }

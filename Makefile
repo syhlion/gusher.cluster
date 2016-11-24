@@ -1,13 +1,8 @@
-GOROOT := $(GOROOT)
 OS:=linux-amd64
-GOPATH := $(GOPATH)
-GO := $(GOROOT)/bin/go
-PWD := $(PWD)
-NAME := gusher.cluster
+GUSHER:= gusher.cluster
+CONNTEST:= conn-test
+JWTGENERATE:=jwt-generate
 TAG := `git describe --tags | cut -d '-' -f 1 `.`git rev-parse --short HEAD`
-#TAG := "DEV"
-TZ := Asia/Taipei
-DATETIME := `TZ=$(TZ) date +%Y%m%d.%H%M%S`
 show-tag:
 	echo $(TAG)
 verify-glide:
@@ -17,16 +12,16 @@ verify-glide:
 	fi
 build: 
 	go test
-	go build -a -o jwt-generate test/jwtgenerate/jwtgenerate.go 
-	go build -a -o test/conn-test/conn-test test/conn-test/conn-test.go
+	go build -ldflags "-X main.version=$(TAG) -X main.name=$(JWTGENERATE)" -a -o $(JWTGENERATE) test/jwtgenerate/jwtgenerate.go 
+	go build -ldflags "-X main.version=$(TAG) -X main.name=$(CONNTEST)" -a -o test/conn-test/$(CONNTEST) test/conn-test/conn-test.go
 	./jwt-generate gen --private-key test/key/private.pem > jwt.example
-	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
+	go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG) " -a -o ./$(GUSHER);
 docker-build:
-	go build -ldflags "-X main.name=$(NAME) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ)) " -a -o ./$(NAME);
+	go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG) " -a -o ./$(GUSHER);
 run: build
 	./$(NAME)
 tar: build
-	tar zcvf $(NAME).$(TAG).$(OS).tar.gz $(NAME) env.example LICENSE test/key jwt.example test/conn-test --exclude=test/conn-test/conn-test.go docker-compose docker
+	tar zcvf $(GUSHER).$(TAG).$(OS).tar.gz $(GUSHER) env.example LICENSE test/key jwt.example test/conn-test --exclude=test/conn-test/conn-test.go docker-compose docker
 todo:
 	find -type f \( -iname '*.go' ! -wholename './vendor/*' \) -exec grep -Hn 'TODO' {} \;
 rsakey:

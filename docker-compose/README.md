@@ -1,5 +1,7 @@
 # gusher.cluster docker-compose
 
+simple start gusher.clsuter service
+
 ## Usage
 
 docker-compose.yml:
@@ -12,4 +14,4 @@ then
 $ docker-compose up
 ```
 
-It will be start gusher service
+It will be start gusher.cluster service

@@ -1,5 +1,6 @@
 # jwtgenerate
 
+only support RSA256 
 
 ## Install
 
