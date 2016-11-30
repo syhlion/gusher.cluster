@@ -5,7 +5,6 @@
 
 Events|Discription
 ---|---
-gusher.login|login event
 gusher.subscribe|subscribe event
 gusher.unsubscribe|unsubscribe event
 gusher.subscribe_succeeded|subscribe sucess
@@ -22,34 +21,6 @@ gusher.unsubscribe_error|unsubscribe error
     "data":
 }
 ```
-
-#### Login Command:
-
-command:
-```
-{
-    "event":"gusher.login",
-    "data":{
-        "jwt":""
-    }
-}
-```
-
-jwt [ref](https://jwt.io)
-
-jwt [example](https://github.com/syhlion/gusher.cluster/blob/master/jwt.example)
-
-example payload decode
-```
-{
-    "gusher":{
-        "user_id":"Test_User",
-        "channels":["AA","BB"],
-        "app_key":"TEST"
-    }
-}
-```
-
 
 
 
