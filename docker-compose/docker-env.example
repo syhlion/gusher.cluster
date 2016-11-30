@@ -5,7 +5,7 @@ GUSHER_LOGLEVEL=DEV
 
 # slave mode
 GUSHER_API_LISTEN=:8000
-GUSHER_API_URI_PREFIX=/ws/
+GUSHER_API_URI_PREFIX=/gcs/
 GUSHER_DECODE_SERVICE=http://gusher-master:8000/api/decode
 
 ## master mode
