@@ -57,13 +57,17 @@ func start(c *cli.Context) {
 	if ws_api == "" {
 		log.Fatal("empty env GUSHER-CONN-TEST_WS_API")
 	}
+	ws_auth_api := os.Getenv("GUSHER-CONN-TEST_WS_AUTH_API")
+	if ws_auth_api == "" {
+		log.Fatal("empty env GUSHER-CONN-TEST_WS_AUTH_API")
+	}
 	push_api := os.Getenv("GUSHER-CONN-TEST_PUSH_API")
 	if push_api == "" {
 		log.Fatal("empty env GUSHER-CONN-TEST_PUSH_API")
 	}
-	login_msg := os.Getenv("GUSHER-CONN-TEST_LOGIN_MESSAGE")
-	if login_msg == "" {
-		log.Fatal("empty env GUSHER-CONN-TEST_LOGIN_MESSAGE")
+	jwt := os.Getenv("GUSHER-CONN-TEST_JWT")
+	if jwt == "" {
+		log.Fatal("empty env GUSHER-CONN-TEST_JWT")
 	}
 	sub_msg := os.Getenv("GUSHER-CONN-TEST_SUBSCRIBE_MESSAGE")
 	if sub_msg == "" {
@@ -85,47 +89,105 @@ func start(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	wsurl, err := url.Parse(ws_api)
+	/*auth*/
+
+	wsAuthurl, err := url.Parse(ws_auth_api)
 	if err != nil {
 		log.Fatal(err)
 	}
+	work := requestwork.New(5)
+	loginUrl := url.Values{}
+
+	loginUrl.Add("jwt", jwt)
+	tokenChan := make(chan string, conn_total)
+	tokenGroup := sync.WaitGroup{}
+	for i := 0; i < conn_total; i++ {
+		tokenGroup.Add(1)
+		go func() {
+			defer tokenGroup.Done()
+			req, err := http.NewRequest("POST", wsAuthurl.String(), bytes.NewBufferString(loginUrl.Encode()))
+			if err != nil {
+				log.Fatal(err)
+			}
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Add("Content-Length", strconv.Itoa(len(loginUrl.Encode())))
+			ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+			err = work.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
+				if e != nil {
+					return e
+				}
+				defer resp.Body.Close()
+				b, err := ioutil.ReadAll(resp.Body)
+				if err != nil {
+					return err
+				}
+				v, err := jsonparser.GetString(b, "token")
+				if err != nil {
+					return err
+				}
+				tokenChan <- v
+				return
+			})
+		}()
+
+	}
+	tokenGroup.Wait()
+	close(tokenChan)
+	/**/
+	wsurlChan := make(chan *url.URL, conn_total)
+	wsurlGroup := sync.WaitGroup{}
+	for v := range tokenChan {
+		wsurlGroup.Add(1)
+		go func() {
+			defer wsurlGroup.Done()
+			wsurl, err := url.Parse(ws_api + "?token=" + v)
+			if err != nil {
+				return
+			}
+			wsurlChan <- wsurl
+
+		}()
+	}
+	wsurlGroup.Wait()
+	close(wsurlChan)
 	pushurl, err := url.Parse(push_api)
 	if err != nil {
 		log.Fatal(err)
 	}
 	wsHeaders := http.Header{
-		"Origin":                   {wsurl.String()},
+		"Origin":                   {"*"},
 		"Sec-WebSocket-Extensions": {"permessage-deflate; client_max_window_bits, x-webkit-deflate-frame"},
 	}
-	conns := make([]*websocket.Conn, 0)
-	log.Infof("%v connect start!", conn_total)
-	for i := 0; i < conn_total; i++ {
-		rawConn, err := net.Dial("tcp", wsurl.Host)
-		if err != nil {
-			continue
-		}
+	connChan := make(chan *websocket.Conn, conn_total)
 
-		conn, _, err := websocket.NewClient(rawConn, wsurl, wsHeaders, 8192, 8192)
-		if err != nil {
-			rawConn.Close()
-			continue
-		}
-		err = conn.WriteMessage(websocket.TextMessage, []byte(login_msg))
-		if err != nil {
-			rawConn.Close()
-			conn.Close()
-			if c.Bool("debug") {
-				log.Warn(err)
+	connGroup := sync.WaitGroup{}
+	log.Infof("%v connect start!", conn_total)
+	for wsurl := range wsurlChan {
+		connGroup.Add(1)
+		go func() {
+			defer connGroup.Done()
+			rawConn, err := net.Dial("tcp", wsurl.Host)
+			if err != nil {
+				return
 			}
-			continue
-		}
-		conns = append(conns, conn)
+
+			conn, _, err := websocket.NewClient(rawConn, wsurl, wsHeaders, 8192, 8192)
+			if err != nil {
+				rawConn.Close()
+				return
+			}
+			connChan <- conn
+			return
+		}()
 	}
+	connGroup.Wait()
+	close(connChan)
+	connTotal := len(connChan)
 	var counter uint64
-	for i, conn := range conns {
+	for conn := range connChan {
 		wg.Add(1)
 		listen_wg.Add(1)
-		go func(i int, conn *websocket.Conn) {
+		go func(conn *websocket.Conn) {
 			subStatus := false
 			for {
 				_, d, err := conn.ReadMessage()
@@ -146,7 +208,7 @@ func start(c *cli.Context) {
 					listen_wg.Done()
 				}
 				if c.Bool("debug") {
-					log.Println(i, " slave repsonse message", string(d))
+					log.Println("slave repsonse message", string(d))
 				}
 				data, _ := jsonparser.GetString(d, "data")
 				if data == push_msg {
@@ -154,7 +216,7 @@ func start(c *cli.Context) {
 					return
 				}
 			}
-		}(i, conn)
+		}(conn)
 		err = conn.WriteMessage(websocket.TextMessage, []byte(sub_msg))
 		if err != nil {
 			conn.Close()
@@ -163,9 +225,8 @@ func start(c *cli.Context) {
 	}
 
 	listen_wg.Wait()
-	log.Infof("%v connect finish", len(conns))
+	log.Infof("%v connect finish", connTotal)
 	//push start
-	work := requestwork.New(5)
 	v := url.Values{}
 
 	v.Add("data", push_msg)
@@ -199,13 +260,13 @@ func start(c *cli.Context) {
 	log.Println("Waiting...")
 	wg.Wait()
 	t := time.Now().Sub(pushStart)
-	if len(conns) == 0 {
+	if connTotal == 0 {
 		log.Error("0 client connect, please check slave server!")
-	} else if len(conns) == int(counter) {
+	} else if connTotal == int(counter) {
 		log.Error("no client read message, please check master server!")
 	} else {
 
-		log.Infof("%v client connect, %v error read , receive msg time:%s", len(conns), counter, t)
+		log.Infof("%v client connect, %v error read , receive msg time:%s", connTotal, counter, t)
 	}
 
 	return
