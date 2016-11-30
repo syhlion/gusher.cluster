@@ -10,7 +10,7 @@ gusher-master:
     env_file:
         - ./docker-env.example
     ports: 
-        - "7999:8000"
+        - "7777:8888"
 gusher-slave:
     image: syhlion/gusher.cluster
     command: slave
@@ -20,4 +20,4 @@ gusher-slave:
         - gusher-redis
         - gusher-master
     ports:
-        - "8000:8000"
+        - "8888:8888"
