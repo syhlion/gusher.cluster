@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
+	uuid "github.com/satori/go.uuid"
 	"github.com/syhlion/redisocket.v2"
 	"github.com/syhlion/requestwork.v2"
 )
@@ -31,7 +31,6 @@ type User struct {
 	appKey   string
 	request  *http.Request
 	*redisocket.Client
-	isLogin bool
 }
 
 type WsManager struct {
@@ -42,6 +41,64 @@ type WsManager struct {
 	worker *requestwork.Worker
 }
 
+func (wm *WsManager) Auth(w http.ResponseWriter, r *http.Request) {
+	jwt := r.FormValue("jwt")
+
+	v := url.Values{}
+	v.Add("data", jwt)
+	req, err := http.NewRequest("POST", decode_service, bytes.NewBufferString(v.Encode()))
+
+	if err != nil {
+		logger.GetRequestEntry(r).Warn(err)
+		http.Error(w, "jwt decode fail", http.StatusUnauthorized)
+		return
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
+
+	logger.GetRequestEntry(r).Debugf("request jwt: %s", jwt)
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	a := &JwtPack{}
+	err = wm.worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
+		if e != nil {
+			logger.Debug(e)
+			return e
+		}
+		defer resp.Body.Close()
+		err = json.NewDecoder(resp.Body).Decode(a)
+		if err != nil {
+			logger.Debug(err)
+			return
+		}
+		return
+	})
+	if err != nil {
+		logger.GetRequestEntry(r).Warn(err)
+		http.Error(w, "jwt decode fail", http.StatusUnauthorized)
+		return
+	}
+	conn := wm.pool.Get()
+	defer conn.Close()
+	b, err := json.Marshal(a.Gusher)
+	if err != nil {
+		logger.GetRequestEntry(r).Debug(err)
+		http.Error(w, "jwt decode fail", http.StatusUnauthorized)
+		return
+	}
+	uid := uuid.NewV1()
+	conn.Send("SET", uid.String(), string(b))
+	conn.Send("EXPIRE", uid.String(), 30)
+	conn.Flush()
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(struct {
+		Token string `json:"token"`
+	}{
+		Token: uid.String(),
+	})
+
+}
+
 func (wm *WsManager) Count() int {
 	return len(wm.users)
 }
@@ -49,11 +106,36 @@ func (wm *WsManager) Count() int {
 func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	appKey := params["app_key"]
-	if appKey == "" {
-		logger.GetRequestEntry(r).Warn("app_key is nil")
-		http.Error(w, "app_key is nil", 401)
+	token := r.FormValue("token")
+	if appKey == "" || token == "" {
+		logger.GetRequestEntry(r).Warn("app_key or token is nil")
+		http.Error(w, "app_key is nil", http.StatusUnauthorized)
 		return
 	}
+	conn := wm.pool.Get()
+	defer conn.Close()
+	reply, err := redis.Bytes(conn.Do("GET", token))
+	if err != nil {
+		logger.GetRequestEntry(r).Warn(err)
+		http.Error(w, "token error", http.StatusUnauthorized)
+		return
+	}
+	auth := Auth{}
+	err = json.Unmarshal(reply, &auth)
+	if err != nil {
+		logger.GetRequestEntry(r).Warn(err)
+		http.Error(w, "token error", http.StatusUnauthorized)
+		return
+	}
+	if appKey != auth.AppKey {
+		http.Error(w, "appkey error", http.StatusUnauthorized)
+		return
+	}
+	channels := make(map[string]bool)
+	for _, v := range auth.Channels {
+		channels[v] = false
+	}
+
 	s, err := wm.Upgrade(w, r, nil)
 	if err != nil {
 		logger.GetRequestEntry(r).Warnf("upgrade ws connection %s", err)
@@ -61,88 +143,17 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	u := &User{
-		appKey:  appKey,
-		request: r,
-		isLogin: false,
-		Client:  s,
+		appKey:   appKey,
+		request:  r,
+		Client:   s,
+		channels: channels,
 	}
 	wm.Lock()
 	wm.users[u] = true
 	wm.Unlock()
 	logger.GetRequestEntry(r).Debug("user listen start")
-	time.AfterFunc(15*time.Second, func() {
-		if !u.isLogin {
-			logger.GetRequestEntry(u.request).Debug("login timeout")
-			u.Close()
-		}
-	})
 	err = u.Listen(func(data []byte) (err error) {
 		logger.GetRequestEntry(r).Debugf("client receive command %s", data)
-		//訂閱處理
-		if !u.isLogin {
-			val, err := jsonparser.GetString(data, "event")
-			if err != nil {
-				return err
-			}
-			if val != LoginEvent {
-				s := fmt.Sprintf("event error %s", val)
-				return errors.New(s)
-			}
-			d, _, _, err := jsonparser.Get(data, "data", "jwt")
-			if err != nil {
-				logger.Debug(err)
-				return err
-			}
-			v := url.Values{}
-
-			v.Add("data", string(d))
-			req, err := http.NewRequest("POST", decode_service, bytes.NewBufferString(v.Encode()))
-
-			if err != nil {
-				logger.GetRequestEntry(r).Warn(err)
-				return err
-			}
-			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
-
-			logger.GetRequestEntry(u.request).Debugf("login message: %s", d)
-			ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-			a := &JwtPack{}
-			err = wm.worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
-				if e != nil {
-					logger.Debug(e)
-					return e
-				}
-				defer resp.Body.Close()
-				err = json.NewDecoder(resp.Body).Decode(a)
-				if err != nil {
-					logger.Debug(err)
-					return
-				}
-				return
-			})
-			if err != nil {
-				return err
-			}
-			if a.Gusher.AppKey != u.appKey {
-				err = errors.New("app_key error")
-				return err
-			}
-			logger.GetRequestEntry(u.request).Debugf("login parse sucess: %v", a)
-			if len(a.Gusher.Channels) == 0 {
-				err = errors.New("no channels")
-				return err
-			}
-			channels := make(map[string]bool)
-			for _, c := range a.Gusher.Channels {
-				channels[c] = false
-			}
-			u.id = a.Gusher.UserId
-			u.channels = channels
-			u.isLogin = true
-			return nil
-		}
-
 		h, err := CommanRouter(data)
 		if err != nil {
 			return

@@ -141,7 +141,8 @@ func slave(c *cli.Context) {
 	server := http.NewServeMux()
 
 	sub := r.PathPrefix(api_uri_prefix).Subrouter()
-	sub.HandleFunc("/{app_key}", wm.Connect).Methods("GET")
+	sub.HandleFunc("/ws/{app_key}", wm.Connect).Methods("GET")
+	sub.HandleFunc("/auth", wm.Auth).Methods("POST")
 	n := negroni.New()
 	n.UseHandler(handlers.CombinedLoggingHandler(os.Stdout, r))
 	server.Handle("/", n)
