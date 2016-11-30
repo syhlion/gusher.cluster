@@ -6,6 +6,6 @@ RUN git clone https://github.com/syhlion/gusher.cluster.git /go/src/gusher.clust
 
 WORKDIR /go/src/gusher.cluster
 
-EXPOSE 8000
+EXPOSE 8888
 
 ENTRYPOINT ["./gusher.cluster"]
