@@ -29,7 +29,7 @@ example payload decode
 
 Connect:
 
-`GET /{prefix}/ws/{app_key}?auth={auth}`
+`GET /{prefix}/ws/{app_key}?token={token}`
 
 ## Master Api
 
