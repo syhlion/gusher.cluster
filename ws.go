@@ -42,6 +42,7 @@ type WsManager struct {
 }
 
 func (wm *WsManager) Auth(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	jwt := r.FormValue("jwt")
 
 	v := url.Values{}
@@ -87,7 +88,7 @@ func (wm *WsManager) Auth(w http.ResponseWriter, r *http.Request) {
 	}
 	uid := uuid.NewV1()
 	conn.Send("SET", uid.String(), string(b))
-	conn.Send("EXPIRE", uid.String(), 30)
+	conn.Send("EXPIRE", uid.String(), 60)
 	conn.Flush()
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	w.WriteHeader(http.StatusOK)
