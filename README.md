@@ -13,8 +13,8 @@ Docker example use [doc](https://github.com/syhlion/gusher.cluster/blob/master/d
 ```
 docker pull syhlion/gusher.cluster
 docker run --name docker-redis -d redis
-docker run --env-file env.example --link docker-redis --name gusher-master -p 7999:8000 -d syhlion/gusher.cluster master //master mode
-docker run --env-file env.example --link docker-redis --link gusher-master --name gusher-slave -p 8000:8000 -d syhlion/gusher.cluster slave //slave mode
+docker run --env-file env.example --link docker-redis --name gusher-master -p 7999:8888 -d syhlion/gusher.cluster master //master mode
+docker run --env-file env.example --link docker-redis --link gusher-master --name gusher-slave -p 8000:8888 -d syhlion/gusher.cluster slave //slave mode
 //note env & link hostname
 ```
 
