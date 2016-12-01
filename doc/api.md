@@ -1,8 +1,10 @@
 ## Slave  Api
 
-Auth:
+#### Auth:
 
-`POST /{prefix}/auth?jwt={jwt}`
+`POST /{prefix}/auth`
+
+fields: jwt={jwt}
 
 Success Response:
 ```
@@ -15,21 +17,11 @@ jwt [ref](https://jwt.io)
 
 jwt [example](https://github.com/syhlion/gusher.cluster/blob/master/jwt.example)
 
-example payload decode
-```
-{
-    "gusher":{
-        "user_id":"Test_User",
-        "channels":["AA","BB"],
-        "app_key":"TEST"
-    }
-}
-```
 
-
-Connect:
+#### Connect:
 
 `GET /{prefix}/ws/{app_key}?token={token}`
+
 
 ## Master Api
 
