@@ -29,6 +29,7 @@ func PushMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http
 			w.Write([]byte("empty data"))
 			return
 		}
+		jsonData := JsonCheck(data)
 
 		push := struct {
 			Channel string      `json:"channel"`
@@ -37,7 +38,7 @@ func PushMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http
 		}{
 			Channel: channel,
 			Event:   event,
-			Data:    data,
+			Data:    jsonData,
 		}
 		d, err := json.Marshal(push)
 		if err != nil {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/rsa"
+	"encoding/json"
 	"errors"
 	"net"
 	"runtime"
@@ -9,6 +10,14 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 )
+
+func JsonCheck(data string) (j interface{}) {
+	err := json.Unmarshal([]byte(data), &j)
+	if err != nil {
+		j = data
+	}
+	return
+}
 
 func Decode(key *rsa.PublicKey, data string) (jp JwtPack, err error) {
 
