@@ -104,7 +104,6 @@ func start(c *cli.Context) {
 	for i := 0; i < conn_total; i++ {
 		tokenGroup.Add(1)
 		go func() {
-			defer tokenGroup.Done()
 			req, err := http.NewRequest("POST", wsAuthurl.String(), bytes.NewBufferString(loginUrl.Encode()))
 			if err != nil {
 				log.Fatal(err)
@@ -113,6 +112,7 @@ func start(c *cli.Context) {
 			req.Header.Add("Content-Length", strconv.Itoa(len(loginUrl.Encode())))
 			ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 			err = work.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
+				defer tokenGroup.Done()
 				if e != nil {
 					return e
 				}
