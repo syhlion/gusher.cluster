@@ -12,8 +12,8 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/garyburd/redigo/redis"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/syhlion/httplog"
 	redisocket "github.com/syhlion/redisocket.v2"
 	"github.com/syhlion/requestwork.v2"
 	"github.com/urfave/cli"
@@ -65,7 +65,8 @@ func master(c *cli.Context) {
 	}
 	server := http.NewServeMux()
 	n := negroni.New()
-	n.UseHandler(handlers.CombinedLoggingHandler(os.Stdout, r))
+	n.Use(httplog.NewLogger())
+	n.UseHandler(r)
 	server.Handle("/", http.TimeoutHandler(n, 3*time.Second, "Timeout"))
 	serverError := make(chan error, 1)
 	go func() {
@@ -144,7 +145,8 @@ func slave(c *cli.Context) {
 	sub.HandleFunc("/ws/{app_key}", wm.Connect).Methods("GET")
 	sub.HandleFunc("/auth", wm.Auth).Methods("POST")
 	n := negroni.New()
-	n.UseHandler(handlers.CombinedLoggingHandler(os.Stdout, r))
+	n.Use(httplog.NewLogger())
+	n.UseHandler(r)
 	server.Handle("/", n)
 	serverError := make(chan error, 1)
 	go func() {
