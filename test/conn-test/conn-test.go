@@ -138,7 +138,7 @@ func start(c *cli.Context) {
 	wsurlGroup := sync.WaitGroup{}
 	for v := range tokenChan {
 		wsurlGroup.Add(1)
-		go func() {
+		go func(v string) {
 			defer wsurlGroup.Done()
 			wsurl, err := url.Parse(ws_api + "?token=" + v)
 			if err != nil {
@@ -146,7 +146,7 @@ func start(c *cli.Context) {
 			}
 			wsurlChan <- wsurl
 
-		}()
+		}(v)
 	}
 	wsurlGroup.Wait()
 	close(wsurlChan)
@@ -164,7 +164,7 @@ func start(c *cli.Context) {
 	log.Infof("%v connect start!", conn_total)
 	for wsurl := range wsurlChan {
 		connGroup.Add(1)
-		go func() {
+		go func(wsurl *url.URL) {
 			defer connGroup.Done()
 			rawConn, err := net.Dial("tcp", wsurl.Host)
 			if err != nil {
@@ -178,7 +178,7 @@ func start(c *cli.Context) {
 			}
 			connChan <- conn
 			return
-		}()
+		}(wsurl)
 	}
 	connGroup.Wait()
 	close(connChan)
