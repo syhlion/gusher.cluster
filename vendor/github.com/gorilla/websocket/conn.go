@@ -218,6 +218,7 @@ func isValidReceivedCloseCode(code int) bool {
 	return validReceivedCloseCodes[code] || (code >= 3000 && code <= 4999)
 }
 
+// The Conn type represents a WebSocket connection.
 type Conn struct {
 	conn        net.Conn
 	isServer    bool
@@ -234,9 +235,10 @@ type Conn struct {
 	writeErr   error
 
 	enableWriteCompression bool
-	newCompressionWriter   func(io.WriteCloser) (io.WriteCloser, error)
+	newCompressionWriter   func(io.WriteCloser) io.WriteCloser
 
 	// Read fields
+	reader        io.ReadCloser // the current reader returned to the application
 	readErr       error
 	br            *bufio.Reader
 	readRemaining int64 // bytes remaining in current frame.
@@ -252,7 +254,7 @@ type Conn struct {
 	messageReader *messageReader // the current low-level reader
 
 	readDecompress         bool // whether last read frame had RSV1 set
-	newDecompressionReader func(io.Reader) io.Reader
+	newDecompressionReader func(io.Reader) io.ReadCloser
 }
 
 func newConn(conn net.Conn, isServer bool, readBufferSize, writeBufferSize int) *Conn {
@@ -406,12 +408,7 @@ func (c *Conn) WriteControl(messageType int, data []byte, deadline time.Time) er
 	return err
 }
 
-// NextWriter returns a writer for the next message to send. The writer's Close
-// method flushes the complete message to the network.
-//
-// There can be at most one open writer on a connection. NextWriter closes the
-// previous writer if the application has not already done so.
-func (c *Conn) NextWriter(messageType int) (io.WriteCloser, error) {
+func (c *Conn) prepWrite(messageType int) error {
 	// Close previous writer if not already closed by the application. It's
 	// probably better to return an error in this situation, but we cannot
 	// change this without breaking existing applications.
@@ -421,13 +418,22 @@ func (c *Conn) NextWriter(messageType int) (io.WriteCloser, error) {
 	}
 
 	if !isControl(messageType) && !isData(messageType) {
-		return nil, errBadWriteOpCode
+		return errBadWriteOpCode
 	}
 
 	c.writeErrMu.Lock()
 	err := c.writeErr
 	c.writeErrMu.Unlock()
-	if err != nil {
+	return err
+}
+
+// NextWriter returns a writer for the next message to send. The writer's Close
+// method flushes the complete message to the network.
+//
+// There can be at most one open writer on a connection. NextWriter closes the
+// previous writer if the application has not already done so.
+func (c *Conn) NextWriter(messageType int) (io.WriteCloser, error) {
+	if err := c.prepWrite(messageType); err != nil {
 		return nil, err
 	}
 
@@ -438,11 +444,7 @@ func (c *Conn) NextWriter(messageType int) (io.WriteCloser, error) {
 	}
 	c.writer = mw
 	if c.newCompressionWriter != nil && c.enableWriteCompression && isData(messageType) {
-		w, err := c.newCompressionWriter(c.writer)
-		if err != nil {
-			c.writer = nil
-			return nil, err
-		}
+		w := c.newCompressionWriter(c.writer)
 		mw.compress = true
 		c.writer = w
 	}
@@ -652,16 +654,23 @@ func (w *messageWriter) Close() error {
 // WriteMessage is a helper method for getting a writer using NextWriter,
 // writing the message and closing the writer.
 func (c *Conn) WriteMessage(messageType int, data []byte) error {
-	w, err := c.NextWriter(messageType)
-	if err != nil {
-		return err
-	}
-	if mw, ok := w.(*messageWriter); ok && c.isServer {
-		// Optimize write as a single frame.
+
+	if c.isServer && (c.newCompressionWriter == nil || !c.enableWriteCompression) {
+
+		// Fast path with no allocations and single frame.
+
+		if err := c.prepWrite(messageType); err != nil {
+			return err
+		}
+		mw := messageWriter{c: c, frameType: messageType, pos: maxFrameHeaderSize}
 		n := copy(c.writeBuf[mw.pos:], data)
 		mw.pos += n
 		data = data[n:]
-		err = mw.flushFrame(true, data)
+		return mw.flushFrame(true, data)
+	}
+
+	w, err := c.NextWriter(messageType)
+	if err != nil {
 		return err
 	}
 	if _, err = w.Write(data); err != nil {
@@ -843,6 +852,11 @@ func (c *Conn) handleProtocolError(message string) error {
 // permanent. Once this method returns a non-nil error, all subsequent calls to
 // this method return the same error.
 func (c *Conn) NextReader() (messageType int, r io.Reader, err error) {
+	// Close previous reader, only relevant for decompression.
+	if c.reader != nil {
+		c.reader.Close()
+		c.reader = nil
+	}
 
 	c.messageReader = nil
 	c.readLength = 0
@@ -855,11 +869,11 @@ func (c *Conn) NextReader() (messageType int, r io.Reader, err error) {
 		}
 		if frameType == TextMessage || frameType == BinaryMessage {
 			c.messageReader = &messageReader{c}
-			var r io.Reader = c.messageReader
+			c.reader = c.messageReader
 			if c.readDecompress {
-				r = c.newDecompressionReader(r)
+				c.reader = c.newDecompressionReader(c.reader)
 			}
-			return frameType, r, nil
+			return frameType, c.reader, nil
 		}
 	}
 
@@ -919,6 +933,10 @@ func (r *messageReader) Read(b []byte) (int, error) {
 		err = errUnexpectedEOF
 	}
 	return 0, err
+}
+
+func (r *messageReader) Close() error {
+	return nil
 }
 
 // ReadMessage is a helper method for getting a reader using NextReader and
