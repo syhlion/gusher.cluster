@@ -14,6 +14,12 @@ const (
 	UnSubscribeReplyError     = "unsubscribe_error"
 )
 
+type BatchData struct {
+	Channel string      `json:"channel"`
+	Event   string      `json:"event"`
+	Data    interface{} `json:"data""`
+}
+
 type InternalCommand struct {
 	Event string `json:"event"`
 }

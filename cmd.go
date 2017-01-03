@@ -60,6 +60,7 @@ func master(c *cli.Context) {
 
 	sub := r.PathPrefix(master_uri_prefix).Subrouter()
 	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rsender)).Methods("POST")
+	sub.HandleFunc("/push/{app_key}", PushBatchMessage(rsender)).Methods("POST")
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
