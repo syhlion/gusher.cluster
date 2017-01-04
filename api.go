@@ -27,7 +27,8 @@ func PushBatchMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r 
 			return
 		}
 		batchData := make([]BatchData, 0)
-		err := json.Unmarshal([]byte(data), &batchData)
+		byteData := []byte(data)
+		err := json.Unmarshal(byteData, &batchData)
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
 			w.WriteHeader(400)
@@ -54,6 +55,23 @@ func PushBatchMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r 
 				logger.GetRequestEntry(r).Warn(err)
 			}
 		}
+		response := struct {
+			Total int `json:"total"`
+			Cap   int `json:"cap"`
+		}{
+			Total: len(batchData),
+			Cap:   len(byteData),
+		}
+		d, err := json.Marshal(response)
+		if err != nil {
+			w.WriteHeader(400)
+			w.Write([]byte("response marshal error"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(d)
+		return
 	}
 }
 
@@ -102,6 +120,8 @@ func PushMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http
 			w.Write([]byte("data error"))
 			return
 		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
 		w.Write(d)
 		return
 	}
