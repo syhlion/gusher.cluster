@@ -3,6 +3,8 @@ GUSHER:= gusher.cluster
 CONNTEST:= conn-test
 JWTGENERATE:=jwt-generate
 TAG := `git describe --tags | cut -d '-' -f 1 `.`git rev-parse --short HEAD`
+TZ := Asia/Taipei
+DATETIME := `TZ=$(TZ) date +%Y/%m/%d.%T`
 show-tag:
 	echo $(TAG)
 verify-glide:
@@ -15,7 +17,8 @@ build:
 	go build -ldflags "-X main.version=$(TAG) -X main.name=$(JWTGENERATE)" -a -o $(JWTGENERATE) test/jwtgenerate/jwtgenerate.go 
 	go build -ldflags "-X main.version=$(TAG) -X main.name=$(CONNTEST)" -a -o test/conn-test/$(CONNTEST) test/conn-test/conn-test.go
 	./jwt-generate gen --private-key test/key/private.pem > jwt.example
-	go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG) " -a -o ./$(GUSHER);
+	go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG) -X main.compileDate=$(DATETIME)($(TZ))" -a -o ./$(GUSHER);
+	
 docker-build:
 	go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG) " -a -o ./$(GUSHER);
 run: build

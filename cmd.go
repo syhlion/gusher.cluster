@@ -1,6 +1,7 @@
 package main
 
 import (
+	"html/template"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -23,42 +24,39 @@ import (
 // master server
 func master(c *cli.Context) {
 
-	envInit(c)
+	mc := getMasterConfig(c)
 
-	b, err := ioutil.ReadFile(public_pem_file)
+	b, err := ioutil.ReadFile(mc.PublicKeyLocation)
 	if err != nil {
 		logger.Warn(err)
 	}
 	public_pem, rsaKeyErr := jwt.ParseRSAPublicKeyFromPEM(b)
 	if rsaKeyErr != nil {
-		logger.Warnf("Did not start \"%sdecode\" api", master_uri_prefix)
+		logger.Warnf("Did not start \"%sdecode\" api", mc.ApiPrefix)
 	}
 
 	/*redis init*/
 	rpool := redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", redis_addr)
+		return redis.Dial("tcp", mc.RedisAddr)
 	}, 10)
+	rpool.MaxIdle = mc.RedisMaxIdle
+	rpool.MaxActive = mc.RedisMaxConn
+
 	/*Test redis connect*/
-	_, err = rpool.Get().Do("PING")
+	err = RedisTestConn(rpool.Get())
 	if err != nil {
 		logger.Fatal(err)
 	}
 	rsender := redisocket.NewSender(rpool)
 
-	/*externl ip*/
-	externalIP, err := GetExternalIP()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
 	/*api start*/
-	apiListener, err := net.Listen("tcp", master_api_listen)
+	apiListener, err := net.Listen("tcp", mc.ApiListen)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	r := mux.NewRouter()
 
-	sub := r.PathPrefix(master_uri_prefix).Subrouter()
+	sub := r.PathPrefix(mc.ApiPrefix).Subrouter()
 	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rsender)).Methods("POST")
 	sub.HandleFunc("/push_batch/{app_key}", PushBatchMessage(rsender)).Methods("POST")
 	if rsaKeyErr == nil {
@@ -77,11 +75,8 @@ func master(c *cli.Context) {
 
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	logger.Info(name, " master start ! ")
-	logger.Infof("listen redis in \"%s\"", redis_addr)
-	logger.Infof("listen web api in \"%s\"", master_api_listen)
-	logger.Infof("master uri preifx \"%s\"", master_uri_prefix)
-	logger.Infof("localhost ip is \"%s\"", externalIP)
+	t := template.Must(template.New("gusher master start msg").Parse(masterMsgFormat))
+	t.Execute(os.Stdout, mc)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:
@@ -94,14 +89,18 @@ func master(c *cli.Context) {
 
 //slave server
 func slave(c *cli.Context) {
-	envInit(c)
 
+	sc := getSlaveConfig(c)
 	/*redis init*/
 	rpool := redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", redis_addr)
+		return redis.Dial("tcp", sc.RedisAddr)
 	}, 10)
+
+	rpool.MaxIdle = sc.RedisMaxIdle
+	rpool.MaxActive = sc.RedisMaxConn
+
 	/*Test redis connect*/
-	_, err := rpool.Get().Do("PING")
+	err := RedisTestConn(rpool.Get())
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -115,17 +114,11 @@ func slave(c *cli.Context) {
 		rsHubErr <- rsHub.Listen(listenChannelPrefix)
 	}()
 
-	/*externl ip*/
-	externalIP, err := GetExternalIP()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
 	/*request worker*/
 	worker := requestwork.New(50)
 
 	/*api start*/
-	apiListener, err := net.Listen("tcp", api_listen)
+	apiListener, err := net.Listen("tcp", sc.ApiListen)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -142,9 +135,9 @@ func slave(c *cli.Context) {
 
 	server := http.NewServeMux()
 
-	sub := r.PathPrefix(api_uri_prefix).Subrouter()
+	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
 	sub.HandleFunc("/ws/{app_key}", wm.Connect).Methods("GET")
-	sub.HandleFunc("/auth", wm.Auth).Methods("POST")
+	sub.HandleFunc("/auth", wm.Auth(sc)).Methods("POST")
 	n := negroni.New()
 	n.Use(httplog.NewLogger())
 	n.UseHandler(r)
@@ -184,12 +177,8 @@ func slave(c *cli.Context) {
 
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
-	logger.Info(name, " slave start ! ")
-	logger.Infof("listen redis in \"%s\"", redis_addr)
-	logger.Infof("listen web api in \"%s\"", api_listen)
-	logger.Infof("api uri preifx \"%s\"", api_uri_prefix)
-	logger.Infof("localhost ip is \"%s\"", externalIP)
-	logger.Infof("decode service \"%s\"", decode_service)
+	t := template.Must(template.New("gusher slave start msg").Parse(slaveMsgFormat))
+	t.Execute(os.Stdout, sc)
 	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	select {
 	case <-shutdow_observer:

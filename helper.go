@@ -5,11 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
-	"runtime"
-	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/garyburd/redigo/redis"
 )
+
+func RedisTestConn(conn redis.Conn) (err error) {
+	_, err = conn.Do("PING")
+	conn.Close()
+	return
+}
 
 func JsonCheck(data string) (j interface{}) {
 	err := json.Unmarshal([]byte(data), &j)
@@ -30,25 +35,6 @@ func Decode(key *rsa.PublicKey, data string) (jp JwtPack, err error) {
 	if err != nil {
 		logger.Debugf("data: %s , err: %v", data, err)
 		return
-	}
-	return
-}
-
-func GetInfo(ip string, c int) (s ServerInfo) {
-	m := new(runtime.MemStats)
-	runtime.ReadMemStats(m)
-	s = ServerInfo{
-
-		Ip:             ip,
-		LocalListen:    api_listen,
-		Version:        version,
-		RunTimeVersion: runtime.Version(),
-		NumCpu:         runtime.NumCPU(),
-		MemAllcoated:   m.Alloc,
-		Goroutines:     runtime.NumGoroutine(),
-		UpdateTime:     time.Now().Unix(),
-		SendInterval:   return_serverinfo_interval,
-		Connections:    c,
 	}
 	return
 }

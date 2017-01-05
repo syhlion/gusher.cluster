@@ -41,62 +41,64 @@ type WsManager struct {
 	worker *requestwork.Worker
 }
 
-func (wm *WsManager) Auth(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	jwt := r.FormValue("jwt")
+func (wm *WsManager) Auth(sc SlaveConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		jwt := r.FormValue("jwt")
 
-	v := url.Values{}
-	v.Add("data", jwt)
-	req, err := http.NewRequest("POST", decode_service, bytes.NewBufferString(v.Encode()))
+		v := url.Values{}
+		v.Add("data", jwt)
+		req, err := http.NewRequest("POST", sc.DecodeServiceAddr, bytes.NewBufferString(v.Encode()))
 
-	if err != nil {
-		logger.GetRequestEntry(r).Warn(err)
-		http.Error(w, "jwt decode fail", http.StatusUnauthorized)
-		return
-	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
-
-	logger.GetRequestEntry(r).Debugf("request jwt: %s", jwt)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	a := &JwtPack{}
-	err = wm.worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
-		if e != nil {
-			logger.Debug(e)
-			return e
-		}
-		defer resp.Body.Close()
-		err = json.NewDecoder(resp.Body).Decode(a)
 		if err != nil {
-			logger.Debug(err)
+			logger.GetRequestEntry(r).Warn(err)
+			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
 			return
 		}
-		return
-	})
-	if err != nil {
-		logger.GetRequestEntry(r).Warn(err)
-		http.Error(w, "jwt decode fail", http.StatusUnauthorized)
-		return
+		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
+
+		logger.GetRequestEntry(r).Debugf("request jwt: %s", jwt)
+		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+		a := &JwtPack{}
+		err = wm.worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
+			if e != nil {
+				logger.Debug(e)
+				return e
+			}
+			defer resp.Body.Close()
+			err = json.NewDecoder(resp.Body).Decode(a)
+			if err != nil {
+				logger.Debug(err)
+				return
+			}
+			return
+		})
+		if err != nil {
+			logger.GetRequestEntry(r).Warn(err)
+			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
+			return
+		}
+		conn := wm.pool.Get()
+		defer conn.Close()
+		b, err := json.Marshal(a.Gusher)
+		if err != nil {
+			logger.GetRequestEntry(r).Debug(err)
+			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
+			return
+		}
+		uid := uuid.NewV1()
+		conn.Send("SET", uid.String(), string(b))
+		conn.Send("EXPIRE", uid.String(), 60)
+		conn.Flush()
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(struct {
+			Token string `json:"token"`
+		}{
+			Token: uid.String(),
+		})
 	}
-	conn := wm.pool.Get()
-	defer conn.Close()
-	b, err := json.Marshal(a.Gusher)
-	if err != nil {
-		logger.GetRequestEntry(r).Debug(err)
-		http.Error(w, "jwt decode fail", http.StatusUnauthorized)
-		return
-	}
-	uid := uuid.NewV1()
-	conn.Send("SET", uid.String(), string(b))
-	conn.Send("EXPIRE", uid.String(), 60)
-	conn.Flush()
-	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(struct {
-		Token string `json:"token"`
-	}{
-		Token: uid.String(),
-	})
 
 }
 

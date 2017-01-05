@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -48,25 +49,99 @@ var (
 			},
 		},
 	}
-	logger            *Logger
-	loglevel          string
-	externalIP        string
-	api_listen        string
-	api_uri_prefix    string
-	master_uri_prefix string
-	master_api_listen string
-	//master_remote_addr         string
-	redis_addr string
-	//remote_listen              string
-	public_pem_file            string
-	decode_service             string
-	return_serverinfo_interval string
+	logger          *Logger
+	masterMsgFormat = "\nmaster mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
+		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
+		"redis_server_addr:\"{{.RedisAddr}}\"\n" +
+		"redis_server_max_idle:\"{{.RedisMaxIdle}}\"\n" +
+		"redis_server_max_conn:\"{{.RedisMaxConn}}\"\n" +
+		"public_key_location:\"{{.PublicKeyLocation}}\"\n\n"
+	slaveMsgFormat = "\nslave mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
+		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
+		"redis_server_addr:\"{{.RedisAddr}}\"\n" +
+		"redis_server_max_idle:\"{{.RedisMaxIdle}}\"\n" +
+		"redis_server_max_conn:\"{{.RedisMaxConn}}\"\n" +
+		"decode_service_addr:\"{{.DecodeServiceAddr}}\"\n\n"
 )
 
 func init() {
 	listenChannelPrefix = name + "." + version + "."
 	/*logger init*/
 	logger = GetLogger()
+}
+func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
+	sc = SlaveConfig{}
+	envInit(c)
+	sc.RedisAddr = os.Getenv("GUSHER_REDIS_ADDR")
+	if sc.RedisAddr == "" {
+		logger.Fatal("empty env GUSHER_REDIS_ADDR")
+	}
+	var err error
+	sc.RedisMaxIdle, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_IDLE"))
+	if err != nil {
+		sc.RedisMaxIdle = 80
+	}
+	sc.RedisMaxConn, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_Conn"))
+	if err != nil {
+		sc.RedisMaxConn = 800
+	}
+	sc.ApiListen = os.Getenv("GUSHER_API_LISTEN")
+	if sc.ApiListen == "" {
+		logger.Fatal("empty env GUSHER_API_LISTEN")
+	}
+	sc.ApiPrefix = os.Getenv("GUSHER_API_URI_PREFIX")
+	if sc.ApiPrefix == "" {
+		logger.Fatal("empty env GUSHER_API_URI_PREIFX")
+	}
+	sc.DecodeServiceAddr = os.Getenv("GUSHER_DECODE_SERVICE")
+	if sc.DecodeServiceAddr == "" {
+		logger.Fatal("empty env GUSHER_DECODE_SERVICE")
+	}
+	sc.StartTime = time.Now()
+	sc.CompileDate = compileDate
+	sc.Version = version
+	sc.ExternalIp, err = GetExternalIP()
+	if err != nil {
+		logger.Fatal("cant get ip")
+	}
+	return
+}
+func getMasterConfig(c *cli.Context) (mc MasterConfig) {
+	envInit(c)
+	mc = MasterConfig{}
+	mc.PublicKeyLocation = os.Getenv("GUSHER_PUBLIC_PEM_FILE")
+	if mc.PublicKeyLocation == "" {
+		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")
+	}
+	mc.RedisAddr = os.Getenv("GUSHER_REDIS_ADDR")
+	if mc.RedisAddr == "" {
+		logger.Fatal("empty env GUSHER_REDIS_ADDR")
+	}
+	var err error
+	mc.RedisMaxIdle, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_IDLE"))
+	if err != nil {
+		mc.RedisMaxIdle = 10
+	}
+	mc.RedisMaxConn, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_Conn"))
+	if err != nil {
+		mc.RedisMaxConn = 100
+	}
+	mc.ApiListen = os.Getenv("GUSHER_MASTER_API_LISTEN")
+	if mc.ApiListen == "" {
+		logger.Fatal("empty env GUSHER_MASTER_API_LISTEN")
+	}
+	mc.ApiPrefix = os.Getenv("GUSHER_MASTER_URI_PREFIX")
+	if mc.ApiPrefix == "" {
+		logger.Fatal("empty env GUSHER_MASTER_URI_PREFIX")
+	}
+	mc.StartTime = time.Now()
+	mc.CompileDate = compileDate
+	mc.Version = version
+	mc.ExternalIp, err = GetExternalIP()
+	if err != nil {
+		logger.Fatal("cant get ip")
+	}
+	return
 }
 
 func envInit(c *cli.Context) {
@@ -78,39 +153,6 @@ func envInit(c *cli.Context) {
 		if err != nil {
 			logger.Fatal(err)
 		}
-	}
-	public_pem_file = os.Getenv("GUSHER_PUBLIC_PEM_FILE")
-	if public_pem_file == "" {
-		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")
-	}
-	decode_service = os.Getenv("GUSHER_DECODE_SERVICE")
-	if decode_service == "" {
-		logger.Fatal("empty env GUSHER_DECODE_SERVICE")
-	}
-
-	redis_addr = os.Getenv("GUSHER_REDIS_ADDR")
-	if redis_addr == "" {
-		logger.Fatal("empty env GUSHER_REDIS_ADDR")
-	}
-	master_api_listen = os.Getenv("GUSHER_MASTER_API_LISTEN")
-	if master_api_listen == "" {
-		logger.Fatal("empty env GUSHER_MASTER_API_LISTEN")
-	}
-	redis_addr = os.Getenv("GUSHER_REDIS_ADDR")
-	if redis_addr == "" {
-		logger.Fatal("empty env GUSHER_REDIS_ADDR")
-	}
-	api_listen = os.Getenv("GUSHER_API_LISTEN")
-	if api_listen == "" {
-		logger.Fatal("empty env GUSHER_API_LISTEN")
-	}
-	api_uri_prefix = os.Getenv("GUSHER_API_URI_PREFIX")
-	if api_listen == "" {
-		logger.Fatal("empty env GUSHER_API_URI_PREIFX")
-	}
-	master_uri_prefix = os.Getenv("GUSHER_MASTER_URI_PREFIX")
-	if api_listen == "" {
-		logger.Fatal("empty env GUSHER_MASTER_URI_PREFIX")
 	}
 
 	if c.Bool("debug") {
