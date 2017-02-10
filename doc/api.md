@@ -48,7 +48,7 @@ Sucess Response:
 
 |key|value|description|
 |----|----|----|
-|batch|[{"channel":"public","event":"notify","data":"test"},{"channel":"public","event":"notify","data":{"username":"test"}}]|json|
+|batch_data|[{"channel":"public","event":"notify","data":"test"},{"channel":"public","event":"notify","data":{"username":"test"}}]|json|
 
 
 Sucess Response:
