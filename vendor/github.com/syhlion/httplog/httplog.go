@@ -23,9 +23,10 @@ func NewLogger() *Logger {
 func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	start := time.Now()
 
+	r.ParseForm()
+	param := r.Form.Encode()
 	next(rw, r)
 
 	res := rw.(negroni.ResponseWriter)
-	r.ParseForm()
-	l.Printf("%s - [%v] \"%s %s\" %d %v %s \"%s\"", r.RemoteAddr, time.Now(), r.Method, r.URL.Path, res.Status(), time.Since(start), r.UserAgent(), r.Form.Encode())
+	l.Printf("%s - [%v] \"%s %s\" %d %v %s \"%s\"", r.RemoteAddr, time.Now(), r.Method, r.URL.Path, res.Status(), time.Since(start), r.UserAgent(), param)
 }

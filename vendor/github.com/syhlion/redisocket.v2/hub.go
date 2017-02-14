@@ -57,6 +57,13 @@ type Sender struct {
 	redisManager *redis.Pool
 }
 
+func (s *Sender) GetChannels(channelPrefix string, pattern string) (channels []string, err error) {
+	conn := s.redisManager.Get()
+	defer conn.Close()
+	channels, err = redis.Strings(conn.Do("keys", channelPrefix+":::"+pattern))
+	return
+}
+
 func (s *Sender) Push(channelPrefix, event string, data []byte) (val int, err error) {
 	conn := s.redisManager.Get()
 	defer conn.Close()
@@ -184,6 +191,28 @@ func (a *Hub) UnregisterAll(c *Client) {
 	a.Unlock()
 	return
 }
+func (a *Hub) recordSubjcet() {
+	go func() {
+		t := time.NewTicker(time.Minute * 10)
+		defer func() {
+			t.Stop()
+		}()
+		for {
+			select {
+			case <-t.C:
+				conn := a.redisManager.Get()
+				conn.Send("MULTI")
+				for key, _ := range a.subjects {
+					conn.Send("SET", a.ChannelPrefix+":::"+key, time.Now().Unix())
+					conn.Send("EXPIRE", time.Minute*11)
+				}
+				conn.Do("EXEC")
+				conn.Close()
+			}
+
+		}
+	}()
+}
 func (a *Hub) listenRedis() <-chan error {
 
 	errChan := make(chan error, 1)
@@ -191,7 +220,12 @@ func (a *Hub) listenRedis() <-chan error {
 		for {
 			switch v := a.psc.Receive().(type) {
 			case redis.PMessage:
+
+				//過濾掉前綴
 				channel := strings.Replace(v.Channel, a.ChannelPrefix, "", 1)
+
+				//過濾掉星號
+				channel = strings.Replace(channel, "*", "", 1)
 				a.RLock()
 				clients, ok := a.subjects[channel]
 				a.RUnlock()
@@ -224,6 +258,7 @@ func (a *Hub) close() {
 func (a *Hub) Listen(channelPrefix string) error {
 	a.ChannelPrefix = channelPrefix
 	a.psc.PSubscribe(channelPrefix + "*")
+	a.recordSubjcet()
 	redisErr := a.listenRedis()
 	select {
 	case e := <-redisErr:
