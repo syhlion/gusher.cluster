@@ -60,7 +60,7 @@ type Sender struct {
 func (s *Sender) GetChannels(channelPrefix string, pattern string) (channels []string, err error) {
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	channels, err = redis.Strings(conn.Do("keys", channelPrefix+":::"+pattern))
+	channels, err = redis.Strings(conn.Do("smembers", channelPrefix+"channels"))
 	return
 }
 
@@ -203,8 +203,8 @@ func (a *Hub) recordSubjcet() {
 				conn := a.redisManager.Get()
 				conn.Send("MULTI")
 				for key, _ := range a.subjects {
-					conn.Send("SET", a.ChannelPrefix+":::"+key, time.Now().Unix())
-					conn.Send("EXPIRE", time.Minute*11)
+					conn.Send("SADD", a.ChannelPrefix+"channels", key)
+					conn.Send("EXPIRE", a.ChannelPrefix+"channels", 11*60)
 				}
 				conn.Do("EXEC")
 				conn.Close()
