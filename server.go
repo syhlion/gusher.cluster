@@ -81,7 +81,7 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	if err != nil {
 		sc.RedisMaxIdle = 80
 	}
-	sc.RedisMaxConn, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_Conn"))
+	sc.RedisMaxConn, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_CONN"))
 	if err != nil {
 		sc.RedisMaxConn = 800
 	}
@@ -122,7 +122,7 @@ func getMasterConfig(c *cli.Context) (mc MasterConfig) {
 	if err != nil {
 		mc.RedisMaxIdle = 10
 	}
-	mc.RedisMaxConn, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_Conn"))
+	mc.RedisMaxConn, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_CONN"))
 	if err != nil {
 		mc.RedisMaxConn = 100
 	}
