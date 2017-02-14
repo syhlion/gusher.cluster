@@ -193,7 +193,7 @@ func (a *Hub) UnregisterAll(c *Client) {
 }
 func (a *Hub) recordSubjcet() {
 	go func() {
-		t := time.NewTicker(time.Minute * 10)
+		t := time.NewTicker(time.Minute * 1)
 		defer func() {
 			t.Stop()
 		}()
@@ -204,7 +204,7 @@ func (a *Hub) recordSubjcet() {
 				conn.Send("MULTI")
 				for key, _ := range a.subjects {
 					conn.Send("SADD", a.ChannelPrefix+"channels", key)
-					conn.Send("EXPIRE", a.ChannelPrefix+"channels", 11*60)
+					conn.Send("EXPIRE", a.ChannelPrefix+"channels", 2*60)
 				}
 				conn.Do("EXEC")
 				conn.Close()
