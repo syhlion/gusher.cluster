@@ -68,7 +68,6 @@ func (s *Sender) Push(channelPrefix, event string, data []byte) (val int, err er
 	conn := s.redisManager.Get()
 	defer conn.Close()
 	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+event, data))
-	err = s.redisManager.Get().Flush()
 	return
 }
 
