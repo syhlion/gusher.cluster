@@ -9,6 +9,28 @@ import (
 	redisocket "github.com/syhlion/redisocket.v2"
 )
 
+func GetAllChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		channels, err := rsender.GetChannels(listenChannelPrefix, "*")
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
+			w.WriteHeader(400)
+			w.Write([]byte("get redis error"))
+		}
+		b, err := json.Marshal(channels)
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
+			w.WriteHeader(400)
+			w.Write([]byte("json marshal error"))
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+		return
+	}
+}
+
 func PushBatchMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)

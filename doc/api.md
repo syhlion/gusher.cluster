@@ -26,6 +26,17 @@ jwt [example](https://github.com/syhlion/gusher.cluster/blob/master/jwt.example)
 ## Master Api
 
 
+### Get Channels:
+
+`GET /channels`
+Sucess Response:
+
+```
+
+["channel1","channel2","channel3"...]
+
+```
+
 ### Push Message:
 
 `POST /{api}/push/{app_key}/{channel}/{event}`
