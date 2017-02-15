@@ -2,21 +2,19 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
 	"sync"
-	"time"
 
 	"github.com/buger/jsonparser"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
 	uuid "github.com/satori/go.uuid"
+	"github.com/syhlion/greq"
 	"github.com/syhlion/redisocket.v2"
-	"github.com/syhlion/requestwork.v2"
 )
 
 type UserHandler func(u *User) (err error)
@@ -38,7 +36,7 @@ type WsManager struct {
 	*sync.RWMutex
 	pool *redis.Pool
 	*redisocket.Hub
-	worker *requestwork.Worker
+	client *greq.Client
 }
 
 func (wm *WsManager) Auth(sc SlaveConfig) http.HandlerFunc {
@@ -58,30 +56,23 @@ func (wm *WsManager) Auth(sc SlaveConfig) http.HandlerFunc {
 		req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
 
-		logger.GetRequestEntry(r).Debugf("request jwt: %s", jwt)
-		ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-		a := &JwtPack{}
-		err = wm.worker.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
-			if e != nil {
-				logger.Debug(e)
-				return e
-			}
-			defer resp.Body.Close()
-			err = json.NewDecoder(resp.Body).Decode(a)
-			if err != nil {
-				logger.Debug(err)
-				return
-			}
-			return
-		})
+		b, _, err := wm.client.Post(sc.DecodeServiceAddr, v)
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
 			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
 			return
 		}
+		a := &JwtPack{}
+		err = json.Unmarshal(b, a)
+		if err != nil {
+			logger.GetRequestEntry(r).Warn(err)
+			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
+			return
+		}
+		logger.GetRequestEntry(r).Debugf("request jwt: %s", jwt)
 		conn := wm.pool.Get()
 		defer conn.Close()
-		b, err := json.Marshal(a.Gusher)
+		b, err = json.Marshal(a.Gusher)
 		if err != nil {
 			logger.GetRequestEntry(r).Debug(err)
 			http.Error(w, "jwt decode fail", http.StatusUnauthorized)

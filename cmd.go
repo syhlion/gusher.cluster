@@ -14,6 +14,7 @@ import (
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
+	"github.com/syhlion/greq"
 	"github.com/syhlion/httplog"
 	redisocket "github.com/syhlion/redisocket.v2"
 	"github.com/syhlion/requestwork.v2"
@@ -117,7 +118,7 @@ func slave(c *cli.Context) {
 
 	/*request worker*/
 	worker := requestwork.New(50)
-
+	client := greq.New(worker, 15*time.Second)
 	/*api start*/
 	apiListener, err := net.Listen("tcp", sc.ApiListen)
 	if err != nil {
@@ -130,7 +131,7 @@ func slave(c *cli.Context) {
 		RWMutex: &sync.RWMutex{},
 		pool:    rpool,
 		Hub:     rsHub,
-		worker:  worker,
+		client:  client,
 	}
 	/*api end*/
 
