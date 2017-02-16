@@ -12,6 +12,7 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 	"github.com/syhlion/greq"
 	"github.com/syhlion/redisocket.v2"
@@ -19,7 +20,7 @@ import (
 
 type UserHandler func(u *User) (err error)
 
-var DefaultSubHandler = func(channel string, data []byte) (d []byte, err error) {
+var DefaultSubHandler = func(channel string, data *websocket.PreparedMessage, d []byte) (pMsg *websocket.PreparedMessage, err error) {
 	return data, nil
 }
 
