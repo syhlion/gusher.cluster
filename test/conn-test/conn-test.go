@@ -210,8 +210,8 @@ func start(c *cli.Context) {
 				if c.Bool("debug") {
 					log.Println("slave repsonse message", string(d))
 				}
-				data, _ := jsonparser.GetString(d, "data")
-				if data == push_msg {
+				data, _, _, err := jsonparser.Get(d, "data")
+				if len(data) == len([]byte(push_msg)) {
 					wg.Done()
 					return
 				}
