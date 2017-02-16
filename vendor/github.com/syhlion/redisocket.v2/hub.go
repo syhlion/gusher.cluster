@@ -14,7 +14,7 @@ import (
 )
 
 type User interface {
-	Trigger(event string, data []byte) (err error)
+	Trigger(event string, pMsg *websocket.PreparedMessage, origin []byte) (err error)
 	Close()
 }
 
@@ -42,7 +42,7 @@ var (
 
 var APPCLOSE = errors.New("APP_CLOSE")
 
-type EventHandler func(event string, b []byte) ([]byte, error)
+type EventHandler func(event string, pMsg *websocket.PreparedMessage, origin []byte) (*websocket.PreparedMessage, error)
 
 type ReceiveMsgHandler func([]byte) error
 
@@ -94,7 +94,7 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 	ws, err := e.Config.Upgrader.Upgrade(w, r, responseHeader)
 	c = &Client{
 		ws:      ws,
-		send:    make(chan []byte, 4096),
+		send:    make(chan *websocket.PreparedMessage, 4096),
 		RWMutex: new(sync.RWMutex),
 		hub:     e,
 		events:  make(map[string]EventHandler),
@@ -231,10 +231,14 @@ func (a *Hub) listenRedis() <-chan error {
 				if !ok {
 					continue
 				}
+				pMsg, err := websocket.NewPreparedMessage(websocket.TextMessage, v.Data)
+				if err != nil {
+					continue
+				}
 
 				a.logger("channel:%s\taction:push start\tmsg:%s\tconnect clients:%v", channel, v.Data, len(clients))
 				for c, _ := range clients {
-					c.Trigger(channel, v.Data)
+					c.Trigger(channel, pMsg, v.Data)
 				}
 				a.logger("channel:%s\taction:push over\tmsg:%s\tconnect clients:%v", channel, v.Data, len(clients))
 

@@ -11,7 +11,7 @@ import (
 type Client struct {
 	ws     *websocket.Conn
 	events map[string]EventHandler
-	send   chan []byte
+	send   chan *websocket.PreparedMessage
 	*sync.RWMutex
 	re  ReceiveMsgHandler
 	hub *Hub
@@ -30,14 +30,16 @@ func (c *Client) Off(event string) error {
 	return c.hub.Unregister(event, c)
 }
 
-func (c *Client) Trigger(event string, data []byte) (err error) {
+func (c *Client) Trigger(event string, pMsg *websocket.PreparedMessage, origin []byte) (err error) {
 	c.RLock()
 	h, ok := c.events[event]
 	c.RUnlock()
 	if !ok {
 		return errors.New("No Event")
 	}
-	b, err := h(event, data)
+
+	b, err := h(event, pMsg, origin)
+
 	if err != nil {
 		return
 	}
@@ -45,10 +47,12 @@ func (c *Client) Trigger(event string, data []byte) (err error) {
 	return
 }
 
+/*
 func (c *Client) Send(data []byte) {
 	c.send <- data
 	return
 }
+*/
 
 func (c *Client) write(msgType int, data []byte) error {
 	c.ws.SetWriteDeadline(time.Now().Add(c.hub.Config.WriteWait))
@@ -86,6 +90,9 @@ func (c *Client) readPump() <-chan error {
 	return errChan
 
 }
+func (c *Client) Send(data []byte) (err error) {
+	return c.write(websocket.TextMessage, data)
+}
 func (c *Client) Close() {
 	c.hub.UnregisterAll(c)
 	c.ws.Close()
@@ -117,12 +124,13 @@ func (c *Client) writePump() <-chan error {
 			select {
 			case msg, ok := <-c.send:
 				if !ok {
+
 					errChan <- c.write(websocket.CloseMessage, []byte{})
 					close(errChan)
 					return
 				}
 
-				if err := c.write(websocket.TextMessage, msg); err != nil {
+				if err := c.ws.WritePreparedMessage(msg); err != nil {
 					errChan <- err
 					close(errChan)
 					return
