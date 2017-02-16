@@ -11,7 +11,7 @@ import (
 type Client struct {
 	ws     *websocket.Conn
 	events map[string]EventHandler
-	send   chan *websocket.PreparedMessage
+	send   chan *Payload
 	*sync.RWMutex
 	re  ReceiveMsgHandler
 	hub *Hub
@@ -30,7 +30,7 @@ func (c *Client) Off(event string) error {
 	return c.hub.Unregister(event, c)
 }
 
-func (c *Client) Trigger(event string, pMsg *websocket.PreparedMessage, origin []byte) (err error) {
+func (c *Client) Trigger(event string, p *Payload) (err error) {
 	c.RLock()
 	h, ok := c.events[event]
 	c.RUnlock()
@@ -38,25 +38,31 @@ func (c *Client) Trigger(event string, pMsg *websocket.PreparedMessage, origin [
 		return errors.New("No Event")
 	}
 
-	b, err := h(event, pMsg, origin)
+	err = h(event, p)
 
 	if err != nil {
 		return
 	}
-	c.send <- b
+	c.send <- p
 	return
 }
 
-/*
 func (c *Client) Send(data []byte) {
-	c.send <- data
+	p := &Payload{
+		Data:      data,
+		IsPrepare: false,
+	}
+	c.send <- p
 	return
 }
-*/
 
 func (c *Client) write(msgType int, data []byte) error {
 	c.ws.SetWriteDeadline(time.Now().Add(c.hub.Config.WriteWait))
 	return c.ws.WriteMessage(msgType, data)
+}
+func (c *Client) writePreparedMessage(data *websocket.PreparedMessage) error {
+	c.ws.SetWriteDeadline(time.Now().Add(c.hub.Config.WriteWait))
+	return c.ws.WritePreparedMessage(data)
 }
 
 func (c *Client) readPump() <-chan error {
@@ -90,12 +96,9 @@ func (c *Client) readPump() <-chan error {
 	return errChan
 
 }
-func (c *Client) Send(data []byte) (err error) {
-	return c.write(websocket.TextMessage, data)
-}
 func (c *Client) Close() {
-	c.hub.UnregisterAll(c)
 	c.ws.Close()
+	c.hub.UnregisterAll(c)
 	return
 }
 
@@ -117,8 +120,8 @@ func (c *Client) writePump() <-chan error {
 	go func() {
 		t := time.NewTicker(c.hub.Config.PingPeriod)
 		defer func() {
-			c.Close()
 			t.Stop()
+			c.Close()
 		}()
 		for {
 			select {
@@ -129,11 +132,20 @@ func (c *Client) writePump() <-chan error {
 					close(errChan)
 					return
 				}
+				if msg.IsPrepare {
 
-				if err := c.ws.WritePreparedMessage(msg); err != nil {
-					errChan <- err
-					close(errChan)
-					return
+					if err := c.writePreparedMessage(msg.PrepareMessage); err != nil {
+						errChan <- err
+						close(errChan)
+						return
+					}
+				} else {
+					if err := c.write(websocket.TextMessage, msg.Data); err != nil {
+						errChan <- err
+						close(errChan)
+						return
+					}
+
 				}
 
 			case <-t.C:

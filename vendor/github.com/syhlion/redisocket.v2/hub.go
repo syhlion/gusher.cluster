@@ -14,8 +14,14 @@ import (
 )
 
 type User interface {
-	Trigger(event string, pMsg *websocket.PreparedMessage, origin []byte) (err error)
+	Trigger(event string, p *Payload) (err error)
 	Close()
+}
+
+type Payload struct {
+	Data           []byte
+	PrepareMessage *websocket.PreparedMessage
+	IsPrepare      bool
 }
 
 type WebsocketOptional struct {
@@ -42,7 +48,7 @@ var (
 
 var APPCLOSE = errors.New("APP_CLOSE")
 
-type EventHandler func(event string, pMsg *websocket.PreparedMessage, origin []byte) (*websocket.PreparedMessage, error)
+type EventHandler func(event string, payload *Payload) error
 
 type ReceiveMsgHandler func([]byte) error
 
@@ -94,7 +100,7 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 	ws, err := e.Config.Upgrader.Upgrade(w, r, responseHeader)
 	c = &Client{
 		ws:      ws,
-		send:    make(chan *websocket.PreparedMessage, 4096),
+		send:    make(chan *Payload, 4096),
 		RWMutex: new(sync.RWMutex),
 		hub:     e,
 		events:  make(map[string]EventHandler),
@@ -151,6 +157,12 @@ func (a *Hub) Register(event string, c User) (err error) {
 		clients[c] = true
 	}
 	return
+}
+func (a *Hub) CountSubject() (i int) {
+	return len(a.subjects)
+}
+func (a *Hub) CountSubscriber() (i int) {
+	return len(a.subscribers)
 }
 
 func (a *Hub) Unregister(event string, c User) (err error) {
@@ -235,10 +247,14 @@ func (a *Hub) listenRedis() <-chan error {
 				if err != nil {
 					continue
 				}
+				p := &Payload{
+					PrepareMessage: pMsg,
+					IsPrepare:      true,
+				}
 
 				a.logger("channel:%s\taction:push start\tmsg:%s\tconnect clients:%v", channel, v.Data, len(clients))
 				for c, _ := range clients {
-					c.Trigger(channel, pMsg, v.Data)
+					c.Trigger(channel, p)
 				}
 				a.logger("channel:%s\taction:push over\tmsg:%s\tconnect clients:%v", channel, v.Data, len(clients))
 
