@@ -153,7 +153,7 @@ func slave(c *cli.Context) {
 	closeConnTotal := make(chan int, 0)
 	//固定30秒log出 現在連線人數
 	go func() {
-		t := time.NewTicker(30 * time.Second)
+		t := time.NewTicker(1 * time.Second)
 		defer func() {
 			t.Stop()
 		}()
@@ -161,7 +161,7 @@ func slave(c *cli.Context) {
 		for {
 			select {
 			case <-t.C:
-				logger.Infof("connection now: %v", wm.Count())
+				logger.Infof("connection now: %v,subscriber now: %v,subject now: %v", wm.Count(), wm.Hub.CountSubscriber(), wm.Hub.CountSubject())
 			case <-closeConnTotal:
 				return
 			}

@@ -12,7 +12,6 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 	"github.com/syhlion/greq"
 	"github.com/syhlion/redisocket.v2"
@@ -20,8 +19,8 @@ import (
 
 type UserHandler func(u *User) (err error)
 
-var DefaultSubHandler = func(channel string, data *websocket.PreparedMessage, d []byte) (pMsg *websocket.PreparedMessage, err error) {
-	return data, nil
+var DefaultSubHandler = func(channel string, p *redisocket.Payload) (err error) {
+	return nil
 }
 
 type User struct {
@@ -90,6 +89,7 @@ func (wm *WsManager) Auth(sc SlaveConfig) http.HandlerFunc {
 		}{
 			Token: uid.String(),
 		})
+		return
 	}
 
 }
@@ -108,13 +108,14 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	conn := wm.pool.Get()
-	defer conn.Close()
 	reply, err := redis.Bytes(conn.Do("GET", token))
 	if err != nil {
+		conn.Close()
 		logger.GetRequestEntry(r).Warn(err)
 		http.Error(w, "token error", http.StatusUnauthorized)
 		return
 	}
+	conn.Close()
 	auth := Auth{}
 	err = json.Unmarshal(reply, &auth)
 	if err != nil {
@@ -163,6 +164,7 @@ func (wm *WsManager) Connect(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.GetRequestEntry(r).Debugf("disconnect %s", err)
 	}
+	u.Close()
 	wm.Disconnect(u)
 
 }

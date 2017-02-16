@@ -171,7 +171,16 @@ func start(c *cli.Context) {
 				return
 			}
 
-			conn, _, err := websocket.NewClient(rawConn, wsurl, wsHeaders, 8192, 8192)
+			//conn, _, err := websocket.NewClient(rawConn, wsurl, wsHeaders, 8192, 8192)
+			dialer := websocket.Dialer{
+				ReadBufferSize:  8192,
+				WriteBufferSize: 8192,
+				NetDial: func(net, addr string) (net.Conn, error) {
+					return rawConn, nil
+				},
+				//EnableCompression: true,
+			}
+			conn, _, err := dialer.Dial(wsurl.String(), wsHeaders)
 			if err != nil {
 				rawConn.Close()
 				return
@@ -191,9 +200,10 @@ func start(c *cli.Context) {
 			subStatus := false
 			for {
 				_, d, err := conn.ReadMessage()
+
 				if err != nil {
 					if c.Bool("debug") {
-						log.Error(err)
+						log.Error("test", err)
 					}
 					if !subStatus {
 						listen_wg.Done()
