@@ -167,7 +167,7 @@ func slave(c *cli.Context) {
 	closeConnTotal := make(chan int, 0)
 	//固定30秒log出 現在連線人數
 	go func() {
-		t := time.NewTicker(1 * time.Second)
+		t := time.NewTicker(30 * time.Second)
 		defer func() {
 			t.Stop()
 		}()
