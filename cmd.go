@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
+
+	_ "net/http/pprof"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/garyburd/redigo/redis"
@@ -74,6 +75,9 @@ func master(c *cli.Context) {
 		err := http.Serve(apiListener, server)
 		serverError <- err
 	}()
+	go func() {
+		logger.Error(http.ListenAndServe(":7799", nil))
+	}()
 
 	// block and listen syscall
 	shutdow_observer := make(chan os.Signal, 1)
@@ -100,6 +104,15 @@ func slave(c *cli.Context) {
 
 	rpool.MaxIdle = sc.RedisMaxIdle
 	rpool.MaxActive = sc.RedisMaxConn
+	rpool.Wait = true
+	rpool.IdleTimeout = 30 * time.Second
+	rpool.TestOnBorrow = func(c redis.Conn, t time.Time) error {
+		if time.Since(t) < time.Minute {
+			return nil
+		}
+		_, err := c.Do("PING")
+		return err
+	}
 
 	/*Test redis connect*/
 	err := RedisTestConn(rpool.Get())
@@ -108,9 +121,9 @@ func slave(c *cli.Context) {
 	}
 
 	rsHub := redisocket.NewHub(rpool, c.Bool("debug"))
-	rsHub.Config.Upgrader.WriteBufferSize = 8192
-	rsHub.Config.Upgrader.ReadBufferSize = 8192
-	rsHub.Config.MaxMessageSize = 4096
+	rsHub.Config.Upgrader.WriteBufferSize = 1024
+	rsHub.Config.Upgrader.ReadBufferSize = 1024
+	rsHub.Config.MaxMessageSize = 1024
 	rsHubErr := make(chan error, 1)
 	go func() {
 		rsHubErr <- rsHub.Listen(listenChannelPrefix)
@@ -127,18 +140,16 @@ func slave(c *cli.Context) {
 	r := mux.NewRouter()
 
 	wm := &WsManager{
-		users:   make(map[*User]bool),
-		RWMutex: &sync.RWMutex{},
-		pool:    rpool,
-		Hub:     rsHub,
-		client:  client,
+		pool:   rpool,
+		Hub:    rsHub,
+		client: client,
 	}
 	/*api end*/
 
 	server := http.NewServeMux()
 
 	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
-	sub.HandleFunc("/ws/{app_key}", wm.Connect).Methods("GET")
+	sub.HandleFunc("/ws/{app_key}", wm.Connect()).Methods("GET")
 	sub.HandleFunc("/auth", wm.Auth(sc)).Methods("POST")
 	n := negroni.New()
 	n.Use(httplog.NewLogger())
@@ -148,6 +159,9 @@ func slave(c *cli.Context) {
 	go func() {
 		err := http.Serve(apiListener, server)
 		serverError <- err
+	}()
+	go func() {
+		logger.Error(http.ListenAndServe(":8899", nil))
 	}()
 
 	closeConnTotal := make(chan int, 0)
@@ -161,7 +175,7 @@ func slave(c *cli.Context) {
 		for {
 			select {
 			case <-t.C:
-				logger.Infof("connection now: %v,subscriber now: %v,subject now: %v", wm.Count(), wm.Hub.CountSubscriber(), wm.Hub.CountSubject())
+				logger.Infof("users now: %v,channels now: %v", wm.Hub.CountOnlineUsers(), wm.Hub.CountChannels())
 			case <-closeConnTotal:
 				return
 			}
@@ -172,7 +186,6 @@ func slave(c *cli.Context) {
 	defer func() {
 		closeConnTotal <- 1
 		apiListener.Close()
-		wm.Close()
 		rsHub.Close()
 		rpool.Close()
 	}()
