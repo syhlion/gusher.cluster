@@ -24,21 +24,11 @@ type Pool struct {
 	reg         chan *registerPayload
 	unreg       chan *unregisterPayload
 	unregAll    chan *unregisterAllPayload
-	close       chan int
-}
-
-func (h *Pool) Stop() {
-	h.close <- 1
 }
 
 func (h *Pool) Run() {
 	for {
 		select {
-		case <-h.close:
-			for u, _ := range h.subscribers {
-				u.Close()
-			}
-			return
 		case p := <-h.trigger:
 			users, ok := h.subjects[p.event]
 			if !ok {

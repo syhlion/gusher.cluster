@@ -95,7 +95,6 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 		reg:         make(chan *registerPayload),
 		unreg:       make(chan *unregisterPayload),
 		unregAll:    make(chan *unregisterAllPayload),
-		close:       make(chan int),
 	}
 	go pool.Run()
 	return &Hub{
@@ -113,9 +112,12 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 }
 func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header) (c *Client, err error) {
 	ws, err := e.Config.Upgrader.Upgrade(w, r, responseHeader)
+	if err != nil {
+		return
+	}
 	c = &Client{
 		ws:      ws,
-		send:    make(chan *Payload, 4096),
+		send:    make(chan *Payload),
 		RWMutex: new(sync.RWMutex),
 		hub:     e,
 		events:  make(map[string]EventHandler),
@@ -222,7 +224,6 @@ func (a *Hub) Listen(channelPrefix string) error {
 	}
 }
 func (a *Hub) Close() {
-	a.Stop()
 	return
 
 }
