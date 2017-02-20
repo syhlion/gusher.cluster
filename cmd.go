@@ -139,25 +139,20 @@ func slave(c *cli.Context) {
 	}
 	r := mux.NewRouter()
 
-	wm := &WsManager{
-		pool:   rpool,
-		Hub:    rsHub,
-		client: client,
-	}
 	/*api end*/
 
-	server := http.NewServeMux()
+	//server := http.NewServeMux()
 
 	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
-	sub.HandleFunc("/ws/{app_key}", wm.Connect()).Methods("GET")
-	sub.HandleFunc("/auth", wm.Auth(sc)).Methods("POST")
+	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, rsHub)).Methods("GET")
+	sub.HandleFunc("/auth", WsAuth(sc, rpool, client)).Methods("POST")
 	n := negroni.New()
 	n.Use(httplog.NewLogger())
 	n.UseHandler(r)
-	server.Handle("/", n)
+	//server.Handle("/", sub)
 	serverError := make(chan error, 1)
 	go func() {
-		err := http.Serve(apiListener, server)
+		err := http.Serve(apiListener, n)
 		serverError <- err
 	}()
 	go func() {
@@ -175,7 +170,7 @@ func slave(c *cli.Context) {
 		for {
 			select {
 			case <-t.C:
-				logger.Infof("users now: %v,channels now: %v", wm.Hub.CountOnlineUsers(), wm.Hub.CountChannels())
+				logger.Infof("users now: %v,channels now: %v", rsHub.CountOnlineUsers(), rsHub.CountChannels())
 			case <-closeConnTotal:
 				return
 			}
