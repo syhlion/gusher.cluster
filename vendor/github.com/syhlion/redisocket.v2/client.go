@@ -128,8 +128,12 @@ func (c *Client) writePump() {
 
 			h, ok := c.events[msg.Event]
 			if ok {
-				err := h(msg.Event, msg)
-				if err != nil {
+				if h != nil {
+					err := h(msg.Event, msg)
+					if err != nil {
+						return
+					}
+				} else {
 					return
 				}
 			}
