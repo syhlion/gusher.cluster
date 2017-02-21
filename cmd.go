@@ -65,14 +65,13 @@ func master(c *cli.Context) {
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
-	server := http.NewServeMux()
 	n := negroni.New()
 	n.Use(httplog.NewLogger())
 	n.UseHandler(r)
-	server.Handle("/", http.TimeoutHandler(n, 3*time.Second, "Timeout"))
+	//n.UseHandler(http.TimeoutHandler(n, 3*time.Second, "Timeout"))
 	serverError := make(chan error, 1)
 	go func() {
-		err := http.Serve(apiListener, server)
+		err := http.Serve(apiListener, n)
 		serverError <- err
 	}()
 	go func() {
@@ -121,9 +120,7 @@ func slave(c *cli.Context) {
 	}
 
 	rsHub := redisocket.NewHub(rpool, c.Bool("debug"))
-	rsHub.Config.Upgrader.WriteBufferSize = 1024
-	rsHub.Config.Upgrader.ReadBufferSize = 1024
-	rsHub.Config.MaxMessageSize = 1024
+	rsHub.Config.MaxMessageSize = 256
 	rsHubErr := make(chan error, 1)
 	go func() {
 		rsHubErr <- rsHub.Listen(listenChannelPrefix)
@@ -149,7 +146,6 @@ func slave(c *cli.Context) {
 	n := negroni.New()
 	n.Use(httplog.NewLogger())
 	n.UseHandler(r)
-	//server.Handle("/", sub)
 	serverError := make(chan error, 1)
 	go func() {
 		err := http.Serve(apiListener, n)
@@ -170,7 +166,7 @@ func slave(c *cli.Context) {
 		for {
 			select {
 			case <-t.C:
-				logger.Infof("users now: %v,channels now: %v", rsHub.CountOnlineUsers(), rsHub.CountChannels())
+				logger.Infof("users now: %v", rsHub.CountOnlineUsers())
 			case <-closeConnTotal:
 				return
 			}

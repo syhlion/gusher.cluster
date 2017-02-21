@@ -197,6 +197,9 @@ func start(c *cli.Context) {
 		wg.Add(1)
 		listen_wg.Add(1)
 		go func(conn *websocket.Conn) {
+			defer func() {
+				conn.Close()
+			}()
 			subStatus := false
 			for {
 				_, d, err := conn.ReadMessage()
