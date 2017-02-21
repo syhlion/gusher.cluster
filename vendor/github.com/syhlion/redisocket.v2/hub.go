@@ -22,12 +22,14 @@ type Payload struct {
 	Data           []byte
 	PrepareMessage *websocket.PreparedMessage
 	IsPrepare      bool
+	Event          string
 }
 
 type ReceiveMsg struct {
-	Channels    map[string]EventHandler
-	Sub         bool
-	ResponseMsg []byte
+	Event        string
+	EventHandler EventHandler
+	Sub          bool
+	ResponseMsg  []byte
 }
 
 type WebsocketOptional struct {
@@ -45,9 +47,7 @@ var (
 		PingPeriod:     (60 * time.Second * 9) / 10,
 		MaxMessageSize: 512,
 		Upgrader: websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-			CheckOrigin:     func(r *http.Request) bool { return true },
+			CheckOrigin: func(r *http.Request) bool { return true },
 		},
 	}
 )
@@ -89,12 +89,10 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
 	pool := &Pool{
 
-		subjects:    make(map[string]map[User]bool),
-		subscribers: make(map[User]map[string]bool),
-		trigger:     make(chan *eventPayload),
-		reg:         make(chan *registerPayload),
-		unreg:       make(chan *unregisterPayload),
-		unregAll:    make(chan *unregisterAllPayload),
+		users:   make(map[User]bool),
+		trigger: make(chan *eventPayload),
+		join:    make(chan User),
+		leave:   make(chan User),
 	}
 	go pool.Run()
 	return &Hub{
@@ -103,8 +101,6 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 		redisManager: m,
 		psc:          &redis.PubSubConn{m.Get()},
 		Pool:         pool,
-		closeSign:    make(chan int),
-		closeflag:    false,
 		debug:        debug,
 		log:          l,
 	}
@@ -117,11 +113,12 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 	}
 	c = &Client{
 		ws:      ws,
-		send:    make(chan *Payload),
+		send:    make(chan *Payload, 32),
 		RWMutex: new(sync.RWMutex),
 		hub:     e,
 		events:  make(map[string]EventHandler),
 	}
+	e.Join(c)
 	return
 }
 
@@ -131,10 +128,8 @@ type Hub struct {
 	psc           *redis.PubSubConn
 	redisManager  *redis.Pool
 	*Pool
-	closeSign chan int
-	closeflag bool
-	debug     bool
-	log       *log.Logger
+	debug bool
+	log   *log.Logger
 }
 
 func (a *Hub) Ping() (err error) {
@@ -150,10 +145,7 @@ func (a *Hub) logger(format string, v ...interface{}) {
 	}
 }
 func (a *Hub) CountOnlineUsers() (i int) {
-	return len(a.Pool.subscribers)
-}
-func (a *Hub) CountChannels() (i int) {
-	return len(a.Pool.subjects)
+	return len(a.Pool.users)
 }
 
 /*
