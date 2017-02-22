@@ -1,4 +1,5 @@
 gusher.cluster
+build/
 *.log
 .env
 gusher.cluster.*
