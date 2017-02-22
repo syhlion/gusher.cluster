@@ -89,10 +89,10 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
 	pool := &Pool{
 
-		users:   make(map[User]bool),
-		trigger: make(chan *eventPayload),
-		join:    make(chan User),
-		leave:   make(chan User),
+		users:     make(map[*Client]bool),
+		broadcast: make(chan *eventPayload),
+		join:      make(chan *Client),
+		leave:     make(chan *Client),
 	}
 	go pool.Run()
 	return &Hub{
@@ -193,7 +193,7 @@ func (a *Hub) listenRedis() <-chan error {
 					PrepareMessage: pMsg,
 					IsPrepare:      true,
 				}
-				a.Trigger(channel, p)
+				a.Broadcast(channel, p)
 
 			case error:
 				errChan <- v

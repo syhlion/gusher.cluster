@@ -1,7 +1,9 @@
 package redisocket
 
 import (
+	"bytes"
 	"errors"
+	"io"
 	"sync"
 	"time"
 
@@ -70,7 +72,7 @@ func (c *Client) readPump() {
 	c.ws.SetReadLimit(c.hub.Config.MaxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(c.hub.Config.PongWait))
 	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(c.hub.Config.PongWait)); return nil })
-	data := make([]byte, 256)
+	buff := bytes.NewBuffer(make([]byte, 512))
 	for {
 		msgType, reader, err := c.ws.NextReader()
 		if err != nil {
@@ -79,12 +81,9 @@ func (c *Client) readPump() {
 		if msgType != websocket.TextMessage {
 			continue
 		}
-		_, err = reader.Read(data)
-		if err != nil {
-			return
-		}
+		io.Copy(buff, reader)
 
-		receiveMsg, err := c.re(data)
+		receiveMsg, err := c.re(buff.Bytes())
 		if err != nil {
 			return
 		}
@@ -117,7 +116,6 @@ func (c *Client) writePump() {
 	defer func() {
 		t.Stop()
 		c.Close()
-		close(c.send)
 	}()
 	for {
 		select {

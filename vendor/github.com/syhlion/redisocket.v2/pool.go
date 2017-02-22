@@ -6,16 +6,16 @@ type eventPayload struct {
 }
 
 type Pool struct {
-	users   map[User]bool
-	trigger chan *eventPayload
-	join    chan User
-	leave   chan User
+	users     map[*Client]bool
+	broadcast chan *eventPayload
+	join      chan *Client
+	leave     chan *Client
 }
 
 func (h *Pool) Run() {
 	for {
 		select {
-		case p := <-h.trigger:
+		case p := <-h.broadcast:
 			for u, _ := range h.users {
 				u.Trigger(p.event, p.payload)
 			}
@@ -25,19 +25,19 @@ func (h *Pool) Run() {
 
 		case u := <-h.leave:
 			if _, ok := h.users[u]; ok {
-				u.Close()
+				close(u.send)
 				delete(h.users, u)
 			}
 		}
 
 	}
 }
-func (a *Pool) Trigger(event string, p *Payload) {
-	a.trigger <- &eventPayload{p, event}
+func (a *Pool) Broadcast(event string, p *Payload) {
+	a.broadcast <- &eventPayload{p, event}
 }
-func (a *Pool) Join(c User) {
+func (a *Pool) Join(c *Client) {
 	a.join <- c
 }
-func (a *Pool) Leave(c User) {
+func (a *Pool) Leave(c *Client) {
 	a.leave <- c
 }
