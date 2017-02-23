@@ -212,7 +212,7 @@ func (a *Hub) listenRedis() <-chan error {
 				//過濾掉前綴
 				channel := strings.Replace(v.Channel, a.ChannelPrefix, "", -1)
 				//過濾掉@ 之前的字
-				sch := strings.Split(channel, "@")
+				sch := strings.SplitAfterN(channel, "@", 2)
 				if len(sch) != 2 {
 					continue
 				}
