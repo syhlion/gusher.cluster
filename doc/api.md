@@ -28,12 +28,34 @@ jwt [example](https://github.com/syhlion/gusher.cluster/blob/master/jwt.example)
 
 ### Get Channels:
 
-`GET /channels`
+`GET /{app_key}/channels`
 Sucess Response:
 
 ```
 
 ["channel1","channel2","channel3"...]
+
+```
+
+### Get Online:
+
+`GET /{app_key}/online`
+Sucess Response:
+
+```
+
+["user_id","user_id","user_id"...]
+
+```
+
+### Get Online by channel:
+
+`GET /{app_key}/online/{channel}`
+Sucess Response:
+
+```
+
+["user_id","user_id","user_id"...]
 
 ```
 

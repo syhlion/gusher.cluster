@@ -94,7 +94,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Hand
 			return
 		}
 
-		s, err := rHub.Upgrade(w, r, nil)
+		s, err := rHub.Upgrade(w, r, nil, auth.UserId, appKey)
 		if err != nil {
 			logger.WithError(err).Warnf("upgrade ws connection error")
 			return
@@ -138,7 +138,7 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.Re
 	}
 	var reply []byte
 	if exist {
-		msg.Event = appkey + "@" + channel
+		msg.Event = channel
 		command.Event = SubscribeReplySucceeded
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
@@ -177,7 +177,7 @@ func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.
 	var reply []byte
 	//反訂閱處理
 	if exist {
-		msg.Event = appkey + "@" + channel
+		msg.Event = channel
 		command.Event = UnSubscribeReplySucceeded
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)

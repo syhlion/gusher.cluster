@@ -12,13 +12,58 @@ import (
 func GetAllChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		channels, err := rsender.GetChannels(listenChannelPrefix, "*")
+		params := mux.Vars(r)
+		channels, err := rsender.GetChannels(listenChannelPrefix, params["app_key"], "*")
 		if err != nil {
 			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
 			w.WriteHeader(400)
 			w.Write([]byte("get redis error"))
 		}
 		b, err := json.Marshal(channels)
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
+			w.WriteHeader(400)
+			w.Write([]byte("json marshal error"))
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+		return
+	}
+}
+func GetOnlineByChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		online, err := rsender.GetOnlineByChannel(listenChannelPrefix, params["app_key"], params["channel"])
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
+			w.WriteHeader(400)
+			w.Write([]byte("get redis error"))
+		}
+		b, err := json.Marshal(online)
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
+			w.WriteHeader(400)
+			w.Write([]byte("json marshal error"))
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+		return
+	}
+}
+func GetOnline(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		online, err := rsender.GetOnline(listenChannelPrefix, params["app_key"])
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
+			w.WriteHeader(400)
+			w.Write([]byte("get redis error"))
+		}
+		b, err := json.Marshal(online)
 		if err != nil {
 			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
 			w.WriteHeader(400)
@@ -57,6 +102,8 @@ func PushBatchMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r 
 			w.Write([]byte("data error"))
 			return
 		}
+		l := len(batchData)
+		bd := make([]redisocket.BatchData, l)
 		for _, data := range batchData {
 			push := struct {
 				Channel string      `json:"channel"`
@@ -72,11 +119,14 @@ func PushBatchMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r 
 				logger.GetRequestEntry(r).Warn(err)
 				continue
 			}
-			_, err = rsender.Push(listenChannelPrefix, app_key+"@"+data.Channel, d)
-			if err != nil {
-				logger.GetRequestEntry(r).Warn(err)
+			b := redisocket.BatchData{
+				Data:  d,
+				Event: data.Channel,
 			}
+			bd = append(bd, b)
+
 		}
+		rsender.PushBatch(listenChannelPrefix, app_key, bd)
 		response := struct {
 			Total int `json:"total"`
 			Cap   int `json:"cap"`
@@ -135,7 +185,7 @@ func PushMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http
 			w.Write([]byte("data error"))
 			return
 		}
-		_, err = rsender.Push(listenChannelPrefix, app_key+"@"+channel, d)
+		_, err = rsender.Push(listenChannelPrefix, app_key, channel, d)
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
 			w.WriteHeader(400)

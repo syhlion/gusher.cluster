@@ -61,7 +61,9 @@ func master(c *cli.Context) {
 	sub := r.PathPrefix(mc.ApiPrefix).Subrouter()
 	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rsender)).Methods("POST")
 	sub.HandleFunc("/push_batch/{app_key}", PushBatchMessage(rsender)).Methods("POST")
-	sub.HandleFunc("/channels", GetAllChannel(rsender)).Methods("GET")
+	sub.HandleFunc("/{app_key}/channels", GetAllChannel(rsender)).Methods("GET")
+	sub.HandleFunc("/{app_key}/online/{channel}", GetOnlineByChannel(rsender)).Methods("GET")
+	sub.HandleFunc("/{app_key}/online", GetOnline(rsender)).Methods("GET")
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
