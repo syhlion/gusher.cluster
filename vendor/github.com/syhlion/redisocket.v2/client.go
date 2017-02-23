@@ -89,6 +89,7 @@ func (c *Client) readPump() {
 		if err != nil {
 			return
 		}
+		buff.Reset()
 		if receiveMsg.Event != "" || receiveMsg.EventHandler == nil {
 			if receiveMsg.Sub {
 				c.On(receiveMsg.Event, receiveMsg.EventHandler)
