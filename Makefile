@@ -12,9 +12,9 @@ verify-glide:
 		echo 'please install "https://github.com/Masterminds/glide"';\
 		exit 1;\
 	fi
-buildjwt = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(JWTGENERATE)" -a -o build/$(JWTGENERATE)$(3) test/jwtgenerate/jwtgenerate.go
-buildconntest = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(CONNTEST)" -a -o build/$(CONNTEST)$(3) test/conn-test/conn-test.go
-buildgusher = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(GUSHER)" -a -o build/$(GUSHER)$(3) 
+buildjwt = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(JWTGENERATE) -X main.compileDate=$(DATETIME)($(TZ))" -a -o build/$(JWTGENERATE)$(3) test/jwtgenerate/jwtgenerate.go
+buildconntest = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(CONNTEST) -X main.compileDate=$(DATETIME)($(TZ))" -a -o build/$(CONNTEST)$(3) test/conn-test/conn-test.go
+buildgusher = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(GUSHER) -X main.compileDate=$(DATETIME)($(TZ))" -a -o build/$(GUSHER)$(3) 
 tar = cp env.example ./build && cp test/conn-test/conn-test.env.example ./build &&cd build && tar -zcvf $(GUSHER)_$(TAG)_$(1)_$(2).tar.gz $(JWTGENERATE)$(3) $(CONNTEST)$(3) $(GUSHER)$(3) env.example conn-test.env.example  test/ && rm $(JWTGENERATE)$(3) $(CONNTEST)$(3) $(GUSHER)$(3) conn-test.env.example env.example  && rm -rf test/
 
 build/linux: 
