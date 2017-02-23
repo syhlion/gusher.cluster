@@ -1,18 +1,30 @@
 package redisocket
 
+import (
+	"time"
+
+	"github.com/garyburd/redigo/redis"
+)
+
 type eventPayload struct {
 	payload *Payload
 	event   string
 }
 
 type Pool struct {
-	users     map[*Client]bool
-	broadcast chan *eventPayload
-	join      chan *Client
-	leave     chan *Client
+	users         map[*Client]bool
+	broadcast     chan *eventPayload
+	join          chan *Client
+	leave         chan *Client
+	rpool         *redis.Pool
+	channelPrefix string
 }
 
 func (h *Pool) Run() {
+	t := time.NewTicker(1 * time.Minute)
+	defer func() {
+		t.Stop()
+	}()
 	for {
 		select {
 		case p := <-h.broadcast:
@@ -28,6 +40,21 @@ func (h *Pool) Run() {
 				close(u.send)
 				delete(h.users, u)
 			}
+		case <-t.C:
+			conn := h.rpool.Get()
+			conn.Send("MULTI")
+			for u, _ := range h.users {
+				if u.uid != "" {
+					conn.Send("SADD", h.channelPrefix+u.prefix+"@"+"online", u.uid)
+				}
+				for e, _ := range u.events {
+					conn.Send("SADD", h.channelPrefix+u.prefix+"@"+"channels:"+e, u.uid)
+					conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"channels:"+e, 2*60)
+				}
+			}
+			conn.Send("EXPIRE", h.channelPrefix+"online", 2*60)
+			conn.Do("EXEC")
+			conn.Close()
 		}
 
 	}

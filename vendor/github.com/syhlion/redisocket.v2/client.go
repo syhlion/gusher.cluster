@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"strings"
 	"sync"
 	"time"
 
@@ -11,6 +12,8 @@ import (
 )
 
 type Client struct {
+	prefix string
+	uid    string
 	ws     *websocket.Conn
 	events map[string]EventHandler
 	send   chan *Payload
@@ -20,6 +23,7 @@ type Client struct {
 }
 
 func (c *Client) On(event string, h EventHandler) {
+	event = strings.Replace(event, "@", "", -1)
 	c.Lock()
 	c.events[event] = h
 	c.Unlock()
@@ -27,6 +31,7 @@ func (c *Client) On(event string, h EventHandler) {
 	return
 }
 func (c *Client) Off(event string) {
+	event = strings.Replace(event, "@", "", -1)
 	c.Lock()
 	delete(c.events, event)
 	c.Unlock()
