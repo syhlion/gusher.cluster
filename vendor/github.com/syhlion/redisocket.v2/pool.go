@@ -21,7 +21,7 @@ type Pool struct {
 }
 
 func (h *Pool) Run() {
-	t := time.NewTicker(1 * time.Minute)
+	t := time.NewTicker(30 * time.Second)
 	defer func() {
 		t.Stop()
 	}()
@@ -49,10 +49,10 @@ func (h *Pool) Run() {
 				}
 				for e, _ := range u.events {
 					conn.Send("SADD", h.channelPrefix+u.prefix+"@"+"channels:"+e, u.uid)
-					conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"channels:"+e, 2*60)
+					conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"channels:"+e, 35)
 				}
 			}
-			conn.Send("EXPIRE", h.channelPrefix+"online", 2*60)
+			conn.Send("EXPIRE", h.channelPrefix+"online", 35)
 			conn.Do("EXEC")
 			conn.Close()
 		}

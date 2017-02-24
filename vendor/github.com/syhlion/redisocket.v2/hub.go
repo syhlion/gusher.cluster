@@ -79,7 +79,7 @@ func (s *Sender) GetChannels(channelPrefix string, appKey string, pattern string
 	keyPrefix := fmt.Sprintf("%s%s@channels:", channelPrefix, appKey)
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	tmp, err = redis.Strings(conn.Do("keys", keyPrefix+pattern))
+	tmp, err := redis.Strings(conn.Do("keys", keyPrefix+pattern))
 	channels = make([]string, len(tmp))
 	for _, v := range tmp {
 		channel := strings.Replace(v, keyPrefix, "", -1)
