@@ -80,7 +80,7 @@ func (s *Sender) GetChannels(channelPrefix string, appKey string, pattern string
 	conn := s.redisManager.Get()
 	defer conn.Close()
 	tmp, err := redis.Strings(conn.Do("keys", keyPrefix+pattern))
-	channels = make([]string, len(tmp))
+	channels = make([]string, 0)
 	for _, v := range tmp {
 		channel := strings.Replace(v, keyPrefix, "", -1)
 		if channel == "" {
