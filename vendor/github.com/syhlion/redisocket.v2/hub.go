@@ -83,6 +83,9 @@ func (s *Sender) GetChannels(channelPrefix string, appKey string, pattern string
 	channels = make([]string, len(tmp))
 	for _, v := range tmp {
 		channel := strings.Replace(v, keyPrefix, "", -1)
+		if channel == "" {
+			continue
+		}
 		channels = append(channels, channel)
 	}
 
