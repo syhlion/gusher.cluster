@@ -70,11 +70,13 @@ func (c *Client) readPump() {
 	defer func() {
 		c.hub.Leave(c)
 		c.Close()
+
 	}()
 	c.ws.SetReadLimit(c.hub.Config.MaxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(c.hub.Config.PongWait))
 	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(c.hub.Config.PongWait)); return nil })
 	buff := bytes.NewBuffer(make([]byte, 512))
+	defer buff.Reset()
 	for {
 		msgType, reader, err := c.ws.NextReader()
 		if err != nil {
@@ -86,10 +88,10 @@ func (c *Client) readPump() {
 		io.Copy(buff, reader)
 
 		receiveMsg, err := c.re(buff.Bytes())
+		buff.Reset()
 		if err != nil {
 			return
 		}
-		buff.Reset()
 		if receiveMsg.Event != "" || receiveMsg.EventHandler == nil {
 			if receiveMsg.Sub {
 				c.On(receiveMsg.Event, receiveMsg.EventHandler)
