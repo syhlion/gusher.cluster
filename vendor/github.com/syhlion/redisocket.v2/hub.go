@@ -2,6 +2,7 @@ package redisocket
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -75,21 +76,30 @@ type BatchData struct {
 }
 
 func (s *Sender) GetChannels(channelPrefix string, appKey string, pattern string) (channels []string, err error) {
+	keyPrefix := fmt.Sprintf("%s%s@channels:", channelPrefix, appKey)
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	channels, err = redis.Strings(conn.Do("keys", channelPrefix+appKey+"@"+"channels:"+pattern))
+	tmp, err = redis.Strings(conn.Do("keys", keyPrefix+pattern))
+	channels = make([]string, len(tmp))
+	for _, v := range tmp {
+		channel := strings.Replace(v, keyPrefix, "", -1)
+		channels = append(channels, channel)
+	}
+
 	return
 }
 func (s *Sender) GetOnlineByChannel(channelPrefix string, appKey string, channel string) (online []string, err error) {
+	memberKey := fmt.Sprintf("%s%s@channels:%s", channelPrefix, appKey, channel)
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	online, err = redis.Strings(conn.Do("smembers", channelPrefix+appKey+"@"+"channels:"+channel))
+	online, err = redis.Strings(conn.Do("smembers", memberKey))
 	return
 }
 func (s *Sender) GetOnline(channelPrefix string, appKey string) (online []string, err error) {
+	memberKey := fmt.Sprintf("%s%s@online", channelPrefix, appKey)
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	online, err = redis.Strings(conn.Do("smembers", channelPrefix+appKey+"@"+"online"))
+	online, err = redis.Strings(conn.Do("smembers", memberKey))
 	return
 }
 
@@ -176,31 +186,6 @@ func (a *Hub) logger(format string, v ...interface{}) {
 func (a *Hub) CountOnlineUsers() (i int) {
 	return len(a.Pool.users)
 }
-
-/*
-func (a *Hub) recordSubjcet() {
-	go func() {
-		t := time.NewTicker(time.Minute * 1)
-		defer func() {
-			t.Stop()
-		}()
-		for {
-			select {
-			case <-t.C:
-				conn := a.redisManager.Get()
-				conn.Send("MULTI")
-				for key, _ := range a.subjects {
-					conn.Send("SADD", a.ChannelPrefix+"channels", key)
-					conn.Send("EXPIRE", a.ChannelPrefix+"channels", 2*60)
-				}
-				conn.Do("EXEC")
-				conn.Close()
-			}
-
-		}
-	}()
-}
-*/
 func (a *Hub) listenRedis() <-chan error {
 
 	errChan := make(chan error, 1)
@@ -243,7 +228,6 @@ func (a *Hub) Listen(channelPrefix string) error {
 	a.Pool.channelPrefix = channelPrefix
 	a.ChannelPrefix = channelPrefix
 	a.psc.PSubscribe(channelPrefix + "*")
-	//a.recordSubjcet()
 	redisErr := a.listenRedis()
 	select {
 	case e := <-redisErr:
