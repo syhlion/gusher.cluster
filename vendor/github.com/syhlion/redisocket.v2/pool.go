@@ -43,6 +43,8 @@ func (h *Pool) Run() {
 		case <-t.C:
 			conn := h.rpool.Get()
 			conn.Send("MULTI")
+			conn.Send("DEL", h.channelPrefix+u.prefix+"@"+"online")
+			conn.Send("DEL", h.channelPrefix+u.prefix+"@"+"channels:"+e)
 			for u, _ := range h.users {
 				if u.uid != "" {
 					conn.Send("SADD", h.channelPrefix+u.prefix+"@"+"online", u.uid)
