@@ -49,15 +49,17 @@ func (h *Pool) Run() {
 			for u, _ := range h.users {
 				if u.uid != "" {
 					conn.Send("ZADD", h.channelPrefix+u.prefix+"@"+"online", "CH", nt, u.uid)
+					conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"online", 300)
 				}
 				for e, _ := range u.events {
 					conn.Send("ZADD", h.channelPrefix+u.prefix+"@"+"channels:"+e, "CH", nt, u.uid)
+					conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"channels:"+e, 300)
 				}
 			}
 			conn.Do("EXEC")
 			tmp, _ := redis.Strings(conn.Do("keys", h.channelPrefix+"*"))
 			for _, k := range tmp {
-				conn.Send("ZREMRANGEBYSCORE", k, dt, nt-60)
+				conn.Do("ZREMRANGEBYSCORE", k, dt, nt-60)
 			}
 			conn.Close()
 		}
