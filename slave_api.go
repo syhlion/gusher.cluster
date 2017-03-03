@@ -131,6 +131,11 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.Re
 	command := &ChannelCommand{}
 	exist := false
 	for _, ch := range auth.Channels {
+		//新增萬用字元  如果找到這個 任何頻道皆可訂閱
+		if ch == "*" {
+			exist = true
+			break
+		}
 		if ch == channel {
 			exist = true
 			break

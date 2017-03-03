@@ -111,6 +111,8 @@ Sucess Response:
 }
 ```
 
+* note: if channels slice have "*" char that user can sub all channels
+
 
 
 
