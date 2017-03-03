@@ -25,6 +25,18 @@ func (c *Client) On(event string, h EventHandler) {
 	c.Lock()
 	c.events[event] = h
 	c.Unlock()
+	conn := c.hub.rpool.Get()
+	defer func() {
+		conn.Close()
+	}()
+	conn.Send("MULTI")
+	if c.uid != "" {
+		conn.Send("SADD", c.hub.ChannelPrefix+c.prefix+"@"+"online", c.uid)
+		conn.Send("EXPIRE", c.hub.ChannelPrefix+"online", 35)
+	}
+	conn.Send("SADD", c.hub.ChannelPrefix+c.prefix+"@"+"channels:"+event, c.uid)
+	conn.Send("EXPIRE", c.hub.ChannelPrefix+c.prefix+"@"+"channels:"+event, 35)
+	conn.Do("EXEC")
 
 	return
 }
@@ -32,6 +44,16 @@ func (c *Client) Off(event string) {
 	c.Lock()
 	delete(c.events, event)
 	c.Unlock()
+	conn := c.hub.rpool.Get()
+	defer func() {
+		conn.Close()
+	}()
+	conn.Send("MULTI")
+	if c.uid != "" {
+		conn.Send("SREM", c.hub.ChannelPrefix+c.prefix+"@"+"online", c.uid)
+	}
+	conn.Send("SREM", c.hub.ChannelPrefix+c.prefix+"@"+"channels:"+event, c.uid)
+	conn.Do("EXEC")
 	return
 }
 
@@ -154,6 +176,10 @@ func (c *Client) writePump() {
 
 		case <-t.C:
 			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
+				return
+			}
+			//超過時間 都沒有事件訂閱 就斷線處理
+			if len(c.events) == 0 {
 				return
 			}
 
