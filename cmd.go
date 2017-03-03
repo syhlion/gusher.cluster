@@ -70,10 +70,13 @@ func master(c *cli.Context) {
 	n := negroni.New()
 	n.Use(httplog.NewLogger())
 	n.UseHandler(r)
-	//n.UseHandler(http.TimeoutHandler(n, 3*time.Second, "Timeout"))
 	serverError := make(chan error, 1)
+	server := http.Server{
+		ReadTimeout: 3 * time.Second,
+		Handler:     n,
+	}
 	go func() {
-		err := http.Serve(apiListener, n)
+		err := server.Serve(apiListener)
 		serverError <- err
 	}()
 	go func() {
@@ -106,7 +109,7 @@ func slave(c *cli.Context) {
 	rpool.MaxIdle = sc.RedisMaxIdle
 	rpool.MaxActive = sc.RedisMaxConn
 	rpool.Wait = true
-	rpool.IdleTimeout = 30 * time.Second
+	rpool.IdleTimeout = 240 * time.Second
 	rpool.TestOnBorrow = func(c redis.Conn, t time.Time) error {
 		if time.Since(t) < time.Minute {
 			return nil
@@ -149,8 +152,12 @@ func slave(c *cli.Context) {
 	n.Use(httplog.NewLogger())
 	n.UseHandler(r)
 	serverError := make(chan error, 1)
+	server := http.Server{
+		ReadTimeout: 3 * time.Second,
+		Handler:     n,
+	}
 	go func() {
-		err := http.Serve(apiListener, n)
+		err := server.Serve(apiListener)
 		serverError <- err
 	}()
 	go func() {
