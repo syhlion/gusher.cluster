@@ -95,14 +95,18 @@ func (s *Sender) GetOnlineByChannel(channelPrefix string, appKey string, channel
 	memberKey := fmt.Sprintf("%s%s@channels:%s", channelPrefix, appKey, channel)
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	online, err = redis.Strings(conn.Do("smembers", memberKey))
+	nt := time.Now().Unix()
+	dt := nt - 120
+	online, err = redis.Strings(conn.Do("ZRANGEBYSCORE", memberKey, dt, nt))
 	return
 }
 func (s *Sender) GetOnline(channelPrefix string, appKey string) (online []string, err error) {
 	memberKey := fmt.Sprintf("%s%s@online", channelPrefix, appKey)
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	online, err = redis.Strings(conn.Do("smembers", memberKey))
+	nt := time.Now().Unix()
+	dt := nt - 120
+	online, err = redis.Strings(conn.Do("ZRANGEBYSCORE", memberKey, dt, nt))
 	return
 }
 
