@@ -147,6 +147,7 @@ func slave(c *cli.Context) {
 
 	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
 	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, rsHub)).Methods("GET")
+	sub.HandleFunc("/wtf/{app_key}", WtfConnect(sc, rpool, rsHub)).Methods("GET")
 	sub.HandleFunc("/auth", WsAuth(sc, rpool, client)).Methods("POST")
 	n := negroni.New()
 	n.Use(httplog.NewLogger())

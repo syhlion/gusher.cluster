@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/Sirupsen/logrus"
 	"github.com/buger/jsonparser"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
@@ -57,6 +58,80 @@ func WsAuth(sc SlaveConfig, pool *redis.Pool, reqClient *greq.Client) http.Handl
 			Token string `json:"token"`
 		}{
 			Token: uid.String(),
+		})
+		return
+	}
+
+}
+func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		appKey := params["app_key"]
+		token := r.FormValue("token")
+		if appKey == "" || token == "" {
+			logger.Warn("app_key or token is nil")
+			http.Error(w, "app_key is nil", http.StatusUnauthorized)
+			return
+		}
+		conn := pool.Get()
+		reply, err := redis.Bytes(conn.Do("GET", token))
+		if err != nil {
+			conn.Close()
+			logger.WithError(err).Warn("redis get error")
+			http.Error(w, "token error", http.StatusUnauthorized)
+			return
+		}
+		conn.Close()
+		auth := Auth{}
+		err = json.Unmarshal(reply, &auth)
+		if err != nil {
+			logger.WithError(err).Warn("json unmarshal error")
+			http.Error(w, "token error", http.StatusUnauthorized)
+			return
+		}
+		if appKey != auth.AppKey {
+			http.Error(w, "appkey error", http.StatusUnauthorized)
+			return
+		}
+
+		s, err := rHub.Upgrade(w, r, nil, auth.UserId, appKey)
+		if err != nil {
+			logger.WithError(err).Warnf("upgrade ws connection error")
+			return
+		}
+		defer s.Close()
+
+		s.Listen(func(data []byte) (msg *redisocket.ReceiveMsg, err error) {
+			logger.WithFields(logrus.Fields{
+				"data": string(data),
+			}).Info("receive start")
+			h, err := CommanRouter(data)
+			if err != nil {
+				logger.WithFields(logrus.Fields{
+					"data": string(data),
+				}).WithError(err).Warn("command router error")
+				return
+			}
+
+			d, _, _, err := jsonparser.Get(data, "data")
+			if err != nil {
+				logger.WithFields(logrus.Fields{
+					"data": string(data),
+				}).WithError(err).Warn("jsonparser data error")
+				return
+			}
+			logger.WithFields(logrus.Fields{
+				"data":  string(data),
+				"pdata": string(d),
+			}).Info("receive to sub")
+			msg, err = h(appKey, auth, d)
+			if err != nil {
+				logger.WithFields(logrus.Fields{
+					"data":  string(data),
+					"pdata": string(d),
+				}).WithError(err).Warn("sub error")
+			}
+			return
 		})
 		return
 	}
