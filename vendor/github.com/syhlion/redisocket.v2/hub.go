@@ -133,12 +133,12 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	pool := &Pool{
 
 		users:     make(map[*Client]bool),
-		broadcast: make(chan *eventPayload),
+		broadcast: make(chan *eventPayload, 65536),
 		join:      make(chan *Client),
 		leave:     make(chan *Client),
+		kick:      make(chan string),
 		rpool:     m,
 	}
-	go pool.Run()
 	return &Hub{
 
 		Config:       DefaultWebsocketOptional,
@@ -146,6 +146,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 		psc:          &redis.PubSubConn{m.Get()},
 		Pool:         pool,
 		debug:        debug,
+		closeSign:    make(chan int, 1),
 		log:          l,
 	}
 
@@ -159,7 +160,7 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 		prefix:  prefix,
 		uid:     uid,
 		ws:      ws,
-		send:    make(chan *Payload, 32),
+		send:    make(chan *Payload, 65536),
 		RWMutex: new(sync.RWMutex),
 		hub:     e,
 		events:  make(map[string]EventHandler),
@@ -174,8 +175,9 @@ type Hub struct {
 	psc           *redis.PubSubConn
 	redisManager  *redis.Pool
 	*Pool
-	debug bool
-	log   *log.Logger
+	debug     bool
+	log       *log.Logger
+	closeSign chan int
 }
 
 func (a *Hub) Ping() (err error) {
@@ -236,12 +238,20 @@ func (a *Hub) Listen(channelPrefix string) error {
 	a.ChannelPrefix = channelPrefix
 	a.psc.PSubscribe(channelPrefix + "*")
 	redisErr := a.listenRedis()
+	poolErr := a.Pool.Run()
 	select {
 	case e := <-redisErr:
+		a.Pool.Shutdown()
 		return e
+	case e := <-poolErr:
+		return e
+	case <-a.closeSign:
+		a.Pool.Shutdown()
+		return nil
 	}
 }
 func (a *Hub) Close() {
+	a.closeSign <- 1
 	return
 
 }

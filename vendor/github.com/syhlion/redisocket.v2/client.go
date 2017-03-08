@@ -29,13 +29,11 @@ func (c *Client) On(event string, h EventHandler) {
 	defer func() {
 		conn.Close()
 	}()
-	conn.Send("MULTI")
 	nt := time.Now().Unix()
 	if c.uid != "" {
-		conn.Send("ZADD", c.hub.ChannelPrefix+c.prefix+"@"+"online", "CH", nt, c.uid)
+		conn.Do("ZADD", c.hub.ChannelPrefix+c.prefix+"@"+"online", "CH", nt, c.uid)
 	}
-	conn.Send("ZADD", c.hub.ChannelPrefix+c.prefix+"@"+"channels:"+event, "CH", nt, c.uid)
-	conn.Do("EXEC")
+	conn.Do("ZADD", c.hub.ChannelPrefix+c.prefix+"@"+"channels:"+event, "CH", nt, c.uid)
 
 	return
 }
@@ -96,7 +94,11 @@ func (c *Client) readPump() {
 		if msgType != websocket.TextMessage {
 			continue
 		}
-		io.Copy(buff, reader)
+		_, err = io.Copy(buff, reader)
+		if err != nil {
+			buff.Reset()
+			continue
+		}
 
 		receiveMsg, err := c.re(buff.Bytes())
 		buff.Reset()
