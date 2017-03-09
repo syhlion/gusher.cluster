@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 
 	"github.com/Sirupsen/logrus"
 	"github.com/buger/jsonparser"
@@ -211,7 +213,13 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.Re
 			exist = true
 			break
 		}
-		if ch == channel {
+		ech := regexp.QuoteMeta(ch)
+		rch := strings.Replace(ech, `\*`, "*", -1)
+		r, err := regexp.Compile(rch)
+		if err != nil {
+			break
+		}
+		if r.MatchString(channel) {
 			exist = true
 			break
 		}
@@ -245,7 +253,18 @@ func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.
 	}
 	exist := false
 	for _, ch := range auth.Channels {
-		if ch == channel {
+		//新增萬用字元  如果找到這個 任何頻道皆可訂閱
+		if ch == "*" {
+			exist = true
+			break
+		}
+		ech := regexp.QuoteMeta(ch)
+		rch := strings.Replace(ech, `\*`, "*", -1)
+		r, err := regexp.Compile(rch)
+		if err != nil {
+			break
+		}
+		if r.MatchString(channel) {
 			exist = true
 			break
 		}
