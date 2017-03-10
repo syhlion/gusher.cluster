@@ -14,18 +14,23 @@ a lib for go to batch processing send web request
 func main() {
 
     // Init request
-    resq, err := http.NewRequest("GET", "http://tw.yahoo.com", nil)
-    if err != nil {
-        panic(err)
-    }
-    resp,err:=worker:=requestwork.New(resq)
+	req, err := http.NewRequest("GET", "http://tw.yahoo.com", nil)
+	if err != nil {
+		t.Error("request error: ", err)
+	}
 
-    if err != nil {
-        panic(err)
-    }
+	// Init worker
+	a := New(5)
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	err = a.Execute(ctx, req, func(resp *http.Response, err error) error {
 
-    defer resp.Body.Close()
-    fmt.Println("end")
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+		return nil
+
+	})
 }
 
 ```

@@ -13,7 +13,7 @@ func TestExecute(t *testing.T) {
 		t.Error("request error: ", err)
 	}
 	a := New(5)
-	ctx, _ := context.WithTimeout(context.Background(), 1*time.Millisecond)
+	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	err = a.Execute(ctx, req, func(resp *http.Response, err error) error {
 
 		if err != nil {
@@ -23,9 +23,9 @@ func TestExecute(t *testing.T) {
 		return nil
 
 	})
-	if err == nil {
-		//println("test")
+	if err != nil {
 		t.Error("No timeout")
+		return
 	}
 	err = a.Execute(context.Background(), req, func(resp *http.Response, err error) error {
 

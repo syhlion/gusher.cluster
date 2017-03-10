@@ -84,8 +84,6 @@ func (c *Client) readPump() {
 	c.ws.SetReadLimit(c.hub.Config.MaxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(c.hub.Config.PongWait))
 	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(c.hub.Config.PongWait)); return nil })
-	buff := bytes.NewBuffer(make([]byte, 512))
-	defer buff.Reset()
 	for {
 		msgType, reader, err := c.ws.NextReader()
 		if err != nil {
@@ -94,26 +92,21 @@ func (c *Client) readPump() {
 		if msgType != websocket.TextMessage {
 			continue
 		}
-		_, err = io.Copy(buff, reader)
-		if err != nil {
-			buff.Reset()
-			continue
+		var buffer *Buffer
+		select {
+		case buffer = <-c.hub.freeBuffer:
+			buffer.Reset(c)
+		default:
+			// None free, so allocate a new one.
+			buffer = &Buffer{buffer: bytes.NewBuffer(make([]byte, 0, 512)), client: c}
 		}
-
-		receiveMsg, err := c.re(buff.Bytes())
-		buff.Reset()
+		_, err = io.Copy(buffer.buffer, reader)
 		if err != nil {
+			buffer.Reset(nil)
 			return
 		}
-		if receiveMsg.Event != "" || receiveMsg.EventHandler == nil {
-			if receiveMsg.Sub {
-				c.On(receiveMsg.Event, receiveMsg.EventHandler)
-			} else {
-				c.Off(receiveMsg.Event)
-			}
-		}
+		c.hub.serveChan <- buffer
 
-		c.Send(receiveMsg.ResponseMsg)
 	}
 	return
 
