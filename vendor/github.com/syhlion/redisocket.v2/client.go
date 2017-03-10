@@ -98,7 +98,7 @@ func (c *Client) readPump() {
 			buffer.Reset(c)
 		default:
 			// None free, so allocate a new one.
-			buffer = &Buffer{buffer: bytes.NewBuffer(make([]byte, 0, 512)), client: c}
+			buffer = &Buffer{buffer: bytes.NewBuffer(make([]byte, 0, c.hub.Confg.MaxMessageSize)), client: c}
 		}
 		_, err = io.Copy(buffer.buffer, reader)
 		if err != nil {

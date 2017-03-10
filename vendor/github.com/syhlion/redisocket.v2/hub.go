@@ -133,7 +133,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	pool := &Pool{
 
 		users:     make(map[*Client]bool),
-		broadcast: make(chan *eventPayload, 4096),
+		broadcast: make(chan *eventPayload, 1024),
 		join:      make(chan *Client),
 		leave:     make(chan *Client),
 		kick:      make(chan string),
@@ -142,7 +142,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	return &Hub{
 
 		freeBuffer:   make(chan *Buffer, 100),
-		serveChan:    make(chan *Buffer, 100),
+		serveChan:    make(chan *Buffer),
 		Config:       DefaultWebsocketOptional,
 		redisManager: m,
 		psc:          &redis.PubSubConn{m.Get()},
@@ -162,7 +162,7 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 		prefix:  prefix,
 		uid:     uid,
 		ws:      ws,
-		send:    make(chan *Payload, 4096),
+		send:    make(chan *Payload, 64),
 		RWMutex: new(sync.RWMutex),
 		hub:     e,
 		events:  make(map[string]EventHandler),
