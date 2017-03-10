@@ -133,7 +133,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	pool := &Pool{
 
 		users:     make(map[*Client]bool),
-		broadcast: make(chan *eventPayload, 1024),
+		broadcast: make(chan *eventPayload, 4096),
 		join:      make(chan *Client),
 		leave:     make(chan *Client),
 		kick:      make(chan string),
