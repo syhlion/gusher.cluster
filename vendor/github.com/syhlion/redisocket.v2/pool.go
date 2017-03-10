@@ -19,6 +19,8 @@ type Pool struct {
 	leave         chan *Client
 	shutdown      chan int
 	kick          chan string
+	freeBuffer    chan *Buffer
+	serveChan     chan *Buffer
 	rpool         *redis.Pool
 	channelPrefix string
 }
@@ -48,6 +50,8 @@ func (h *Pool) Run() <-chan error {
 						u.Close()
 					}
 				}
+			case b := <-h.serveChan:
+				h.serve(b)
 			case u := <-h.join:
 				h.users[u] = true
 			case u := <-h.leave:
@@ -103,4 +107,26 @@ func (a *Pool) Join(c *Client) {
 }
 func (a *Pool) Leave(c *Client) {
 	a.leave <- c
+}
+
+func (a *Pool) serve(buffer *Buffer) {
+	receiveMsg, err := buffer.client.re(buffer.buffer.Bytes())
+	if err == nil {
+		if receiveMsg.Event != "" || receiveMsg.EventHandler == nil {
+			if receiveMsg.Sub {
+				buffer.client.On(receiveMsg.Event, receiveMsg.EventHandler)
+			} else {
+				buffer.client.Off(receiveMsg.Event)
+			}
+		}
+		buffer.client.Send(receiveMsg.ResponseMsg)
+	} else {
+		buffer.client.Close()
+	}
+	buffer.Reset(nil)
+	select {
+	case a.freeBuffer <- buffer:
+	default:
+	}
+	return
 }

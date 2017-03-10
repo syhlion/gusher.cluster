@@ -132,17 +132,17 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
 	pool := &Pool{
 
-		users:     make(map[*Client]bool),
-		broadcast: make(chan *eventPayload, 4096),
-		join:      make(chan *Client),
-		leave:     make(chan *Client),
-		kick:      make(chan string),
-		rpool:     m,
+		freeBuffer: make(chan *Buffer, 100),
+		serveChan:  make(chan *Buffer),
+		users:      make(map[*Client]bool),
+		broadcast:  make(chan *eventPayload, 4096),
+		join:       make(chan *Client),
+		leave:      make(chan *Client),
+		kick:       make(chan string),
+		rpool:      m,
 	}
 	return &Hub{
 
-		freeBuffer:   make(chan *Buffer, 100),
-		serveChan:    make(chan *Buffer),
 		Config:       DefaultWebsocketOptional,
 		redisManager: m,
 		psc:          &redis.PubSubConn{m.Get()},
@@ -172,8 +172,6 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 }
 
 type Hub struct {
-	freeBuffer    chan *Buffer
-	serveChan     chan *Buffer
 	ChannelPrefix string
 	Config        WebsocketOptional
 	psc           *redis.PubSubConn
@@ -198,38 +196,6 @@ func (a *Hub) logger(format string, v ...interface{}) {
 }
 func (a *Hub) CountOnlineUsers() (i int) {
 	return len(a.Pool.users)
-}
-func (a *Hub) serve() <-chan error {
-	errChan := make(chan error, 1)
-	go func() {
-		defer func() {
-			errChan <- errors.New("serve error")
-		}()
-		for {
-			buffer := <-a.serveChan
-			receiveMsg, err := buffer.client.re(buffer.buffer.Bytes())
-			if err == nil {
-				if receiveMsg.Event != "" || receiveMsg.EventHandler == nil {
-					if receiveMsg.Sub {
-						buffer.client.On(receiveMsg.Event, receiveMsg.EventHandler)
-					} else {
-						buffer.client.Off(receiveMsg.Event)
-					}
-				}
-				buffer.client.Send(receiveMsg.ResponseMsg)
-			} else {
-				buffer.client.Close()
-			}
-
-			buffer.Reset(nil)
-			select {
-			case a.freeBuffer <- buffer:
-			default:
-			}
-		}
-		return
-	}()
-	return errChan
 }
 func (a *Hub) listenRedis() <-chan error {
 
@@ -275,11 +241,7 @@ func (a *Hub) Listen(channelPrefix string) error {
 	a.psc.PSubscribe(channelPrefix + "*")
 	redisErr := a.listenRedis()
 	poolErr := a.Pool.Run()
-	serveError := a.serve()
 	select {
-	case e := <-serveError:
-		a.Pool.Shutdown()
-		return e
 	case e := <-redisErr:
 		a.Pool.Shutdown()
 		return e

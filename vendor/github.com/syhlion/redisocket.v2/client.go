@@ -94,7 +94,7 @@ func (c *Client) readPump() {
 		}
 		var buffer *Buffer
 		select {
-		case buffer = <-c.hub.freeBuffer:
+		case buffer = <-c.hub.Pool.freeBuffer:
 			buffer.Reset(c)
 		default:
 			// None free, so allocate a new one.
@@ -105,7 +105,7 @@ func (c *Client) readPump() {
 			buffer.Reset(nil)
 			return
 		}
-		c.hub.serveChan <- buffer
+		c.hub.Pool.serveChan <- buffer
 
 	}
 	return
