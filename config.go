@@ -29,6 +29,8 @@ type SlaveConfig struct {
 	Version           string
 	CompileDate       string
 	ExternalIp        string
+	ReadBuffer        int
+	WriteBuffer       int
 	StartTime         time.Time
 }
 

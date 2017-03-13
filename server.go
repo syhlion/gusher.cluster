@@ -58,6 +58,7 @@ var (
 		"public_key_location:\"{{.PublicKeyLocation}}\"\n\n"
 	slaveMsgFormat = "\nslave mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
 		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
+		"read_buffer:\"{{.ReadBuffer}}\"\twrite_buffer:\"{{.WriteBuffer}}\"\n" +
 		"redis_server_addr:\"{{.RedisAddr}}\"\n" +
 		"redis_server_max_idle:\"{{.RedisMaxIdle}}\"\n" +
 		"redis_server_max_conn:\"{{.RedisMaxConn}}\"\n" +
@@ -92,6 +93,14 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	sc.ApiPrefix = os.Getenv("GUSHER_API_URI_PREFIX")
 	if sc.ApiPrefix == "" {
 		logger.Fatal("empty env GUSHER_API_URI_PREIFX")
+	}
+	sc.ReadBuffer, err = strconv.Atoi(os.Getenv("GUSHER_READ_BUFFER"))
+	if err != nil {
+		sc.ReadBuffer = 1024
+	}
+	sc.WriteBuffer, err = strconv.Atoi(os.Getenv("GUSHER_WRITE_BUFFER"))
+	if err != nil {
+		sc.WriteBuffer = 8192
 	}
 	sc.DecodeServiceAddr = os.Getenv("GUSHER_DECODE_SERVICE")
 	if sc.DecodeServiceAddr == "" {
