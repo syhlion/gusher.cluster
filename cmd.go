@@ -125,7 +125,8 @@ func slave(c *cli.Context) {
 	}
 
 	rsHub := redisocket.NewHub(rpool, c.Bool("debug"))
-	rsHub.Config.MaxMessageSize = 500
+	rsHub.Config.MaxMessageSize = int64(sc.MaxMessage)
+	rsHub.Config.ScanInterval = sc.ScanInterval
 	rsHub.Config.Upgrader.ReadBufferSize = sc.ReadBuffer
 	rsHub.Config.Upgrader.WriteBufferSize = sc.WriteBuffer
 	rsHubErr := make(chan error, 1)

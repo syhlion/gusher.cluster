@@ -58,7 +58,7 @@ var (
 		"public_key_location:\"{{.PublicKeyLocation}}\"\n\n"
 	slaveMsgFormat = "\nslave mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
 		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
-		"read_buffer:\"{{.ReadBuffer}}\"\twrite_buffer:\"{{.WriteBuffer}}\"\n" +
+		"read_buffer:\"{{.ReadBuffer}}\"\twrite_buffer:\"{{.WriteBuffer}}\"\tmax_message_size:\"{{.MaxMessage}}\"\tscan_interval:\"{{.ScanInterval}}\"\n" +
 		"redis_server_addr:\"{{.RedisAddr}}\"\n" +
 		"redis_server_max_idle:\"{{.RedisMaxIdle}}\"\n" +
 		"redis_server_max_conn:\"{{.RedisMaxConn}}\"\n" +
@@ -93,6 +93,15 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	sc.ApiPrefix = os.Getenv("GUSHER_API_URI_PREFIX")
 	if sc.ApiPrefix == "" {
 		logger.Fatal("empty env GUSHER_API_URI_PREIFX")
+	}
+	scanInterval, err := strconv.Atoi(os.Getenv("GUSHER_SCAN_INTERVAL"))
+	if err != nil {
+		scanInterval = 30
+	}
+	sc.ScanInterval = time.Duration(scanInterval) * time.Second
+	sc.MaxMessage, err = strconv.Atoi(os.Getenv("GUSHER_RECEIVE_MAX_MESSAGE_SIZE"))
+	if err != nil {
+		sc.MaxMessage = 512
 	}
 	sc.ReadBuffer, err = strconv.Atoi(os.Getenv("GUSHER_READ_BUFFER"))
 	if err != nil {
