@@ -34,6 +34,7 @@ type ReceiveMsg struct {
 }
 
 type WebsocketOptional struct {
+	ScanInterval   time.Duration
 	WriteWait      time.Duration
 	PongWait       time.Duration
 	PingPeriod     time.Duration
@@ -43,6 +44,7 @@ type WebsocketOptional struct {
 
 var (
 	DefaultWebsocketOptional = WebsocketOptional{
+		ScanInterval:   30 * time.Second,
 		WriteWait:      10 * time.Second,
 		PongWait:       60 * time.Second,
 		PingPeriod:     (60 * time.Second * 9) / 10,
@@ -131,7 +133,6 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 
 	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
 	pool := &Pool{
-
 		freeBuffer: make(chan *Buffer, 100),
 		serveChan:  make(chan *Buffer),
 		users:      make(map[*Client]bool),
@@ -240,6 +241,7 @@ func (a *Hub) Listen(channelPrefix string) error {
 	a.ChannelPrefix = channelPrefix
 	a.psc.PSubscribe(channelPrefix + "*")
 	redisErr := a.listenRedis()
+	a.Pool.scanInterval = a.Config.ScanInterval
 	poolErr := a.Pool.Run()
 	select {
 	case e := <-redisErr:

@@ -23,12 +23,13 @@ type Pool struct {
 	serveChan     chan *Buffer
 	rpool         *redis.Pool
 	channelPrefix string
+	scanInterval  time.Duration
 }
 
 func (h *Pool) Run() <-chan error {
 	errChan := make(chan error, 1)
 	go func() {
-		t := time.NewTicker(30 * time.Second)
+		t := time.NewTicker(h.scanInterval)
 		defer func() {
 			t.Stop()
 			err := errors.New("pool close")
@@ -80,23 +81,28 @@ func (a *Pool) syncOnline() (err error) {
 	t := time.Now()
 	nt := t.Unix()
 	dt := t.Unix() - 86400
+	conn.Send("MULTI")
 	for u, _ := range a.users {
 		if u.uid != "" {
-			conn.Do("ZADD", a.channelPrefix+u.prefix+"@"+"online", "CH", nt, u.uid)
+			conn.Send("ZADD", a.channelPrefix+u.prefix+"@"+"online", "CH", nt, u.uid)
 		}
 		for e, _ := range u.events {
-			conn.Do("ZADD", a.channelPrefix+u.prefix+"@"+"channels:"+e, "CH", nt, u.uid)
-			conn.Do("EXPIRE", a.channelPrefix+u.prefix+"@"+"channels:"+e, 300)
+			conn.Send("ZADD", a.channelPrefix+u.prefix+"@"+"channels:"+e, "CH", nt, u.uid)
+			conn.Send("EXPIRE", a.channelPrefix+u.prefix+"@"+"channels:"+e, 300)
 		}
-		conn.Do("EXPIRE", a.channelPrefix+u.prefix+"@"+"online", 300)
+		conn.Send("EXPIRE", a.channelPrefix+u.prefix+"@"+"online", 300)
 	}
+	conn.Do("EXEC")
 	tmp, err := redis.Strings(conn.Do("keys", a.channelPrefix+"*"))
 	if err != nil {
 		return
 	}
+	//刪除過時的key
+	conn.Send("MULTI")
 	for _, k := range tmp {
-		conn.Do("ZREMRANGEBYSCORE", k, dt, nt-60)
+		conn.Send("ZREMRANGEBYSCORE", k, dt, nt-60)
 	}
+	conn.Do("EXEC")
 	return
 }
 func (a *Pool) Broadcast(event string, p *Payload) {

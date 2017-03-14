@@ -30,10 +30,12 @@ func (c *Client) On(event string, h EventHandler) {
 		conn.Close()
 	}()
 	nt := time.Now().Unix()
+	conn.Send("MULTI")
 	if c.uid != "" {
-		conn.Do("ZADD", c.hub.ChannelPrefix+c.prefix+"@"+"online", "CH", nt, c.uid)
+		conn.Send("ZADD", c.hub.ChannelPrefix+c.prefix+"@"+"online", "CH", nt, c.uid)
 	}
-	conn.Do("ZADD", c.hub.ChannelPrefix+c.prefix+"@"+"channels:"+event, "CH", nt, c.uid)
+	conn.Send("ZADD", c.hub.ChannelPrefix+c.prefix+"@"+"channels:"+event, "CH", nt, c.uid)
+	conn.Do("EXEC")
 
 	return
 }
@@ -98,7 +100,7 @@ func (c *Client) readPump() {
 			buffer.Reset(c)
 		default:
 			// None free, so allocate a new one.
-			buffer = &Buffer{buffer: bytes.NewBuffer(make([]byte, 0, 512)), client: c}
+			buffer = &Buffer{buffer: bytes.NewBuffer(make([]byte, 0, c.hub.Config.MaxMessageSize)), client: c}
 		}
 		_, err = io.Copy(buffer.buffer, reader)
 		if err != nil {
