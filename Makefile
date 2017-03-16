@@ -2,7 +2,7 @@ OS:=linux-amd64
 GUSHER:= gusher.cluster
 CONNTEST:= conn-test
 JWTGENERATE:=jwt-generate
-TAG := `git describe --tags `.`git rev-parse --short HEAD`
+TAG := `git describe --tags `
 TZ := Asia/Taipei
 DATETIME := `TZ=$(TZ) date +%Y/%m/%d.%T`
 show-tag:

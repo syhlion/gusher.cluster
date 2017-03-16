@@ -111,7 +111,8 @@ Sucess Response:
 }
 ```
 
-* note: if channels slice have "*" char that user can sub all channels
+* note1: if channels slice have "*" char that user can sub all channels
+* note2: support *  like test = t*st or app* = apple
 
 
 

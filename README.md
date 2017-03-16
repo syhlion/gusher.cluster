@@ -20,19 +20,19 @@ docker run --env-file env.example --link docker-redis --link gusher-master --nam
 
 docker-compose use [doc](https://github.com/syhlion/gusher.cluster/blob/master/docker-compose) 
 
-Install from source:
+Build from source:
 
 Package Management use [glide](https://github.com/Masterminds/glide)
 
 ```
-$ git clone github.com/syhlion/gusher.cluster && cd gusher.cluster
-$ make build
+$ go get github.com/syhlion/gusher.cluster 
+$ make build/linux
 
 ```
 
 Download:
 
-[Debian & Ubuntu use](https://github.com/syhlion/gusher.cluster/releases)
+[application](https://github.com/syhlion/gusher.cluster/releases)
 
 
 
