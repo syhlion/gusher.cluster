@@ -186,8 +186,8 @@ func main() {
 	gusher := cli.NewApp()
 	gusher.Name = name
 	gusher.Author = "Scott (syhlion)"
-	gusher.Usage = "websocket push server"
-	gusher.UsageText = "very simple to use http request push message to websocket and very easy to scale"
+	gusher.Usage = "very simple to use http request push message to websocket and very easy to scale"
+	gusher.UsageText = "gusher.cluster [slave|master] [-e envfile] [-d]"
 	gusher.Version = version
 	gusher.Compiled = time.Now()
 	gusher.Commands = []cli.Command{
