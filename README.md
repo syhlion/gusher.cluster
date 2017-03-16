@@ -27,7 +27,7 @@ Build from source:
 Package Management use [glide](https://github.com/Masterminds/glide)
 
 ```
-$ go get github.com/syhlion/gusher.cluster 
+$ go get github.com/syhlion/gusher.cluster && cd $GOPATH/github.com/syhlion/gusher.cluster
 $ make build/linux
 
 ```
@@ -76,3 +76,4 @@ backend php:
 
 * [@leo](https://github.com/cswleocsw) , [@benjamin](https://github.com/benjaminchen) support api lib
 * [pusher](https://pusher.com) inspiration
+* [gorilla/websocket](https://github.com/gorilla/websocket)
