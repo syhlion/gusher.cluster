@@ -1,5 +1,7 @@
 # Gusher.Cluster
 
+ [![Build Status](https://travis-ci.org/syhlion/gusher.cluster.svg?branch=master)](https://travis-ci.org/syhlion/gusher.cluster)
+
  [gusher](https://github.com/syhlion/gusher) Plus version ,support cluster
 
 ## Requirements
