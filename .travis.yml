@@ -6,6 +6,4 @@ go :
     - 1.8
     - tip
 script:
-    - go get -t -v ./...
-    - go test
-    - go build 
+    - make build/linux
