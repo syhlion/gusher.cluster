@@ -2,7 +2,7 @@
 
  [![Build Status](https://travis-ci.org/syhlion/gusher.cluster.svg?branch=master)](https://travis-ci.org/syhlion/gusher.cluster)
 
- [gusher](https://github.com/syhlion/gusher) Plus version ,support cluster
+ [gusher](https://github.com/syhlion/gusher) plus version ,support cluster
 
 ## Requirements
 
@@ -45,11 +45,11 @@ Than Use
 
 master mode:
 
-`./gusher.cluster master` or `./gusher.cluster master --env-file env.example`
+`$ ./gusher.cluster master` or `./gusher.cluster master --env-file env.example`
 
 slave mode:
 
-`./gusher.cluster slave` or `./gusher.cluster slave --env-file env.example`
+`$ ./gusher.cluster slave` or `./gusher.cluster slave --env-file env.example`
 
 
 
