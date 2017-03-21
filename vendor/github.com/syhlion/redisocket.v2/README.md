@@ -7,7 +7,6 @@ Implement By Observer pattern
 ## Documention
 
 * [API Reference](https://godoc.org/github.com/syhlion/redisocket.v2)
-* [Simple Example](https://github.com/syhlion/redisocket.v2/blob/master/example/main.go)
 
 ## Install
 
@@ -24,7 +23,7 @@ func main() {
 	pool := redis.NewPool(func() (redis.Conn, error) {
 		return redis.Dial("tcp", ":6379")
 	}, 10)
-	app := redisocket.NewHub(pool)
+	app := redisocket.NewHub(pool,false)
 
 	err := make(chan error)
 	go func() {
@@ -33,18 +32,17 @@ func main() {
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 
-		sub, err := app.NewClient(w, r)
+        client,err:= app.Upgrade(w, r, nil, "Scott", "appKey")
 		if err != nil {
 			log.Fatal("Client Connect Error")
 			return
 		}
-		err = sub.Subscribe("Test", TestEvent)
-		if err != nil {
-			return
-		}
-		err = sub.Listen(func(data []byte) (err error) {
-			app.Notify("Test", []byte("Hello"))
-			return
+		err = client.Listen(func(data []byte) (msg *redisocket.ReceiveMsg, err error) {
+		    msg = &redisocket.ReceiveMsg{}
+			msg.Sub = true
+			msg.Event = "Test"
+			msg.ResponseMsg = []byte("welcome")
+			return msg,nil
 
 		})
 		log.Println(err, "http point")

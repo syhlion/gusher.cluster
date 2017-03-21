@@ -118,14 +118,7 @@ func (a *Pool) Leave(c *Client) {
 func (a *Pool) serve(buffer *Buffer) {
 	receiveMsg, err := buffer.client.re(buffer.buffer.Bytes())
 	if err == nil {
-		if receiveMsg.Event != "" || receiveMsg.EventHandler == nil {
-			if receiveMsg.Sub {
-				buffer.client.On(receiveMsg.Event, receiveMsg.EventHandler)
-			} else {
-				buffer.client.Off(receiveMsg.Event)
-			}
-		}
-		buffer.client.Send(receiveMsg.ResponseMsg)
+		buffer.client.Send(receiveMsg)
 	} else {
 		buffer.client.Close()
 	}

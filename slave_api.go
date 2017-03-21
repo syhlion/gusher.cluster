@@ -21,6 +21,13 @@ var DefaultSubHandler = func(channel string, p *redisocket.Payload) (err error) 
 	return nil
 }
 
+type commandResponse struct {
+	sub     bool
+	handler func(string, *redisocket.Payload) (err error)
+	msg     []byte
+	event   string
+}
+
 func WsAuth(sc SlaveConfig, pool *redis.Pool, reqClient *greq.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -103,7 +110,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Han
 		}
 		defer s.Close()
 
-		s.Listen(func(data []byte) (msg *redisocket.ReceiveMsg, err error) {
+		s.Listen(func(data []byte) (b []byte, err error) {
 			logger.WithFields(logrus.Fields{
 				"data": string(data),
 			}).Info("receive start")
@@ -126,14 +133,21 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Han
 				"data":  string(data),
 				"pdata": string(d),
 			}).Info("receive to sub")
-			msg, err = h(appKey, auth, d)
+			res, err := h(appKey, auth, d)
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"data":  string(data),
 					"pdata": string(d),
 				}).WithError(err).Warn("sub error")
+				return
 			}
-			return
+			if res.sub {
+				s.On(res.event, res.handler)
+			} else {
+				s.Off(res.event)
+			}
+			return res.msg, nil
+
 		})
 		return
 	}
@@ -178,7 +192,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Hand
 		}
 		defer s.Close()
 
-		s.Listen(func(data []byte) (msg *redisocket.ReceiveMsg, err error) {
+		s.Listen(func(data []byte) (b []byte, err error) {
 			h, err := CommanRouter(data)
 			if err != nil {
 				return
@@ -188,22 +202,31 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Hand
 			if err != nil {
 				return
 			}
-			return h(appKey, auth, d)
+			res, err := h(appKey, auth, d)
+			if err != nil {
+				return
+			}
+			if res.sub {
+				s.On(res.event, res.handler)
+			} else {
+				s.Off(res.event)
+			}
+			return res.msg, nil
 		})
 		return
 	}
 
 }
 
-func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.ReceiveMsg, err error) {
+func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
 
 	channel, err := jsonparser.GetString(data, "channel")
 	if err != nil {
 		return
 	}
-	msg = &redisocket.ReceiveMsg{
-		EventHandler: DefaultSubHandler,
-		Sub:          true,
+	msg = &commandResponse{
+		handler: DefaultSubHandler,
+		sub:     true,
 	}
 	command := &ChannelCommand{}
 	exist := false
@@ -226,27 +249,27 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.Re
 	}
 	var reply []byte
 	if exist {
-		msg.Event = channel
+		msg.event = channel
 		command.Event = SubscribeReplySucceeded
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
 		if err != nil {
 			return
 		}
-		msg.ResponseMsg = reply
+		msg.msg = reply
 	} else {
 		command.Event = SubscribeReplyError
 		reply, err = json.Marshal(command)
 		if err != nil {
 			return
 		}
-		msg.ResponseMsg = reply
+		msg.msg = reply
 
 	}
 
 	return
 }
-func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.ReceiveMsg, err error) {
+func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
 	channel, err := jsonparser.GetString(data, "channel")
 	if err != nil {
 		return
@@ -269,33 +292,33 @@ func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *redisocket.
 			break
 		}
 	}
-	msg = &redisocket.ReceiveMsg{
-		Sub: false,
+	msg = &commandResponse{
+		sub: false,
 	}
 	command := &ChannelCommand{}
 	var reply []byte
 	//反訂閱處理
 	if exist {
-		msg.Event = channel
+		msg.event = channel
 		command.Event = UnSubscribeReplySucceeded
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
 		if err != nil {
 			return
 		}
-		msg.ResponseMsg = reply
+		msg.msg = reply
 	} else {
 		command.Event = UnSubscribeReplyError
 		reply, err = json.Marshal(command)
 		if err != nil {
 			return
 		}
-		msg.ResponseMsg = reply
+		msg.msg = reply
 	}
 	return
 }
 
-func CommanRouter(data []byte) (fn func(appkey string, auth Auth, data []byte) (msg *redisocket.ReceiveMsg, err error), err error) {
+func CommanRouter(data []byte) (fn func(appkey string, auth Auth, data []byte) (msg *commandResponse, err error), err error) {
 
 	val, err := jsonparser.GetString(data, "event")
 	if err != nil {

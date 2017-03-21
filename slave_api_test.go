@@ -37,7 +37,7 @@ func TestSubscribeCommand(t *testing.T) {
 		t.Errorf("%s err:%v", "nostar", err)
 		return
 	}
-	if m.Event != "AA" {
+	if m.event != "AA" {
 		t.Error("subscribe AA error")
 		return
 	}
@@ -47,13 +47,13 @@ func TestSubscribeCommand(t *testing.T) {
 		t.Errorf("%s err:%v", "admin", err)
 		return
 	}
-	if m.Event != "DD" {
+	if m.event != "DD" {
 		t.Error("subscribe DD error")
 		return
 	}
 	a, d = mockStarData()
 	m, err = SubscribeCommand("TEST", a, d)
-	if m.Event != "@^WTFDD" {
+	if m.event != "@^WTFDD" {
 		t.Error("subscribe @^WTFDD error")
 		return
 	}

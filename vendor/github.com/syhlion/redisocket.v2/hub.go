@@ -26,13 +26,6 @@ type Payload struct {
 	Event          string
 }
 
-type ReceiveMsg struct {
-	Event        string
-	EventHandler EventHandler
-	Sub          bool
-	ResponseMsg  []byte
-}
-
 type WebsocketOptional struct {
 	ScanInterval   time.Duration
 	WriteWait      time.Duration
@@ -59,7 +52,7 @@ var APPCLOSE = errors.New("APP_CLOSE")
 
 type EventHandler func(event string, payload *Payload) error
 
-type ReceiveMsgHandler func([]byte) (*ReceiveMsg, error)
+type ReceiveMsgHandler func([]byte) ([]byte, error)
 
 func NewSender(m *redis.Pool) (e *Sender) {
 
