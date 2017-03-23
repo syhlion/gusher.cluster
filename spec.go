@@ -17,7 +17,7 @@ const (
 type BatchData struct {
 	Channel string      `json:"channel"`
 	Event   string      `json:"event"`
-	Data    interface{} `json:"data""`
+	Data    interface{} `json:"data"`
 }
 
 type InternalCommand struct {
