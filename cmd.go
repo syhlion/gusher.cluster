@@ -7,11 +7,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
 	_ "net/http/pprof"
 
+	"github.com/Sirupsen/logrus"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/mux"
@@ -96,6 +98,15 @@ func master(c *cli.Context) {
 	}
 
 }
+func runtimeStats() (m *runtime.MemStats) {
+	m = &runtime.MemStats{}
+
+	//log.Println("# goroutines: ", runtime.NumGoroutine())
+	runtime.ReadMemStats(m)
+	//log.Println("Memory Acquired: ", m.Sys)
+	//log.Println("Memory Used    : ", m.Alloc)
+	return m
+}
 
 //slave server
 func slave(c *cli.Context) {
@@ -179,14 +190,18 @@ func slave(c *cli.Context) {
 		for {
 			select {
 			case <-t.C:
-				logger.Infof("users now: %v", rsHub.CountOnlineUsers())
+				m := runtimeStats()
+				logger.WithFields(logrus.Fields{
+					"memory-acquired": m.Sys,
+					"memory-used":     m.Alloc,
+					"goroutines":      runtime.NumGoroutine(),
+				}).Infof("users now: %v", rsHub.CountOnlineUsers())
 			case <-closeConnTotal:
 				return
 			}
 		}
 
 	}()
-
 	defer func() {
 		closeConnTotal <- 1
 		apiListener.Close()

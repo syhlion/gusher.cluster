@@ -20,6 +20,7 @@ func (m MasterConfig) GetStartTime() string {
 }
 
 type SlaveConfig struct {
+	LogInterval       time.Duration
 	ScanInterval      time.Duration
 	MaxMessage        int
 	RedisAddr         string
