@@ -66,6 +66,7 @@ func master(c *cli.Context) {
 	sub.HandleFunc("/{app_key}/channels", GetAllChannel(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/online/{channel}", GetOnlineByChannel(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/online", GetOnline(rsender)).Methods("GET")
+	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
@@ -163,6 +164,7 @@ func slave(c *cli.Context) {
 	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, rsHub)).Methods("GET")
 	sub.HandleFunc("/wtf/{app_key}", WtfConnect(sc, rpool, rsHub)).Methods("GET")
 	sub.HandleFunc("/auth", WsAuth(sc, rpool, client)).Methods("POST")
+	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	n := negroni.New()
 	n.Use(httplog.NewLogger())
 	n.UseHandler(r)
