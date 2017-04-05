@@ -1,6 +1,6 @@
 ## Slave  Api
 
-#### Auth:
+### Auth:
 
 `POST /{prefix}/auth`
 
@@ -18,10 +18,19 @@ jwt [ref](https://jwt.io)
 jwt [example](https://github.com/syhlion/gusher.cluster/blob/master/jwt.example)
 
 
-#### Connect:
+### Connect:
 
 `GET /{prefix}/ws/{app_key}?token={token}`
 
+### Ping:
+
+`GET /{prefix}/ping`
+
+Success Response:
+
+```
+pong
+```
 
 ## Master Api
 
@@ -109,6 +118,16 @@ Sucess Response:
         "app_key":""
     }
 }
+```
+
+### Ping:
+
+`GET /{prefix}/ping`
+
+Success Response:
+
+```
+pong
 ```
 
 * note1: if channels slice have "*" char that user can sub all channels
