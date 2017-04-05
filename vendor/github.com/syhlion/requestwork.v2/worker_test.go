@@ -13,7 +13,8 @@ func TestExecute(t *testing.T) {
 		t.Error("request error: ", err)
 	}
 	a := New(5)
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	err = a.Execute(ctx, req, func(resp *http.Response, err error) error {
 
 		if err != nil {

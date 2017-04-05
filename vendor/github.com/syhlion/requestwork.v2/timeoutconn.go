@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+//Dial dial func
 func Dial(network, addr string) (conn net.Conn, err error) {
 	dial := net.Dialer{
 		Timeout:   30 * time.Second,

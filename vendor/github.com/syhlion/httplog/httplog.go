@@ -20,6 +20,7 @@ func NewLogger() *Logger {
 	return &Logger{log.New(os.Stdout, "[http log] ", 0)}
 }
 
+// ServerHTTP negroni middleware interface
 func (l *Logger) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	start := time.Now()
 

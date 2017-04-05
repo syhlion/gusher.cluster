@@ -11,6 +11,7 @@ import (
 	requestwork "github.com/syhlion/requestwork.v2"
 )
 
+//New return http client
 func New(worker *requestwork.Worker, timeout time.Duration) *Client {
 	return &Client{
 		Worker:  worker,
@@ -19,18 +20,21 @@ func New(worker *requestwork.Worker, timeout time.Duration) *Client {
 	}
 }
 
+//Client instance
 type Client struct {
 	Worker  *requestwork.Worker
 	Timeout time.Duration
 	Headers map[string]string
 }
 
+//SetHeader set http header
 func (c *Client) SetHeader(key, value string) *Client {
 	key = strings.Title(key)
 	c.Headers[key] = value
 	return c
 }
 
+//Get http method get
 func (c *Client) Get(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	if params != nil {
 		url += "?" + params.Encode()
@@ -39,14 +43,20 @@ func (c *Client) Get(url string, params url.Values) (data []byte, httpstatus int
 	return c.resolveRequest(req, err)
 
 }
+
+//Post http method post
 func (c *Client) Post(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(params.Encode()))
 	return c.resolveRequest(req, err)
 }
+
+//Put http method put
 func (c *Client) Put(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	req, err := http.NewRequest(http.MethodPut, url, strings.NewReader(params.Encode()))
 	return c.resolveRequest(req, err)
 }
+
+//Delete http method Delete
 func (c *Client) Delete(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	req, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(params.Encode()))
 	return c.resolveRequest(req, err)
@@ -68,6 +78,7 @@ func (c *Client) resolveRequest(req *http.Request, e error) (data []byte, httpst
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 
+	defer cancel()
 	c.resolveHeaders(req)
 
 	switch req.Method {

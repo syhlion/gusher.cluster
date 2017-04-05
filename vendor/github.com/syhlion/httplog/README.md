@@ -1,5 +1,8 @@
 # httplog middleware
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/syhlion/httplog)](https://goreportcard.com/report/github.com/syhlion/httplog)
+[![Build Status](https://travis-ci.org/syhlion/httplog.svg?branch=master)](https://travis-ci.org/syhlion/httplog)
+
 [negroni](https://github.com/urfave/negroni) middleware
 
 
