@@ -220,7 +220,7 @@ func slave(c *cli.Context) {
 	case err := <-serverError:
 		logger.Error(err)
 	case err := <-rsHubErr:
-		logger.Error(err)
+		logger.Error("redis sub connection diconnect ", err)
 	}
 	return
 
