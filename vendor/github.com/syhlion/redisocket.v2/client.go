@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+//Client gorilla websocket wrap struct
 type Client struct {
 	prefix string
 	uid    string
@@ -21,6 +22,7 @@ type Client struct {
 	hub *Hub
 }
 
+//On event.  client on event
 func (c *Client) On(event string, h EventHandler) {
 	c.Lock()
 	c.events[event] = h
@@ -39,6 +41,8 @@ func (c *Client) On(event string, h EventHandler) {
 
 	return
 }
+
+//Off event. client off event
 func (c *Client) Off(event string) {
 	c.Lock()
 	delete(c.events, event)
@@ -46,6 +50,7 @@ func (c *Client) Off(event string) {
 	return
 }
 
+//Trigger event. trigger client reigster event
 func (c *Client) Trigger(event string, p *Payload) (err error) {
 	c.RLock()
 	_, ok := c.events[event]
@@ -58,6 +63,7 @@ func (c *Client) Trigger(event string, p *Payload) (err error) {
 	return
 }
 
+//Send message. write msg to client
 func (c *Client) Send(data []byte) {
 	p := &Payload{
 		Data:      data,
@@ -79,7 +85,7 @@ func (c *Client) writePreparedMessage(data *websocket.PreparedMessage) error {
 func (c *Client) readPump() {
 
 	defer func() {
-		c.hub.Leave(c)
+		c.hub.leave(c)
 		c.Close()
 
 	}()
@@ -94,30 +100,34 @@ func (c *Client) readPump() {
 		if msgType != websocket.TextMessage {
 			continue
 		}
-		var buffer *Buffer
+		var buf *buffer
 		select {
-		case buffer = <-c.hub.Pool.freeBuffer:
-			buffer.Reset(c)
+		case buf = <-c.hub.pool.freeBufferChan:
+			buf.reset(c)
 		default:
 			// None free, so allocate a new one.
-			buffer = &Buffer{buffer: bytes.NewBuffer(make([]byte, 0, c.hub.Config.MaxMessageSize)), client: c}
+			buf = &buffer{buffer: bytes.NewBuffer(make([]byte, 0, c.hub.Config.MaxMessageSize)), client: c}
 		}
-		_, err = io.Copy(buffer.buffer, reader)
+		_, err = io.Copy(buf.buffer, reader)
 		if err != nil {
-			buffer.Reset(nil)
+			buf.reset(nil)
 			return
 		}
-		c.hub.Pool.serveChan <- buffer
+		c.hub.pool.serveChan <- buf
 
 	}
-	return
 
 }
+
+//Close client. disconnect client
 func (c *Client) Close() {
 	c.ws.Close()
 	return
 }
 
+//Listen client
+//client start listen
+//it's block method
 func (c *Client) Listen(re ReceiveMsgHandler) {
 	c.re = re
 	go c.writePump()
@@ -171,6 +181,5 @@ func (c *Client) writePump() {
 
 		}
 	}
-	return
 
 }

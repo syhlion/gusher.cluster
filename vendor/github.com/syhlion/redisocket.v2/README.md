@@ -1,5 +1,8 @@
 # redisocket.v2
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/syhlion/redisocket.v2)](https://goreportcard.com/report/github.com/syhlion/redisocket.v2)
+[![Build Status](https://travis-ci.org/syhlion/redisocket.v2.svg?branch=master)](https://travis-ci.org/syhlion/redisocket.v2)
+
 Base on gorilla/websocket & garyburd/redigo
 
 Implement By Observer pattern
@@ -37,12 +40,8 @@ func main() {
 			log.Fatal("Client Connect Error")
 			return
 		}
-		err = client.Listen(func(data []byte) (msg *redisocket.ReceiveMsg, err error) {
-		    msg = &redisocket.ReceiveMsg{}
-			msg.Sub = true
-			msg.Event = "Test"
-			msg.ResponseMsg = []byte("welcome")
-			return msg,nil
+		err = client.Listen(func(data []byte) (d []byte, err error) {
+			return data,nil
 
 		})
 		log.Println(err, "http point")

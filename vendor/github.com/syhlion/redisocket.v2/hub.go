@@ -1,7 +1,6 @@
 package redisocket
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,11 +13,13 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+//User client interface
 type User interface {
 	Trigger(event string, p *Payload) (err error)
 	Close()
 }
 
+//Payload reciev from redis
 type Payload struct {
 	Data           []byte
 	PrepareMessage *websocket.PreparedMessage
@@ -26,6 +27,7 @@ type Payload struct {
 	Event          string
 }
 
+//WebsocketOptional  init websocket hub config
 type WebsocketOptional struct {
 	ScanInterval   time.Duration
 	WriteWait      time.Duration
@@ -36,6 +38,7 @@ type WebsocketOptional struct {
 }
 
 var (
+	//DefaultWebsocketOptional default config
 	DefaultWebsocketOptional = WebsocketOptional{
 		ScanInterval:   30 * time.Second,
 		WriteWait:      10 * time.Second,
@@ -48,12 +51,13 @@ var (
 	}
 )
 
-var APPCLOSE = errors.New("APP_CLOSE")
-
+//EventHandler event handler
 type EventHandler func(event string, payload *Payload) error
 
+//ReceiveMsgHandler client receive msg
 type ReceiveMsgHandler func([]byte) ([]byte, error)
 
+//NewSender return sender  send to hub
 func NewSender(m *redis.Pool) (e *Sender) {
 
 	return &Sender{
@@ -61,15 +65,18 @@ func NewSender(m *redis.Pool) (e *Sender) {
 	}
 }
 
+//Sender struct
 type Sender struct {
 	redisManager *redis.Pool
 }
 
+//BatchData push batch data struct
 type BatchData struct {
 	Event string
 	Data  []byte
 }
 
+//GetChannels get all sub channels
 func (s *Sender) GetChannels(channelPrefix string, appKey string, pattern string) (channels []string, err error) {
 	keyPrefix := fmt.Sprintf("%s%s@channels:", channelPrefix, appKey)
 	conn := s.redisManager.Get()
@@ -86,6 +93,8 @@ func (s *Sender) GetChannels(channelPrefix string, appKey string, pattern string
 
 	return
 }
+
+//GetOnlineByChannel get all online user by  channel
 func (s *Sender) GetOnlineByChannel(channelPrefix string, appKey string, channel string) (online []string, err error) {
 	memberKey := fmt.Sprintf("%s%s@channels:%s", channelPrefix, appKey, channel)
 	conn := s.redisManager.Get()
@@ -95,6 +104,8 @@ func (s *Sender) GetOnlineByChannel(channelPrefix string, appKey string, channel
 	online, err = redis.Strings(conn.Do("ZRANGEBYSCORE", memberKey, dt, nt))
 	return
 }
+
+//GetOnline get all online user
 func (s *Sender) GetOnline(channelPrefix string, appKey string) (online []string, err error) {
 	memberKey := fmt.Sprintf("%s%s@online", channelPrefix, appKey)
 	conn := s.redisManager.Get()
@@ -105,6 +116,7 @@ func (s *Sender) GetOnline(channelPrefix string, appKey string) (online []string
 	return
 }
 
+//PushBatch push batch data
 func (s *Sender) PushBatch(channelPrefix, appKey string, data []BatchData) {
 	conn := s.redisManager.Get()
 	defer conn.Close()
@@ -114,6 +126,7 @@ func (s *Sender) PushBatch(channelPrefix, appKey string, data []BatchData) {
 	return
 }
 
+//Push push single data
 func (s *Sender) Push(channelPrefix, appKey string, event string, data []byte) (val int, err error) {
 	conn := s.redisManager.Get()
 	defer conn.Close()
@@ -121,32 +134,35 @@ func (s *Sender) Push(channelPrefix, appKey string, event string, data []byte) (
 	return
 }
 
-//NewApp It's create a Hub
+//NewHub It's create a Hub
 func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 
 	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
-	pool := &Pool{
-		freeBuffer: make(chan *Buffer, 100),
-		serveChan:  make(chan *Buffer),
-		users:      make(map[*Client]bool),
-		broadcast:  make(chan *eventPayload, 4096),
-		join:       make(chan *Client),
-		leave:      make(chan *Client),
-		kick:       make(chan string),
-		rpool:      m,
+	pool := &pool{
+		freeBufferChan: make(chan *buffer, 100),
+		serveChan:      make(chan *buffer),
+		users:          make(map[*Client]bool),
+		broadcastChan:  make(chan *eventPayload, 4096),
+		joinChan:       make(chan *Client),
+		leaveChan:      make(chan *Client),
+		kickChan:       make(chan string),
+		shutdownChan:   make(chan int, 1),
+		rpool:          m,
 	}
 	return &Hub{
 
 		Config:       DefaultWebsocketOptional,
 		redisManager: m,
-		psc:          &redis.PubSubConn{m.Get()},
-		Pool:         pool,
+		psc:          &redis.PubSubConn{Conn: m.Get()},
+		pool:         pool,
 		debug:        debug,
 		closeSign:    make(chan int, 1),
 		log:          l,
 	}
 
 }
+
+//Upgrade gorilla websocket wrap upgrade method
 func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header, uid string, prefix string) (c *Client, err error) {
 	ws, err := e.Config.Upgrader.Upgrade(w, r, responseHeader)
 	if err != nil {
@@ -161,46 +177,50 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 		hub:     e,
 		events:  make(map[string]EventHandler),
 	}
-	e.Join(c)
+	e.join(c)
 	return
 }
 
+//Hub client hub
 type Hub struct {
 	ChannelPrefix string
 	Config        WebsocketOptional
 	psc           *redis.PubSubConn
 	redisManager  *redis.Pool
-	*Pool
+	*pool
 	debug     bool
 	log       *log.Logger
 	closeSign chan int
 }
 
-func (a *Hub) Ping() (err error) {
-	_, err = a.redisManager.Get().Do("PING")
+//Ping ping redis server
+func (e *Hub) Ping() (err error) {
+	_, err = e.redisManager.Get().Do("PING")
 	if err != nil {
 		return
 	}
 	return
 }
-func (a *Hub) logger(format string, v ...interface{}) {
-	if a.debug {
-		a.log.Printf(format, v...)
+func (e *Hub) logger(format string, v ...interface{}) {
+	if e.debug {
+		e.log.Printf(format, v...)
 	}
 }
-func (a *Hub) CountOnlineUsers() (i int) {
-	return len(a.Pool.users)
+
+//CountOnlineUsers return online user total
+func (e *Hub) CountOnlineUsers() (i int) {
+	return len(e.pool.users)
 }
-func (a *Hub) listenRedis() <-chan error {
+func (e *Hub) listenRedis() <-chan error {
 
 	errChan := make(chan error, 1)
 	go func() {
 		for {
-			switch v := a.psc.Receive().(type) {
+			switch v := e.psc.Receive().(type) {
 			case redis.PMessage:
 
 				//過濾掉前綴
-				channel := strings.Replace(v.Channel, a.ChannelPrefix, "", -1)
+				channel := strings.Replace(v.Channel, e.ChannelPrefix, "", -1)
 				//過濾掉@ 之前的字
 				sch := strings.SplitN(channel, "@", 2)
 				if len(sch) != 2 {
@@ -217,7 +237,7 @@ func (a *Hub) listenRedis() <-chan error {
 					PrepareMessage: pMsg,
 					IsPrepare:      true,
 				}
-				a.Broadcast(channel, p)
+				e.broadcast(channel, p)
 
 			case error:
 				errChan <- v
@@ -229,26 +249,30 @@ func (a *Hub) listenRedis() <-chan error {
 	return errChan
 }
 
-func (a *Hub) Listen(channelPrefix string) error {
-	a.Pool.channelPrefix = channelPrefix
-	a.ChannelPrefix = channelPrefix
-	a.psc.PSubscribe(channelPrefix + "*")
-	redisErr := a.listenRedis()
-	a.Pool.scanInterval = a.Config.ScanInterval
-	poolErr := a.Pool.Run()
+//Listen hub start
+//it's block method
+func (e *Hub) Listen(channelPrefix string) error {
+	e.pool.channelPrefix = channelPrefix
+	e.ChannelPrefix = channelPrefix
+	e.psc.PSubscribe(channelPrefix + "*")
+	redisErr := e.listenRedis()
+	e.pool.scanInterval = e.Config.ScanInterval
+	poolErr := e.pool.run()
 	select {
-	case e := <-redisErr:
-		a.Pool.Shutdown()
-		return e
-	case e := <-poolErr:
-		return e
-	case <-a.closeSign:
-		a.Pool.Shutdown()
+	case er := <-redisErr:
+		e.pool.shutdown()
+		return er
+	case er := <-poolErr:
+		return er
+	case <-e.closeSign:
+		e.pool.shutdown()
 		return nil
 	}
 }
-func (a *Hub) Close() {
-	a.closeSign <- 1
+
+//Close close hub & close every client
+func (e *Hub) Close() {
+	e.closeSign <- 1
 	return
 
 }

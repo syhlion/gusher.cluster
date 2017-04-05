@@ -2,12 +2,12 @@ package redisocket
 
 import "bytes"
 
-type Buffer struct {
+type buffer struct {
 	buffer *bytes.Buffer
 	client *Client
 }
 
-func (b *Buffer) Reset(c *Client) {
+func (b *buffer) reset(c *Client) {
 	b.buffer.Reset()
 	b.client = c
 }
