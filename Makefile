@@ -22,7 +22,7 @@ build/linux:
 	$(call buildjwt,linux,amd64,)
 	$(call buildconntest,linux,amd64,)
 	$(call buildgusher,linux,amd64,)
-	cp env.example build/env.example && cp test/conn-test/conn-test.env.example build/conn-test.env.example && cp -R --parents test/key/ build/
+	cp env.example build/env.example && cp test/conn-test/conn-test.env.example build/conn-test.env.example && mkdir -p build/test/key &&  rsync -R  test/key/* build/
 build/linux_amd64.tar.gz: build/linux
 	$(call tar,linux,amd64,)
 build/windows: 
@@ -30,7 +30,7 @@ build/windows:
 	$(call buildjwt,windows,amd64,.exe)
 	$(call buildconntest,windows,amd64,.exe)
 	$(call buildgusher,windows,amd64,.exe)
-	cp env.example build/env.example && cp test/conn-test/conn-test.env.example build/conn-test.env.example && cp -R --parents test/key/ build/
+	cp env.example build/env.example && cp test/conn-test/conn-test.env.example build/conn-test.env.example && mkdir -p build/test/key &&  rsync -R  test/key/* build/
 build/windows_amd64.tar.gz: build/windows
 	$(call tar,windows,amd64,.exe)
 build/darwin: 
@@ -38,7 +38,7 @@ build/darwin:
 	$(call buildjwt,darwin,amd64,)
 	$(call buildconntest,darwin,amd64,)
 	$(call buildgusher,darwin,amd64,)
-	cp env.example build/env.example && cp test/conn-test/conn-test.env.example build/conn-test.env.example && cp -R --parents test/key/ build/
+	cp env.example build/env.example && cp test/conn-test/conn-test.env.example build/conn-test.env.example && mkdir -p build/test/key &&  rsync -R  test/key/* build/
 build/darwin_amd64.tar.gz: build/darwin
 	$(call tar,darwin,amd64,)
 clean:
