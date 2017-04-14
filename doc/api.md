@@ -86,7 +86,7 @@ Sucess Response:
 }
 ```
 
-`POST /{api}/push_batch/{app_key}?data={data}`
+`POST /{api}/push_batch/{app_key}`
 
 |key|value|description|
 |----|----|----|
