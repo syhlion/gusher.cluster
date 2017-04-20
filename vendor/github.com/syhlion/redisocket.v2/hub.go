@@ -1,6 +1,7 @@
 package redisocket
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -126,6 +127,22 @@ func (s *Sender) PushBatch(channelPrefix, appKey string, data []BatchData) {
 	return
 }
 
+//PushTo  push to user socket
+func (s *Sender) PushTo(channelPrefix, appKey string, uid string, data []byte) (val int, err error) {
+	conn := s.redisManager.Get()
+	defer conn.Close()
+	u := &userPayload{
+		uid:  uid,
+		data: data,
+	}
+	d, err := json.Marshal(u)
+	if err != nil {
+		return
+	}
+	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC#", d))
+	return
+}
+
 //Push push single data
 func (s *Sender) Push(channelPrefix, appKey string, event string, data []byte) (val int, err error) {
 	conn := s.redisManager.Get()
@@ -146,6 +163,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 		joinChan:       make(chan *Client),
 		leaveChan:      make(chan *Client),
 		kickChan:       make(chan string),
+		specifyChan:    make(chan *userPayload, 100),
 		shutdownChan:   make(chan int, 1),
 		rpool:          m,
 	}
@@ -229,6 +247,15 @@ func (e *Hub) listenRedis() <-chan error {
 
 				//過濾掉星號
 				channel = strings.Replace(sch[1], "*", "", -1)
+				if channel == "#GUSHERFUNC#" {
+					up := &userPayload{}
+					err := json.Unmarshal(v.Data, up)
+					if err != nil {
+						continue
+					}
+					e.toUser(up)
+					continue
+				}
 				pMsg, err := websocket.NewPreparedMessage(websocket.TextMessage, v.Data)
 				if err != nil {
 					continue

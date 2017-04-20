@@ -11,6 +11,10 @@ type eventPayload struct {
 	payload *Payload
 	event   string
 }
+type userPayload struct {
+	uid  string `json:"uid"`
+	data []byte `json:"data"`
+}
 
 type pool struct {
 	users          map[*Client]bool
@@ -21,6 +25,7 @@ type pool struct {
 	kickChan       chan string
 	freeBufferChan chan *buffer
 	serveChan      chan *buffer
+	specifyChan    chan *userPayload
 	rpool          *redis.Pool
 	channelPrefix  string
 	scanInterval   time.Duration
@@ -51,6 +56,12 @@ func (h *pool) run() <-chan error {
 						u.Close()
 					}
 				}
+			case n := <-h.specifyChan:
+				for u := range h.users {
+					if u.uid == n.uid {
+						u.Send(n.data)
+					}
+				}
 			case b := <-h.serveChan:
 				h.serve(b)
 			case u := <-h.joinChan:
@@ -68,6 +79,9 @@ func (h *pool) run() <-chan error {
 		}
 	}()
 	return errChan
+}
+func (h *pool) toUser(u *userPayload) {
+	h.specifyChan <- u
 }
 func (h *pool) shutdown() {
 	h.shutdownChan <- 1
@@ -118,7 +132,9 @@ func (h *pool) leave(c *Client) {
 func (h *pool) serve(buffer *buffer) {
 	receiveMsg, err := buffer.client.re(buffer.buffer.Bytes())
 	if err == nil {
-		buffer.client.Send(receiveMsg)
+		if len(receiveMsg) > 0 {
+			buffer.client.Send(receiveMsg)
+		}
 	} else {
 		buffer.client.Close()
 	}
