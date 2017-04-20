@@ -22,10 +22,10 @@ var DefaultSubHandler = func(channel string, p *redisocket.Payload) (err error) 
 }
 
 type commandResponse struct {
-	sub     bool
+	cmdType string
 	handler func(string, *redisocket.Payload) (err error)
 	msg     []byte
-	event   string
+	data    string
 }
 
 func Ping() http.HandlerFunc {
@@ -78,7 +78,7 @@ func WsAuth(sc SlaveConfig, pool *redis.Pool, reqClient *greq.Client) http.Handl
 	}
 
 }
-func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.HandlerFunc {
+func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		appKey := params["app_key"]
@@ -120,7 +120,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Han
 			logger.WithFields(logrus.Fields{
 				"data": string(data),
 			}).Info("receive start")
-			h, err := CommanRouter(data)
+			h, err := CommanRouter(data, pool)
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"data": string(data),
@@ -144,14 +144,22 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Han
 				logger.WithFields(logrus.Fields{
 					"data":  string(data),
 					"pdata": string(d),
+					"res":   res,
 				}).WithError(err).Warn("sub error")
 				return
 			}
-			if res.sub {
-				s.On(res.event, res.handler)
-			} else {
-				s.Off(res.event)
+			switch res.cmdType {
+			case "SUB":
+				s.On(res.data, res.handler)
+			case "UNSUB":
+				s.Off(res.data)
+
 			}
+			logger.WithFields(logrus.Fields{
+				"data":  string(data),
+				"pdata": string(d),
+				"res":   res,
+			}).Info("receive to sub")
 			return res.msg, nil
 
 		})
@@ -160,7 +168,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Han
 
 }
 
-func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.HandlerFunc {
+func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		appKey := params["app_key"]
@@ -199,7 +207,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Hand
 		defer s.Close()
 
 		s.Listen(func(data []byte) (b []byte, err error) {
-			h, err := CommanRouter(data)
+			h, err := CommanRouter(data, pool)
 			if err != nil {
 				return
 			}
@@ -212,10 +220,12 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub) http.Hand
 			if err != nil {
 				return
 			}
-			if res.sub {
-				s.On(res.event, res.handler)
-			} else {
-				s.Off(res.event)
+			switch res.cmdType {
+			case "SUB":
+				s.On(res.data, res.handler)
+			case "UNSUB":
+				s.Off(res.data)
+
 			}
 			return res.msg, nil
 		})
@@ -232,7 +242,7 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandRespon
 	}
 	msg = &commandResponse{
 		handler: DefaultSubHandler,
-		sub:     true,
+		cmdType: "SUB",
 	}
 	command := &ChannelCommand{}
 	exist := false
@@ -255,7 +265,7 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandRespon
 	}
 	var reply []byte
 	if exist {
-		msg.event = channel
+		msg.data = channel
 		command.Event = SubscribeReplySucceeded
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
@@ -274,6 +284,57 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandRespon
 	}
 
 	return
+}
+func Remote(pool *redis.Pool) func(string, Auth, []byte) (msg *commandResponse, err error) {
+	return func(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
+
+		remote, err := jsonparser.GetString(data, "remote")
+		if err != nil {
+			return
+		}
+		uid, err := jsonparser.GetString(data, "uid")
+		if err != nil {
+			return
+		}
+		payload, err := jsonparser.GetString(data, "payload")
+		if err != nil {
+			return
+		}
+		p := JsonCheck(payload)
+		msg = &commandResponse{
+			cmdType: "REMOTE",
+		}
+		var reply []byte
+		command := &RemoteCommand{}
+		command.Data.Remote = remote
+		b, ok := auth.Remotes[remote]
+
+		//沒有這個remote 返回錯誤訊息不斷線
+		if !ok || !b {
+			command.Event = RemoteReplyError
+			reply, err = json.Marshal(command)
+			if err != nil {
+				return
+			}
+			msg.msg = reply
+			return
+		}
+		wp := WorkerPayload{
+			UserId: auth.UserId,
+			Data:   p,
+			Uid:    uid,
+			AppKey: auth.AppKey,
+		}
+		d, err := json.Marshal(wp)
+		conn := pool.Get()
+		_, err = conn.Do("RPUSH", auth.AppKey+"@"+remote, d)
+		if err != nil {
+			return
+		}
+		msg.msg = reply
+		return
+	}
+
 }
 func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
 	channel, err := jsonparser.GetString(data, "channel")
@@ -299,13 +360,13 @@ func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResp
 		}
 	}
 	msg = &commandResponse{
-		sub: false,
+		cmdType: "UNSUB",
 	}
 	command := &ChannelCommand{}
 	var reply []byte
 	//反訂閱處理
 	if exist {
-		msg.event = channel
+		msg.data = channel
 		command.Event = UnSubscribeReplySucceeded
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
@@ -324,13 +385,15 @@ func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResp
 	return
 }
 
-func CommanRouter(data []byte) (fn func(appkey string, auth Auth, data []byte) (msg *commandResponse, err error), err error) {
+func CommanRouter(data []byte, pool *redis.Pool) (fn func(appkey string, auth Auth, data []byte) (msg *commandResponse, err error), err error) {
 
 	val, err := jsonparser.GetString(data, "event")
 	if err != nil {
 		return
 	}
 	switch val {
+	case RemoteEvent:
+		return Remote(pool), nil
 	case SubscribeEvent:
 		return SubscribeCommand, nil
 	case UnSubscribeEvent:

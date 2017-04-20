@@ -215,7 +215,6 @@ func start(c *cli.Context) {
 					atomic.AddUint64(&counter, 1)
 					return
 				}
-
 				if string(d) == sub_resp {
 					subStatus = true
 					listen_wg.Done()

@@ -28,7 +28,7 @@ var (
 			cli.StringFlag{
 				Name:  "payload",
 				Usage: "You want to hash payload",
-				Value: "{\"gusher\":{\"user_id\":\"Test_User\",\"channels\":[\"AA\",\"BB\"],\"app_key\":\"TEST\"}}",
+				Value: "{\"gusher\":{\"user_id\":\"Test_User\",\"channels\":[\"AA\",\"BB\"],\"app_key\":\"TEST\",\"remotes\":{\"cmd1\":true}}}",
 			},
 			cli.StringFlag{
 				Name:  "private-key",

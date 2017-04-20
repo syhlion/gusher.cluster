@@ -1,6 +1,8 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func mockNoStarData() (a Auth, d []byte) {
 	a = Auth{
@@ -29,7 +31,6 @@ func mockStarData() (a Auth, d []byte) {
 	d = []byte(`{"channel":"@^WTFDD"}}`)
 	return
 }
-
 func TestSubscribeCommand(t *testing.T) {
 	a, d := mockNoStarData()
 	m, err := SubscribeCommand("TEST", a, d)
@@ -37,7 +38,7 @@ func TestSubscribeCommand(t *testing.T) {
 		t.Errorf("%s err:%v", "nostar", err)
 		return
 	}
-	if m.event != "AA" {
+	if m.data != "AA" {
 		t.Error("subscribe AA error")
 		return
 	}
@@ -47,13 +48,13 @@ func TestSubscribeCommand(t *testing.T) {
 		t.Errorf("%s err:%v", "admin", err)
 		return
 	}
-	if m.event != "DD" {
+	if m.data != "DD" {
 		t.Error("subscribe DD error")
 		return
 	}
 	a, d = mockStarData()
 	m, err = SubscribeCommand("TEST", a, d)
-	if m.event != "@^WTFDD" {
+	if m.data != "@^WTFDD" {
 		t.Error("subscribe @^WTFDD error")
 		return
 	}

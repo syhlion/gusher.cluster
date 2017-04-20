@@ -161,8 +161,8 @@ func slave(c *cli.Context) {
 	//server := http.NewServeMux()
 
 	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
-	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, rsHub)).Methods("GET")
-	sub.HandleFunc("/wtf/{app_key}", WtfConnect(sc, rpool, rsHub)).Methods("GET")
+	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, rsHub, client)).Methods("GET")
+	sub.HandleFunc("/wtf/{app_key}", WtfConnect(sc, rpool, rsHub, client)).Methods("GET")
 	sub.HandleFunc("/auth", WsAuth(sc, rpool, client)).Methods("POST")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	n := negroni.New()

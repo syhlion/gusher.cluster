@@ -5,6 +5,10 @@
 
 Events|Discription
 ---|---
+gusher.remote|remote event
+gusher.remote_succeeded|remote sucess event
+gusher.remote_error|remote error event
+gusher.remote|remote event
 gusher.subscribe|subscribe event
 gusher.unsubscribe|unsubscribe event
 gusher.subscribe_succeeded|subscribe sucess
@@ -23,6 +27,43 @@ gusher.unsubscribe_error|unsubscribe error
 ```
 
 
+#### Remote Command:
+
+command:
+```
+{
+    "event":"gusher.remote",
+    "data":{
+        "remote":"chat"
+        "uid":"",
+        "payload":{"msg":1},
+    }
+}
+```
+
+reply scuess:
+```
+{
+    "event":"gusher.remote_succeeded",
+    "data":{
+        "remote":"test"
+        "uid":"",
+        "payload":{},
+    }
+}
+```
+
+reply error:
+```
+{
+    "event":"gusher.remote_error",
+    "data":{
+        "remote":"test",
+        "uid":"",
+        "payload":{}
+    }
+}
+```
 
 #### Subscribe Command:
 
@@ -97,6 +138,11 @@ this is default test jwt look [this](https://github.com/syhlion/gusher.cluster/b
         "user_id":"Test_User",
         "channels":["AA","BB"],
         "app_key":"TEST"
+        "remotes":{
+            "cmd1":true,
+            "cmd2":true
+        }
+        
     }
 }
 ```
