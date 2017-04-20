@@ -296,11 +296,11 @@ func Remote(pool *redis.Pool) func(string, Auth, []byte) (msg *commandResponse, 
 		if err != nil {
 			return
 		}
-		payload, err := jsonparser.GetString(data, "payload")
+		payload, _, _, err := jsonparser.Get(data, "payload")
 		if err != nil {
 			return
 		}
-		p := JsonCheck(payload)
+		p := JsonCheck(string(payload))
 		msg = &commandResponse{
 			cmdType: "REMOTE",
 		}
