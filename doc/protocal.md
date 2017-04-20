@@ -26,45 +26,6 @@ gusher.unsubscribe_error|unsubscribe error
 }
 ```
 
-
-#### Remote Command:
-
-command:
-```
-{
-    "event":"gusher.remote",
-    "data":{
-        "remote":"chat"
-        "uid":"",
-        "payload":{"msg":1},
-    }
-}
-```
-
-reply scuess:
-```
-{
-    "event":"gusher.remote_succeeded",
-    "data":{
-        "remote":"test"
-        "uid":"",
-        "payload":{},
-    }
-}
-```
-
-reply error:
-```
-{
-    "event":"gusher.remote_error",
-    "data":{
-        "remote":"test",
-        "uid":"",
-        "payload":{}
-    }
-}
-```
-
 #### Subscribe Command:
 
 command:
@@ -128,6 +89,58 @@ reply error:
     }
 }
 ```
+
+#### Remote Command:
+
+command:
+```
+{
+    "event":"gusher.remote",
+    "data":{
+        "remote":"chat"
+        "uid":"",
+        "payload":{"msg":1},
+    }
+}
+```
+
+reply scuess:
+```
+{
+    "event":"gusher.remote_succeeded",
+    "data":{
+        "remote":"test"
+        "uid":"",
+        "payload":{},
+    }
+}
+```
+
+reply error:
+```
+{
+    "event":"gusher.remote_error",
+    "data":{
+        "remote":"test",
+        "uid":"",
+        "payload":{}
+    }
+}
+```
+
+this command use redis RPUSH {app_key}@{remote} {data}
+
+data:
+```
+{
+    "user_id":"Test_User",
+    "uid":"abc",
+    "app_key":"TEST",
+    "data":""
+}
+```
+
+
 
 ## JWT Protocol
 
