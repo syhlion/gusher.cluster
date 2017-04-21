@@ -152,6 +152,7 @@ func (c *Client) writePump() {
 				return
 			}
 
+			c.RLock()
 			h, ok := c.events[msg.Event]
 			if ok {
 				if h != nil {
@@ -163,6 +164,7 @@ func (c *Client) writePump() {
 					return
 				}
 			}
+			c.RUnlock()
 			if msg.IsPrepare {
 
 				if err := c.writePreparedMessage(msg.PrepareMessage); err != nil {
