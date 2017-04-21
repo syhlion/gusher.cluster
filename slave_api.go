@@ -120,7 +120,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClien
 			logger.WithFields(logrus.Fields{
 				"data": string(data),
 			}).Info("receive start")
-			h, err := CommanRouter(data, pool)
+			h, err := CommanRouter(data, pool, s.SocketId())
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"data": string(data),
@@ -207,7 +207,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClient
 		defer s.Close()
 
 		s.Listen(func(data []byte) (b []byte, err error) {
-			h, err := CommanRouter(data, pool)
+			h, err := CommanRouter(data, pool, s.SocketId())
 			if err != nil {
 				return
 			}
@@ -285,7 +285,7 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandRespon
 
 	return
 }
-func Remote(pool *redis.Pool) func(string, Auth, []byte) (msg *commandResponse, err error) {
+func Remote(pool *redis.Pool, socketId string) func(string, Auth, []byte) (msg *commandResponse, err error) {
 	return func(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
 
 		remote, err := jsonparser.GetString(data, "remote")
@@ -320,10 +320,11 @@ func Remote(pool *redis.Pool) func(string, Auth, []byte) (msg *commandResponse, 
 			return
 		}
 		wp := WorkerPayload{
-			UserId: auth.UserId,
-			Data:   p,
-			Uid:    uid,
-			AppKey: auth.AppKey,
+			UserId:   auth.UserId,
+			Data:     p,
+			Uid:      uid,
+			SocketId: socketId,
+			AppKey:   auth.AppKey,
 		}
 		d, err := json.Marshal(wp)
 		conn := pool.Get()
@@ -385,7 +386,7 @@ func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResp
 	return
 }
 
-func CommanRouter(data []byte, pool *redis.Pool) (fn func(appkey string, auth Auth, data []byte) (msg *commandResponse, err error), err error) {
+func CommanRouter(data []byte, pool *redis.Pool, socketId string) (fn func(appkey string, auth Auth, data []byte) (msg *commandResponse, err error), err error) {
 
 	val, err := jsonparser.GetString(data, "event")
 	if err != nil {
@@ -393,7 +394,7 @@ func CommanRouter(data []byte, pool *redis.Pool) (fn func(appkey string, auth Au
 	}
 	switch val {
 	case RemoteEvent:
-		return Remote(pool), nil
+		return Remote(pool, socketId), nil
 	case SubscribeEvent:
 		return SubscribeCommand, nil
 	case UnSubscribeEvent:

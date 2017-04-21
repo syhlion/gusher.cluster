@@ -61,6 +61,8 @@ func master(c *cli.Context) {
 	r := mux.NewRouter()
 
 	sub := r.PathPrefix(mc.ApiPrefix).Subrouter()
+	sub.HandleFunc("/push/socket/{app_key}/{socket_id}", PushToSocket(rsender)).Methods("POST")
+	sub.HandleFunc("/push/user/{app_key}/{user_id}", PushToUser(rsender)).Methods("POST")
 	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rsender)).Methods("POST")
 	sub.HandleFunc("/push_batch/{app_key}", PushBatchMessage(rsender)).Methods("POST")
 	sub.HandleFunc("/{app_key}/channels", GetAllChannel(rsender)).Methods("GET")

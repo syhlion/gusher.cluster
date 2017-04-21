@@ -54,8 +54,9 @@ type Auth struct {
 	Remotes  map[string]bool `json:"remotes"`
 }
 type WorkerPayload struct {
-	UserId string      `json:"user_id"`
-	Uid    string      `json:"uid"`
-	AppKey string      `json:"app_key"`
-	Data   interface{} `json:"data"`
+	UserId   string      `json:"user_id"`
+	SocketId string      `json:"socket_id"`
+	Uid      string      `json:"uid"`
+	AppKey   string      `json:"app_key"`
+	Data     interface{} `json:"data"`
 }

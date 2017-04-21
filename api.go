@@ -75,6 +75,40 @@ func GetOnline(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.R
 		return
 	}
 }
+func PushToSocket(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		app_key := params["app_key"]
+		if app_key == "" {
+			logger.GetRequestEntry(r).Warn("empty param")
+			w.WriteHeader(400)
+			w.Write([]byte("empty param"))
+			return
+		}
+		socket_id := params["socket_id"]
+		data := r.FormValue("data")
+		j := JsonCheck(data)
+		rsender.PushToUid(listenChannelPrefix, app_key, socket_id, j)
+		push := struct {
+			SocketId string      `json:"socket_id"`
+			Data     interface{} `json:"data"`
+		}{
+			SocketId: socket_id,
+			Data:     data,
+		}
+		d, err := json.Marshal(push)
+		if err != nil {
+			logger.GetRequestEntry(r).Warn(err)
+			w.WriteHeader(400)
+			w.Write([]byte("data error"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(d)
+		return
+	}
+}
 func PushToUser(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
@@ -87,7 +121,8 @@ func PushToUser(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.
 		}
 		user_id := params["user_id"]
 		data := r.FormValue("data")
-		rsender.PushTo(listenChannelPrefix, app_key, user_id, []byte(data))
+		j := JsonCheck(data)
+		rsender.PushToUid(listenChannelPrefix, app_key, user_id, j)
 		push := struct {
 			UserId string      `json:"user_id"`
 			Data   interface{} `json:"data"`
