@@ -23,6 +23,10 @@ type Client struct {
 	hub *Hub
 }
 
+func (c *Client) SocketId() string {
+	return c.sid
+}
+
 //On event.  client on event
 func (c *Client) On(event string, h EventHandler) {
 	c.Lock()
