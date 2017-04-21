@@ -12,6 +12,7 @@ import (
 
 	"github.com/garyburd/redigo/redis"
 	"github.com/gorilla/websocket"
+	uuid "github.com/satori/go.uuid"
 )
 
 //User client interface
@@ -127,19 +128,35 @@ func (s *Sender) PushBatch(channelPrefix, appKey string, data []BatchData) {
 	return
 }
 
-//PushTo  push to user socket
-func (s *Sender) PushTo(channelPrefix, appKey string, uid string, data []byte) (val int, err error) {
+//PushToSid  push to user socket id
+func (s *Sender) PushToSid(channelPrefix, appKey string, uid string, data interface{}) (val int, err error) {
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	u := &userPayload{
-		uid:  uid,
-		data: data,
+	u := userPayload{
+		Uid:  uid,
+		Data: data,
 	}
 	d, err := json.Marshal(u)
 	if err != nil {
 		return
 	}
-	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC#", d))
+	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC-TOUID#", d))
+	return
+}
+
+//PushTo  push to user socket
+func (s *Sender) PushToUid(channelPrefix, appKey string, uid string, data interface{}) (val int, err error) {
+	conn := s.redisManager.Get()
+	defer conn.Close()
+	u := userPayload{
+		Uid:  uid,
+		Data: data,
+	}
+	d, err := json.Marshal(u)
+	if err != nil {
+		return
+	}
+	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC-TOSID#", d))
 	return
 }
 
@@ -156,16 +173,17 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 
 	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
 	pool := &pool{
-		freeBufferChan: make(chan *buffer, 100),
-		serveChan:      make(chan *buffer),
-		users:          make(map[*Client]bool),
-		broadcastChan:  make(chan *eventPayload, 4096),
-		joinChan:       make(chan *Client),
-		leaveChan:      make(chan *Client),
-		kickChan:       make(chan string),
-		specifyChan:    make(chan *userPayload, 100),
-		shutdownChan:   make(chan int, 1),
-		rpool:          m,
+		freeBufferChan:    make(chan *buffer, 100),
+		serveChan:         make(chan *buffer),
+		users:             make(map[*Client]bool),
+		broadcastChan:     make(chan *eventPayload, 4096),
+		joinChan:          make(chan *Client),
+		leaveChan:         make(chan *Client),
+		kickChan:          make(chan string),
+		userPayloadChan:   make(chan *userPayload, 100),
+		socketPayloadChan: make(chan *socketPayload, 100),
+		shutdownChan:      make(chan int, 1),
+		rpool:             m,
 	}
 	return &Hub{
 
@@ -186,9 +204,11 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 	if err != nil {
 		return
 	}
+	sid := uuid.NewV1()
 	c = &Client{
 		prefix:  prefix,
 		uid:     uid,
+		sid:     sid.String(),
 		ws:      ws,
 		send:    make(chan *Payload, 64),
 		RWMutex: new(sync.RWMutex),
@@ -247,13 +267,22 @@ func (e *Hub) listenRedis() <-chan error {
 
 				//過濾掉星號
 				channel = strings.Replace(sch[1], "*", "", -1)
-				if channel == "#GUSHERFUNC#" {
+				if channel == "#GUSHERFUNC-TOUID#" {
 					up := &userPayload{}
 					err := json.Unmarshal(v.Data, up)
 					if err != nil {
 						continue
 					}
-					e.toUser(up)
+					e.toUid(up)
+					continue
+				}
+				if channel == "#GUSHERFUNC-TOSID#" {
+					up := &socketPayload{}
+					err := json.Unmarshal(v.Data, up)
+					if err != nil {
+						continue
+					}
+					e.toSid(up)
 					continue
 				}
 				pMsg, err := websocket.NewPreparedMessage(websocket.TextMessage, v.Data)

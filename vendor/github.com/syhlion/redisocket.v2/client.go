@@ -13,6 +13,7 @@ import (
 //Client gorilla websocket wrap struct
 type Client struct {
 	prefix string
+	sid    string
 	uid    string
 	ws     *websocket.Conn
 	events map[string]EventHandler
