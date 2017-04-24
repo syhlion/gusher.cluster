@@ -102,6 +102,39 @@ Sucess Response:
 }
 ```
 
+### Push Message to User:
+
+`POST /{api}/push/user/{app_key}/{user_id}`
+
+|key|value|description|
+|----|----|----|
+|data|{"key":"value"}|string or json|
+
+Sucess Response:
+
+```
+{
+    "user_id":"",
+    "data":""
+}
+```
+
+### Push Message to Socket:
+
+`POST /{api}/push/socket/{app_key}/{socket_id}`
+
+|key|value|description|
+|----|----|----|
+|data|{"key":"value"}|string or json|
+
+Sucess Response:
+
+```
+{
+    "socket_id":"",
+    "data":""
+}
+```
 
 ### Decode:
 
@@ -117,8 +150,8 @@ Sucess Response:
         "user_id":"",
         "app_key":"",
         "remotes":{
-            "cmd1":"http://127.0.0.1/cmd1",
-            "cmd2":"http://127.0.0.1/cmd2"
+            "cmd1":true,
+            "cmd2":true
         }
     }
 }

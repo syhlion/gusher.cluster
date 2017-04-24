@@ -135,6 +135,7 @@ data:
 {
     "user_id":"Test_User",
     "uid":"abc",
+    "socket_id":"abc-bbb-ccc-ddd-eee", //unique socket id
     "app_key":"TEST",
     "data":""
 }
