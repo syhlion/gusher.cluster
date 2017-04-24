@@ -86,20 +86,20 @@ func (c *Client) resolveRequest(req *http.Request, e error) (data []byte, httpst
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 	}
 
-	err = c.Worker.Execute(ctx, req, func(resp *http.Response, err error) (e error) {
+	err = c.Worker.Execute(ctx, req, func(resp *http.Response, err error) (er error) {
 		if err != nil {
-			return
+			return err
 		}
+		var readErr error
 		defer resp.Body.Close()
 		status = resp.StatusCode
-		body, e = ioutil.ReadAll(resp.Body)
-		if e != nil {
-			return
+		body, readErr = ioutil.ReadAll(resp.Body)
+		if readErr != nil {
+			return readErr
 		}
 		return
 	})
 	if err != nil {
-		cancel()
 		return
 	}
 	data = body
