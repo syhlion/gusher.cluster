@@ -107,7 +107,7 @@ func (c *Client) readPump() {
 		}
 		var buf *buffer
 		select {
-		case buf = <-c.hub.pool.freeBufferChan:
+		case buf = <-c.hub.messageQuene.freeBufferChan:
 			buf.reset(c)
 		default:
 			// None free, so allocate a new one.
@@ -118,7 +118,7 @@ func (c *Client) readPump() {
 			buf.reset(nil)
 			return
 		}
-		c.hub.pool.serveChan <- buf
+		c.hub.messageQuene.serveChan <- buf
 
 	}
 

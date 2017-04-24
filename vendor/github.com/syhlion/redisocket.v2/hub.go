@@ -172,9 +172,12 @@ func (s *Sender) Push(channelPrefix, appKey string, event string, data []byte) (
 func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 
 	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
+	mq := &messageQuene{
+		freeBufferChan: make(chan *buffer, 100),
+		serveChan:      make(chan *buffer),
+	}
+	mq.run()
 	pool := &pool{
-		freeBufferChan:    make(chan *buffer, 100),
-		serveChan:         make(chan *buffer),
 		users:             make(map[*Client]bool),
 		broadcastChan:     make(chan *eventPayload, 4096),
 		joinChan:          make(chan *Client),
@@ -187,6 +190,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	}
 	return &Hub{
 
+		messageQuene: mq,
 		Config:       DefaultWebsocketOptional,
 		redisManager: m,
 		psc:          &redis.PubSubConn{Conn: m.Get()},
@@ -222,6 +226,7 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 //Hub client hub
 type Hub struct {
 	ChannelPrefix string
+	messageQuene  *messageQuene
 	Config        WebsocketOptional
 	psc           *redis.PubSubConn
 	redisManager  *redis.Pool

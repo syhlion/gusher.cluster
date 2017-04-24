@@ -28,8 +28,6 @@ type pool struct {
 	leaveChan         chan *Client
 	shutdownChan      chan int
 	kickChan          chan string
-	freeBufferChan    chan *buffer
-	serveChan         chan *buffer
 	userPayloadChan   chan *userPayload
 	socketPayloadChan chan *socketPayload
 	rpool             *redis.Pool
@@ -82,8 +80,6 @@ func (h *pool) run() <-chan error {
 						u.Send(b)
 					}
 				}
-			case b := <-h.serveChan:
-				h.serve(b)
 			case u := <-h.joinChan:
 				h.users[u] = true
 			case u := <-h.leaveChan:
@@ -150,21 +146,4 @@ func (h *pool) join(c *Client) {
 }
 func (h *pool) leave(c *Client) {
 	h.leaveChan <- c
-}
-
-func (h *pool) serve(buffer *buffer) {
-	receiveMsg, err := buffer.client.re(buffer.buffer.Bytes())
-	if err == nil {
-		if len(receiveMsg) > 0 {
-			buffer.client.Send(receiveMsg)
-		}
-	} else {
-		buffer.client.Close()
-	}
-	buffer.reset(nil)
-	select {
-	case h.freeBufferChan <- buffer:
-	default:
-	}
-	return
 }
