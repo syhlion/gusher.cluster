@@ -38,6 +38,14 @@ type WebsocketOptional struct {
 	MaxMessageSize int64
 	Upgrader       websocket.Upgrader
 }
+type socketPayload struct {
+	Sid  string      `json:"sid"`
+	Data interface{} `json:"data"`
+}
+type userPayload struct {
+	Uid  string      `json:"uid"`
+	Data interface{} `json:"data"`
+}
 
 var (
 	//DefaultWebsocketOptional default config
@@ -172,22 +180,24 @@ func (s *Sender) Push(channelPrefix, appKey string, event string, data []byte) (
 func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 
 	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
+	pool := &pool{
+		users:         make(map[*Client]bool),
+		broadcastChan: make(chan *eventPayload, 4096),
+		joinChan:      make(chan *Client),
+		leaveChan:     make(chan *Client),
+		kickSidChan:   make(chan string),
+		kickUidChan:   make(chan string),
+		uPayloadChan:  make(chan *uPayload, 100),
+		sPayloadChan:  make(chan *sPayload, 100),
+		shutdownChan:  make(chan int, 1),
+		rpool:         m,
+	}
 	mq := &messageQuene{
 		freeBufferChan: make(chan *buffer, 100),
 		serveChan:      make(chan *buffer),
+		pool:           pool,
 	}
 	mq.run()
-	pool := &pool{
-		users:             make(map[*Client]bool),
-		broadcastChan:     make(chan *eventPayload, 4096),
-		joinChan:          make(chan *Client),
-		leaveChan:         make(chan *Client),
-		kickChan:          make(chan string),
-		userPayloadChan:   make(chan *userPayload, 100),
-		socketPayloadChan: make(chan *socketPayload, 100),
-		shutdownChan:      make(chan int, 1),
-		rpool:             m,
-	}
 	return &Hub{
 
 		messageQuene: mq,
@@ -278,7 +288,11 @@ func (e *Hub) listenRedis() <-chan error {
 					if err != nil {
 						continue
 					}
-					e.toUid(up)
+					b, err := json.Marshal(up.Data)
+					if err != nil {
+						continue
+					}
+					e.toUid(up.Uid, b)
 					continue
 				}
 				if channel == "#GUSHERFUNC-TOSID#" {
@@ -287,7 +301,11 @@ func (e *Hub) listenRedis() <-chan error {
 					if err != nil {
 						continue
 					}
-					e.toSid(up)
+					b, err := json.Marshal(up.Data)
+					if err != nil {
+						continue
+					}
+					e.toSid(up.Sid, b)
 					continue
 				}
 				pMsg, err := websocket.NewPreparedMessage(websocket.TextMessage, v.Data)

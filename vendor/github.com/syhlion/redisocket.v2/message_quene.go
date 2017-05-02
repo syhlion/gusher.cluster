@@ -7,6 +7,7 @@ import (
 type messageQuene struct {
 	serveChan      chan *buffer
 	freeBufferChan chan *buffer
+	pool           *pool
 }
 
 func (m *messageQuene) worker() {
@@ -28,10 +29,10 @@ func (m *messageQuene) serve(buffer *buffer) {
 	receiveMsg, err := buffer.client.re(buffer.buffer.Bytes())
 	if err == nil {
 		if len(receiveMsg) > 0 {
-			buffer.client.Send(receiveMsg)
+			m.pool.toSid(buffer.client.sid, receiveMsg)
 		}
 	} else {
-		buffer.client.Close()
+		m.pool.kickSid(buffer.client.sid)
 	}
 	buffer.reset(nil)
 	select {

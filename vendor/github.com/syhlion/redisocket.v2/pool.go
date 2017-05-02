@@ -1,7 +1,6 @@
 package redisocket
 
 import (
-	"encoding/json"
 	"errors"
 	"time"
 
@@ -12,27 +11,30 @@ type eventPayload struct {
 	payload *Payload
 	event   string
 }
-type socketPayload struct {
-	Sid  string      `json:"sid"`
-	Data interface{} `json:"data"`
+
+// pool 用
+type uPayload struct {
+	uid  string `json:"uid"`
+	data []byte `json:"data"`
 }
-type userPayload struct {
-	Uid  string      `json:"uid"`
-	Data interface{} `json:"data"`
+type sPayload struct {
+	sid  string `json:"uid"`
+	data []byte `json:"data"`
 }
 
 type pool struct {
-	users             map[*Client]bool
-	broadcastChan     chan *eventPayload
-	joinChan          chan *Client
-	leaveChan         chan *Client
-	shutdownChan      chan int
-	kickChan          chan string
-	userPayloadChan   chan *userPayload
-	socketPayloadChan chan *socketPayload
-	rpool             *redis.Pool
-	channelPrefix     string
-	scanInterval      time.Duration
+	users         map[*Client]bool
+	broadcastChan chan *eventPayload
+	joinChan      chan *Client
+	leaveChan     chan *Client
+	shutdownChan  chan int
+	kickUidChan   chan string
+	kickSidChan   chan string
+	uPayloadChan  chan *uPayload
+	sPayloadChan  chan *sPayload
+	rpool         *redis.Pool
+	channelPrefix string
+	scanInterval  time.Duration
 }
 
 func (h *pool) run() <-chan error {
@@ -54,30 +56,29 @@ func (h *pool) run() <-chan error {
 				for u := range h.users {
 					u.Close()
 				}
-			case n := <-h.kickChan:
+			case n := <-h.kickSidChan:
 				for u := range h.users {
 					if u.uid == n {
 						u.Close()
 					}
 				}
-			case n := <-h.userPayloadChan:
+			case s := <-h.kickUidChan:
 				for u := range h.users {
-					if u.uid == n.Uid {
-						b, err := json.Marshal(n.Data)
-						if err != nil {
-							continue
-						}
-						u.Send(b)
+					if u.sid == s {
+						u.Close()
 					}
 				}
-			case n := <-h.socketPayloadChan:
+			case n := <-h.uPayloadChan:
 				for u := range h.users {
-					if u.sid == n.Sid {
-						b, err := json.Marshal(n.Data)
-						if err != nil {
-							continue
-						}
-						u.Send(b)
+					if u.uid == n.uid {
+
+						u.Send(n.data)
+					}
+				}
+			case n := <-h.sPayloadChan:
+				for u := range h.users {
+					if u.sid == n.sid {
+						u.Send(n.data)
 					}
 				}
 			case u := <-h.joinChan:
@@ -96,17 +97,22 @@ func (h *pool) run() <-chan error {
 	}()
 	return errChan
 }
-func (h *pool) toUid(u *userPayload) {
-	h.userPayloadChan <- u
+func (h *pool) toUid(uid string, d []byte) {
+	u := &uPayload{uid: uid, data: d}
+	h.uPayloadChan <- u
 }
-func (h *pool) toSid(u *socketPayload) {
-	h.socketPayloadChan <- u
+func (h *pool) toSid(sid string, d []byte) {
+	u := &sPayload{sid: sid, data: d}
+	h.sPayloadChan <- u
 }
 func (h *pool) shutdown() {
 	h.shutdownChan <- 1
 }
-func (h *pool) kick(uid string) {
-	h.kickChan <- uid
+func (h *pool) kickUid(uid string) {
+	h.kickUidChan <- uid
+}
+func (h *pool) kickSid(sid string) {
+	h.kickSidChan <- sid
 }
 func (h *pool) syncOnline() (err error) {
 	conn := h.rpool.Get()
