@@ -10,7 +10,7 @@
 
 ## Usage
 
-Docker example use [doc](https://github.com/syhlion/gusher.cluster/blob/master/docker)
+Docker example use [doc](./docker)
 
 ```
 docker pull syhlion/gusher.cluster
@@ -34,11 +34,11 @@ $ make build/linux
 
 Download:
 
-[application](https://github.com/syhlion/gusher.cluster/releases)
+[application](./releases)
 
 
 
-And Set ENV  like [example](https://github.com/syhlion/gusher.cluster/blob/master/env.example)
+And Set ENV  like [example](./env.example)
 
 
 Than Use
@@ -65,12 +65,12 @@ backend php:
 
 ## Api
 
-[Api Doc](https://github.com/syhlion/gusher.cluster/blob/master/doc/api.md)
+[Api Doc](./doc/api.md)
 
 
 ## Internal Protocal
 
-[Protocal Doc](https://github.com/syhlion/gusher.cluster/blob/master/doc/protocal.md)
+[Protocal Doc](./doc/protocal.md)
 
 ## Thanks
 
