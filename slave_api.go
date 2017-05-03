@@ -332,6 +332,11 @@ func Remote(pool *redis.Pool, socketId string) func(string, Auth, []byte) (msg *
 		if err != nil {
 			return
 		}
+		command.Event = RemoteReplySucceeded
+		reply, err = json.Marshal(command)
+		if err != nil {
+			return
+		}
 		msg.msg = reply
 		return
 	}
