@@ -1,0 +1,60 @@
+stages:
+  - build
+  - test
+  - deploy
+build:
+  image: golang:1.8.1
+  stage: build
+  script:
+    - ln -s $PWD $GOPATH/src/gusher.cluster
+    - cd $GOPATH/src/gusher.cluster
+    - make build/linux
+build:linux:
+  image: golang:1.8.1
+  stage: build
+  script:
+    - ln -s $PWD $GOPATH/src/gusher.cluster
+    - cd $GOPATH/src/gusher.cluster
+    - make build/linux
+  artifacts:
+    when: on_success
+    name: "gusher.cluster_${CI_BUILD_NAME}_${CI_BUILD_REF_NAME}"
+    paths:
+    - build/
+  only:
+  - tags
+build:windows:
+  image: golang:1.8.1
+  stage: build
+  script:
+    - ln -s $PWD $GOPATH/src/gusher.cluster
+    - cd $GOPATH/src/gusher.cluster
+    - make build/windows
+  artifacts:
+    when: on_success
+    name: "gusher.cluster_${CI_BUILD_NAME}_${CI_BUILD_REF_NAME}"
+    paths:
+    - build/
+  only:
+  - tags
+build:darwin:
+  image: golang:1.8.1
+  stage: build
+  script:
+    - ln -s $PWD $GOPATH/src/gusher.cluster
+    - cd $GOPATH/src/gusher.cluster
+    - make build/darwin
+  artifacts:
+    when: on_success
+    name: "gusher.cluster_${CI_BUILD_NAME}_${CI_BUILD_REF_NAME}"
+    paths:
+    - build/
+  only:
+  - tags
+test:
+  image: golang:1.8.1
+  stage: test
+  script:
+    - ln -s $PWD $GOPATH/src/gusher.cluster
+    - cd $GOPATH/src/gusher.cluster
+    - make test
