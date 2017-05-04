@@ -20,7 +20,7 @@ docker run --env-file env.example --link docker-redis --link gusher-master --nam
 //note env & link hostname
 ```
 
-docker-compose use [doc](https://github.com/syhlion/gusher.cluster/blob/master/docker-compose) 
+docker-compose use [doc](./docker-compose) 
 
 Build from source:
 
@@ -34,7 +34,7 @@ $ make build/linux
 
 Download:
 
-[application](./releases)
+[release](./releases)
 
 
 
