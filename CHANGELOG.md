@@ -1,5 +1,8 @@
 ## [Unreleased]
-- none
+
+### Fixed
+- fix README.md
+- fix CHANGELOG.md
 
 ## [v1.3.0] 2017-05-04
 
