@@ -4,6 +4,7 @@ import "time"
 
 type MasterConfig struct {
 	RedisAddr         string
+	RedisDb           int
 	RedisMaxIdle      int
 	RedisMaxConn      int
 	ApiListen         string
@@ -24,8 +25,13 @@ type SlaveConfig struct {
 	ScanInterval      time.Duration
 	MaxMessage        int
 	RedisAddr         string
+	RedisDb           int
 	RedisMaxIdle      int
 	RedisMaxConn      int
+	RedisJobAddr      string
+	RedisJobDb        int
+	RedisJobMaxIdle   int
+	RedisJobMaxConn   int
 	ApiListen         string
 	ApiPrefix         string
 	DecodeServiceAddr string

@@ -41,7 +41,16 @@ func master(c *cli.Context) {
 
 	/*redis init*/
 	rpool := redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", mc.RedisAddr)
+		c, err := redis.Dial("tcp", mc.RedisAddr)
+		if err != nil {
+			return nil, err
+		}
+		_, err = c.Do("SELECT", mc.RedisDb)
+		if err != nil {
+			c.Close()
+			return nil, err
+		}
+		return c, nil
 	}, 10)
 	rpool.MaxIdle = mc.RedisMaxIdle
 	rpool.MaxActive = mc.RedisMaxConn
@@ -117,7 +126,16 @@ func slave(c *cli.Context) {
 	sc := getSlaveConfig(c)
 	/*redis init*/
 	rpool := redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", sc.RedisAddr)
+		c, err := redis.Dial("tcp", sc.RedisAddr)
+		if err != nil {
+			return nil, err
+		}
+		_, err = c.Do("SELECT", sc.RedisDb)
+		if err != nil {
+			c.Close()
+			return nil, err
+		}
+		return c, nil
 	}, 10)
 
 	rpool.MaxIdle = sc.RedisMaxIdle
@@ -132,8 +150,37 @@ func slave(c *cli.Context) {
 		return err
 	}
 
+	jobRpool := redis.NewPool(func() (redis.Conn, error) {
+		c, err := redis.Dial("tcp", sc.RedisJobAddr)
+		if err != nil {
+			return nil, err
+		}
+		_, err = c.Do("SELECT", sc.RedisJobDb)
+		if err != nil {
+			c.Close()
+			return nil, err
+		}
+		return c, nil
+	}, 10)
+
+	jobRpool.MaxIdle = sc.RedisJobMaxIdle
+	jobRpool.MaxActive = sc.RedisJobMaxConn
+	jobRpool.Wait = true
+	jobRpool.IdleTimeout = 240 * time.Second
+	jobRpool.TestOnBorrow = func(c redis.Conn, t time.Time) error {
+		if time.Since(t) < time.Minute {
+			return nil
+		}
+		_, err := c.Do("PING")
+		return err
+	}
+
 	/*Test redis connect*/
 	err := RedisTestConn(rpool.Get())
+	if err != nil {
+		logger.Fatal(err)
+	}
+	err = RedisTestConn(jobRpool.Get())
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -163,8 +210,8 @@ func slave(c *cli.Context) {
 	//server := http.NewServeMux()
 
 	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
-	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, rsHub, client)).Methods("GET")
-	sub.HandleFunc("/wtf/{app_key}", WtfConnect(sc, rpool, rsHub, client)).Methods("GET")
+	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, jobRpool, rsHub, client)).Methods("GET")
+	sub.HandleFunc("/wtf/{app_key}", WtfConnect(sc, rpool, jobRpool, rsHub, client)).Methods("GET")
 	sub.HandleFunc("/auth", WsAuth(sc, rpool, client)).Methods("POST")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	n := negroni.New()

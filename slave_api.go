@@ -78,7 +78,7 @@ func WsAuth(sc SlaveConfig, pool *redis.Pool, reqClient *greq.Client) http.Handl
 	}
 
 }
-func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
+func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		appKey := params["app_key"]
@@ -120,7 +120,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClien
 			logger.WithFields(logrus.Fields{
 				"data": string(data),
 			}).Info("receive start")
-			h, err := CommanRouter(data, pool, s.SocketId())
+			h, err := CommanRouter(data, jobPool, s.SocketId())
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"data": string(data),
@@ -168,7 +168,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClien
 
 }
 
-func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
+func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		appKey := params["app_key"]
@@ -207,7 +207,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, rHub *redisocket.Hub, reqClient
 		defer s.Close()
 
 		s.Listen(func(data []byte) (b []byte, err error) {
-			h, err := CommanRouter(data, pool, s.SocketId())
+			h, err := CommanRouter(data, jobPool, s.SocketId())
 			if err != nil {
 				return
 			}

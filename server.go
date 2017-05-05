@@ -52,16 +52,19 @@ var (
 	logger          *Logger
 	masterMsgFormat = "\nmaster mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
 		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
-		"redis_server_addr:\"{{.RedisAddr}}\"\n" +
-		"redis_server_max_idle:\"{{.RedisMaxIdle}}\"\n" +
-		"redis_server_max_conn:\"{{.RedisMaxConn}}\"\n" +
+		"redis_addr:\"{{.RedisAddr}}\"\t" + "redis_dbno:\"{{.RedisDb}}\"\n" +
+		"redis_max_idle:\"{{.RedisMaxIdle}}\"\n" +
+		"redis_max_conn:\"{{.RedisMaxConn}}\"\n" +
 		"public_key_location:\"{{.PublicKeyLocation}}\"\n\n"
 	slaveMsgFormat = "\nslave mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
 		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
 		"read_buffer:\"{{.ReadBuffer}}\"\twrite_buffer:\"{{.WriteBuffer}}\"\tmax_message_size:\"{{.MaxMessage}}\"\tscan_interval:\"{{.ScanInterval}}\"\tlog_sys_interval:\"{{.LogInterval}}\"\n" +
-		"redis_server_addr:\"{{.RedisAddr}}\"\n" +
-		"redis_server_max_idle:\"{{.RedisMaxIdle}}\"\n" +
-		"redis_server_max_conn:\"{{.RedisMaxConn}}\"\n" +
+		"redis_addr:\"{{.RedisAddr}}\"\t" + "redis_dbno:\"{{.RedisDb}}\"\n" +
+		"redis_max_idle:\"{{.RedisMaxIdle}}\"\n" +
+		"redis_max_conn:\"{{.RedisMaxConn}}\"\n" +
+		"redis_job_addr:\"{{.RedisJobAddr}}\"\t" + "redis_job_dbno:\"{{.RedisJobDb}}\"\n" +
+		"redis_job_max_idle:\"{{.RedisJobMaxIdle}}\"\n" +
+		"redis_job_max_conn:\"{{.RedisJobMaxConn}}\"\n" +
 		"decode_service_addr:\"{{.DecodeServiceAddr}}\"\n\n"
 )
 
@@ -73,11 +76,17 @@ func init() {
 func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	sc = SlaveConfig{}
 	envInit(c)
+
+	//common redis
 	sc.RedisAddr = os.Getenv("GUSHER_REDIS_ADDR")
 	if sc.RedisAddr == "" {
 		logger.Fatal("empty env GUSHER_REDIS_ADDR")
 	}
 	var err error
+	sc.RedisDb, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_DBNO"))
+	if err != nil {
+		sc.RedisDb = 0
+	}
 	sc.RedisMaxIdle, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_IDLE"))
 	if err != nil {
 		sc.RedisMaxIdle = 80
@@ -85,6 +94,23 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	sc.RedisMaxConn, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_CONN"))
 	if err != nil {
 		sc.RedisMaxConn = 800
+	}
+	//job redis
+	sc.RedisJobAddr = os.Getenv("GUSHER_JOB_REDIS_ADDR")
+	if sc.RedisJobAddr == "" {
+		logger.Fatal("empty env GUSHER_REDIS_ADDR")
+	}
+	sc.RedisJobDb, err = strconv.Atoi(os.Getenv("GUSHER_JOB_REDIS_DBNO"))
+	if err != nil {
+		sc.RedisJobDb = 0
+	}
+	sc.RedisJobMaxIdle, err = strconv.Atoi(os.Getenv("GUSHER_JOB_REDIS_MAX_IDLE"))
+	if err != nil {
+		sc.RedisJobMaxIdle = 80
+	}
+	sc.RedisJobMaxConn, err = strconv.Atoi(os.Getenv("GUSHER_JOB_REDIS_MAX_CONN"))
+	if err != nil {
+		sc.RedisJobMaxConn = 800
 	}
 	sc.ApiListen = os.Getenv("GUSHER_API_LISTEN")
 	if sc.ApiListen == "" {
@@ -141,6 +167,10 @@ func getMasterConfig(c *cli.Context) (mc MasterConfig) {
 		logger.Fatal("empty env GUSHER_REDIS_ADDR")
 	}
 	var err error
+	mc.RedisDb, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_DBNO"))
+	if err != nil {
+		mc.RedisDb = 0
+	}
 	mc.RedisMaxIdle, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_MAX_IDLE"))
 	if err != nil {
 		mc.RedisMaxIdle = 10
