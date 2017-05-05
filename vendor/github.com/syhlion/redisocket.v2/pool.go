@@ -58,13 +58,13 @@ func (h *pool) run() <-chan error {
 				}
 			case n := <-h.kickSidChan:
 				for u := range h.users {
-					if u.uid == n {
+					if u.sid == n {
 						u.Close()
 					}
 				}
 			case s := <-h.kickUidChan:
 				for u := range h.users {
-					if u.sid == s {
+					if u.uid == s {
 						u.Close()
 					}
 				}
