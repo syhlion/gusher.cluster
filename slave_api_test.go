@@ -13,6 +13,15 @@ func mockNoStarData() (a Auth, d []byte) {
 	d = []byte(`{"channel":"AA"}}`)
 	return
 }
+func mockNoMatchData() (a Auth, d []byte) {
+	a = Auth{
+		Channels: []string{"AA"},
+		UserId:   "AAA",
+		AppKey:   "TEST",
+	}
+	d = []byte(`{"channel":"BB"}}`)
+	return
+}
 func mockAdminData() (a Auth, d []byte) {
 	a = Auth{
 		Channels: []string{"*"},
@@ -39,7 +48,17 @@ func TestSubscribeCommand(t *testing.T) {
 		return
 	}
 	if m.data != "AA" {
-		t.Error("subscribe AA error")
+		t.Error("subscribe AA error ", m.data)
+		return
+	}
+	a, d = mockNoMatchData()
+	m, err = SubscribeCommand("TEST", a, d)
+	if err != nil {
+		t.Errorf("%s err:%v", "nostar", err)
+		return
+	}
+	if m.cmdType != "" {
+		t.Errorf("%s err", "nomatch")
 		return
 	}
 	a, d = mockAdminData()

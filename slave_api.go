@@ -253,11 +253,9 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandRespon
 			break
 		}
 		ech := regexp.QuoteMeta(ch)
-		rch := strings.Replace(ech, `\*`, "*", -1)
-		r, err := regexp.Compile(rch)
-		if err != nil {
-			break
-		}
+		rch := strings.Replace(ech, `\*`, ".+", -1)
+		r := regexp.MustCompile("^" + rch + "$")
+
 		if r.MatchString(channel) {
 			exist = true
 			break
@@ -274,7 +272,11 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandRespon
 		}
 		msg.msg = reply
 	} else {
+
+		//TODO 需重構 不讓他進入訂閱模式
+		msg.cmdType = ""
 		command.Event = SubscribeReplyError
+		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
 		if err != nil {
 			return
@@ -355,11 +357,9 @@ func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResp
 			break
 		}
 		ech := regexp.QuoteMeta(ch)
-		rch := strings.Replace(ech, `\*`, "*", -1)
-		r, err := regexp.Compile(rch)
-		if err != nil {
-			break
-		}
+		rch := strings.Replace(ech, `\*`, ".+", -1)
+		r := regexp.MustCompile("^" + rch + "$")
+
 		if r.MatchString(channel) {
 			exist = true
 			break
@@ -381,7 +381,12 @@ func UnSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResp
 		}
 		msg.msg = reply
 	} else {
+		msg.data = channel
+
+		//TODO 需重構 先不讓他進入訂閱模式
+		msg.cmdType = ""
 		command.Event = UnSubscribeReplyError
+		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
 		if err != nil {
 			return
