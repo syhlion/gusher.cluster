@@ -6,7 +6,7 @@
 
 ## Changelog
 
-[CHANGELOG](./CHANGELOG.log)
+[CHANGELOG](./CHANGELOG.md)
 
 ## Requirements
 
