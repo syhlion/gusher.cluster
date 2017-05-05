@@ -4,6 +4,10 @@
 
  [gusher](https://github.com/syhlion/gusher) plus version ,support cluster
 
+## Changelog
+
+[CHANGELOG](./CHANGELOG.log)
+
 ## Requirements
 
 * redis
