@@ -125,10 +125,12 @@ func (h *pool) syncOnline() (err error) {
 		if u.uid != "" {
 			conn.Send("ZADD", h.channelPrefix+u.prefix+"@"+"online", "CH", nt, u.uid)
 		}
+		u.RLock()
 		for e := range u.events {
 			conn.Send("ZADD", h.channelPrefix+u.prefix+"@"+"channels:"+e, "CH", nt, u.uid)
 			conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"channels:"+e, 300)
 		}
+		u.RUnlock()
 		conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"online", 300)
 	}
 	conn.Do("EXEC")
