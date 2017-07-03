@@ -7,6 +7,7 @@ package benchmark
 import (
 	"encoding/json"
 	"github.com/Jeffail/gabs"
+	"github.com/a8m/djson"
 	"github.com/antonholmquist/jason"
 	"github.com/bitly/go-simplejson"
 	"github.com/buger/jsonparser"
@@ -129,6 +130,17 @@ func BenchmarkJsonParserObjectEachStructSmall(b *testing.B) {
 	}
 }
 
+func BenchmarkJsonParserSetSmall(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		jsonparser.Set(smallFixture, []byte(`"c90927dd-1588-4fe7-a14f-8a8950cfcbd8"`), "uuid")
+		jsonparser.Set(smallFixture, []byte("-3"), "tz")
+		jsonparser.Set(smallFixture, []byte(`"server_agent"`), "ua")
+		jsonparser.Set(smallFixture, []byte("3"), "st")
+
+		nothing()
+	}
+}
+
 /*
    encoding/json
 */
@@ -185,6 +197,19 @@ func BenchmarkGoSimplejsonSmall(b *testing.B) {
 	}
 }
 
+func BenchmarkGoSimplejsonSetSmall(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		json, _ := simplejson.NewJson(smallFixture)
+
+		json.SetPath([]string{"uuid"}, "c90927dd-1588-4fe7-a14f-8a8950cfcbd8")
+		json.SetPath([]string{"tz"}, -3)
+		json.SetPath([]string{"ua"}, "server_agent")
+		json.SetPath([]string{"st"}, 3)
+
+		nothing()
+	}
+}
+
 /*
    github.com/pquerna/ffjson
 */
@@ -218,7 +243,6 @@ func BenchmarkJasonSmall(b *testing.B) {
 /*
    github.com/mreiferson/go-ujson
 */
-
 func BenchmarkUjsonSmall(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		json, _ := ujson.NewFromBytes(smallFixture)
@@ -229,6 +253,16 @@ func BenchmarkUjsonSmall(b *testing.B) {
 		json.Get("st").Float64()
 
 		nothing()
+	}
+}
+
+/*
+   github.com/a8m/djson
+*/
+func BenchmarkDjsonSmall(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		m, _ := djson.DecodeObject(smallFixture)
+		nothing(m["uuid"].(string), m["tz"].(float64), m["ua"].(string), m["st"].(float64))
 	}
 }
 
