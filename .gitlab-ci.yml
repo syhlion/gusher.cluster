@@ -3,14 +3,14 @@ stages:
   - test
   - deploy
 build:
-  image: golang:1.8.3
+  image: golang:1.9.1
   stage: build
   script:
     - ln -s $PWD $GOPATH/src/gusher.cluster
     - cd $GOPATH/src/gusher.cluster
     - make build/linux
 build:linux:
-  image: golang:1.8.3
+  image: golang:1.9.1
   stage: build
   script:
     - ln -s $PWD $GOPATH/src/gusher.cluster
@@ -24,7 +24,7 @@ build:linux:
   only:
   - tags
 build:windows:
-  image: golang:1.8.3
+  image: golang:1.9.1
   stage: build
   script:
     - ln -s $PWD $GOPATH/src/gusher.cluster
@@ -38,7 +38,7 @@ build:windows:
   only:
   - tags
 build:darwin:
-  image: golang:1.8.3
+  image: golang:1.9.1
   stage: build
   script:
     - ln -s $PWD $GOPATH/src/gusher.cluster
@@ -52,7 +52,7 @@ build:darwin:
   only:
   - tags
 test:
-  image: golang:1.8.3
+  image: golang:1.9.1
   stage: test
   script:
     - ln -s $PWD $GOPATH/src/gusher.cluster
