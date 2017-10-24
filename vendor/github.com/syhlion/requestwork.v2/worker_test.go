@@ -25,7 +25,7 @@ func TestExecute(t *testing.T) {
 
 	})
 	if err != nil {
-		t.Error("No timeout")
+		t.Error(err)
 		return
 	}
 	err = a.Execute(context.Background(), req, func(resp *http.Response, err error) error {

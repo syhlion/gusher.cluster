@@ -77,10 +77,8 @@ func (w *Worker) run() {
 		case <-j.ctx.Done():
 			w.tr.CancelRequest(j.req)
 			j.end <- j.ctx.Err()
-			close(j.end)
 		case err := <-c:
 			j.end <- err
-			close(j.end)
 		}
 	}
 
