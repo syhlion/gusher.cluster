@@ -1,8 +1,12 @@
 ## [Unreleased]
 
+
+## [v1.3.3] 2017-11-01
+
 ### Fixed
 - fix README.md
 - fix CHANGELOG.md
+- fix logrus
 
 ## [v1.3.0] 2017-05-04
 
