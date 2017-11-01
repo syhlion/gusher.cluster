@@ -2,26 +2,27 @@ package main
 
 import (
 	"net/http"
-	"runtime"
 
 	"github.com/Sirupsen/logrus"
 )
 
 func GetLogger() *Logger {
 	l := logrus.New()
-	e := l.WithFields(logrus.Fields{
-		"Version":        version,
-		"RuntimeVersion": runtime.Version(),
-	})
+	/*
+		e := l.WithFields(logrus.Fields{
+			"Version":        version,
+			"RuntimeVersion": runtime.Version(),
+		})
+	*/
 
 	return &Logger{
-		e,
+		l,
 	}
 
 }
 
 type Logger struct {
-	*logrus.Entry
+	*logrus.Logger
 }
 
 func (l *Logger) GetRequestEntry(r *http.Request) *logrus.Entry {
