@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+## [V1.4.0] 2017-12-5
+
+### [Add]
+- add ws ping pong protocal
 
 ## [v1.3.3] 2017-11-01
 

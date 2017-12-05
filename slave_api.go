@@ -287,6 +287,24 @@ func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandRespon
 
 	return
 }
+
+func PingPongCommand(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
+	msg = &commandResponse{
+		handler: DefaultSubHandler,
+		cmdType: "PING",
+	}
+
+	command := &PingCommand{}
+	command.Event = PongReplySucceeded
+	command.Data = data
+
+	reply, err := json.Marshal(command)
+	if err != nil {
+		return
+	}
+	msg.msg = reply
+	return
+}
 func Remote(pool *redis.Pool, socketId string) func(string, Auth, []byte) (msg *commandResponse, err error) {
 	return func(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
 
@@ -409,6 +427,8 @@ func CommanRouter(data []byte, pool *redis.Pool, socketId string) (fn func(appke
 		return SubscribeCommand, nil
 	case UnSubscribeEvent:
 		return UnSubscribeCommand, nil
+	case PingEvent:
+		return PingPongCommand, nil
 	default:
 		err = errors.New("event errors")
 		break

@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	PingEvent                 = "gusher.ping"
+	PongReplySucceeded        = "gusher.pong_succeeded"
 	RemoteEvent               = "gusher.remote"
 	LoginEvent                = "gusher.login"
 	SubscribeEvent            = "gusher.subscribe"
@@ -33,6 +35,10 @@ type RemoteCommand struct {
 type RemoteData struct {
 	Remote string      `json:"remote"`
 	Msg    interface{} `json:"msg"`
+}
+type PingCommand struct {
+	InternalCommand
+	Data interface{} `json:"data"`
 }
 
 type ChannelCommand struct {

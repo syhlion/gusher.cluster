@@ -5,6 +5,8 @@
 
 Events|Discription
 ---|---
+gusher.ping|ping event
+gusher.pong_succeeded|pong success event
 gusher.remote|remote event
 gusher.remote_succeeded|remote sucess event
 gusher.remote_error|remote error event
@@ -141,6 +143,27 @@ data:
 }
 ```
 
+
+#### Ping Command:
+command:
+```
+{
+    "event":"gusher.ping",
+    "data":{
+        //custom
+    }
+}
+```
+
+reply :
+```
+{
+    "event":"gusher.pong_succeeded",
+    "data":{
+        //custom
+    }
+}
+```
 
 
 ## JWT Protocol
