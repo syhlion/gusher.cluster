@@ -1,4 +1,4 @@
-FROM golang:1.7.1
+FROM golang:1.9.1
 
 RUN git clone https://github.com/syhlion/gusher.cluster.git /go/src/gusher.cluster &&\
     cd /go/src/gusher.cluster && \
