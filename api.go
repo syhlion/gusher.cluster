@@ -88,7 +88,7 @@ func PushToSocket(rsender *redisocket.Sender) func(w http.ResponseWriter, r *htt
 		socket_id := params["socket_id"]
 		data := r.FormValue("data")
 		j := JsonCheck(data)
-		rsender.PushToUid(listenChannelPrefix, app_key, socket_id, j)
+		rsender.PushToSid(listenChannelPrefix, app_key, socket_id, j)
 		push := struct {
 			SocketId string      `json:"socket_id"`
 			Data     interface{} `json:"data"`
