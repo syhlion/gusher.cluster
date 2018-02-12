@@ -1,0 +1,70 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "4fRqULReH3vL0T0uCaBzXmku7X4=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/github.com/Sirupsen/logrus",
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		},
+		{
+			"checksumSHA1": "R8psb23xzT2qZEqhFYe9pqX5IpE=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/github.com/buger/jsonparser",
+			"path": "github.com/buger/jsonparser",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		},
+		{
+			"checksumSHA1": "hEnH6sgR83Qfx7UNnphNNlelmj0=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/github.com/gorilla/websocket",
+			"path": "github.com/gorilla/websocket",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		},
+		{
+			"checksumSHA1": "0cdNscA7+z4+lKF5usZYz3it/04=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/github.com/joho/godotenv",
+			"path": "github.com/joho/godotenv",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		},
+		{
+			"checksumSHA1": "hQbv/ZJUibzn24GDA7bnDI5SLCM=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/github.com/syhlion/requestwork.v2",
+			"path": "github.com/syhlion/requestwork.v2",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		},
+		{
+			"checksumSHA1": "ZCyVtwHjX5B5gcGZrnziX90Zl3g=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/github.com/urfave/cli",
+			"path": "github.com/urfave/cli",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		},
+		{
+			"checksumSHA1": "X1NTlfcau2XcV6WtAHF6b/DECOA=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/golang.org/x/crypto/ssh/terminal",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		},
+		{
+			"checksumSHA1": "l/AvVB/e1LjZ28XXItkdOW9tKMQ=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/golang.org/x/sys/unix",
+			"path": "golang.org/x/sys/unix",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		},
+		{
+			"checksumSHA1": "cQoW6a5F9mbu10APPXM39YJtv48=",
+			"origin": "github.com/syhlion/gusher.cluster/vendor/golang.org/x/sys/windows",
+			"path": "golang.org/x/sys/windows",
+			"revision": "d287e25585c532fc6df9daa24c029bd6b6e9d093",
+			"revisionTime": "2018-02-12T09:15:53Z"
+		}
+	],
+	"rootPath": "github.com/syhlion/gusher.cluster/test/conn-test"
+}
