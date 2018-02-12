@@ -140,15 +140,15 @@ func (s *Sender) PushBatch(channelPrefix, appKey string, data []BatchData) {
 func (s *Sender) PushToSid(channelPrefix, appKey string, uid string, data interface{}) (val int, err error) {
 	conn := s.redisManager.Get()
 	defer conn.Close()
-	u := userPayload{
-		Uid:  uid,
+	u := socketPayload{
+		Sid:  uid,
 		Data: data,
 	}
 	d, err := json.Marshal(u)
 	if err != nil {
 		return
 	}
-	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC-TOUID#", d))
+	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC-TOSID#", d))
 	return
 }
 
@@ -164,7 +164,7 @@ func (s *Sender) PushToUid(channelPrefix, appKey string, uid string, data interf
 	if err != nil {
 		return
 	}
-	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC-TOSID#", d))
+	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC-TOUID#", d))
 	return
 }
 

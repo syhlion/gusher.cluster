@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [V1.4.1] 2018-01-12
+
+### [Fix]
+- fix push sid & uid bug
+- remove glide & use govendor
+
+
 ## [V1.4.0] 2017-12-5
 
 ### [Add]

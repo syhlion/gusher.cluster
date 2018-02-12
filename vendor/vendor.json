@@ -1,0 +1,115 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "4fRqULReH3vL0T0uCaBzXmku7X4=",
+			"path": "github.com/Sirupsen/logrus",
+			"revision": "95cd2b9c79aa5e72ab0bc69b7ccc2be15bf850f6",
+			"revisionTime": "2017-11-18T12:42:23Z"
+		},
+		{
+			"checksumSHA1": "R8psb23xzT2qZEqhFYe9pqX5IpE=",
+			"path": "github.com/buger/jsonparser",
+			"revision": "5096fddd2cca678b0801ece8513a06e580981fd2",
+			"revisionTime": "2017-10-14T09:43:26Z"
+		},
+		{
+			"checksumSHA1": "+TKtBzv23ywvmmqRiGEjUba4YmI=",
+			"path": "github.com/dgrijalva/jwt-go",
+			"revision": "dbeaa9332f19a944acb5736b4456cfcc02140e29",
+			"revisionTime": "2017-10-19T21:57:19Z"
+		},
+		{
+			"checksumSHA1": "2UmMbNHc8FBr98mJFN1k8ISOIHk=",
+			"path": "github.com/garyburd/redigo/internal",
+			"revision": "b389d5392e340092642eec4e36754e0280ad1f8e",
+			"revisionTime": "2017-11-27T19:16:32Z"
+		},
+		{
+			"checksumSHA1": "YdFePCOhDZ/jM44yDKwRaOKJM0g=",
+			"path": "github.com/garyburd/redigo/redis",
+			"revision": "b389d5392e340092642eec4e36754e0280ad1f8e",
+			"revisionTime": "2017-11-27T19:16:32Z"
+		},
+		{
+			"checksumSHA1": "P88bXiukRZ20UwHbSfaT6k6dDnk=",
+			"path": "github.com/gorilla/mux",
+			"revision": "65ec7248c53f499f6b480655e019e0b9d7a6ce11",
+			"revisionTime": "2017-11-29T00:00:09Z"
+		},
+		{
+			"checksumSHA1": "hEnH6sgR83Qfx7UNnphNNlelmj0=",
+			"path": "github.com/gorilla/websocket",
+			"revision": "a91eba7f97777409bc2c443f5534d41dd20c5720",
+			"revisionTime": "2017-03-19T17:27:27Z"
+		},
+		{
+			"checksumSHA1": "0cdNscA7+z4+lKF5usZYz3it/04=",
+			"path": "github.com/joho/godotenv",
+			"revision": "6d367c18edf6ca7fd004efd6863e4c5728fa858e",
+			"revisionTime": "2017-11-10T01:03:15Z"
+		},
+		{
+			"checksumSHA1": "zmC8/3V4ls53DJlNTKDZwPSC/dA=",
+			"path": "github.com/satori/go.uuid",
+			"revision": "5bf94b69c6b68ee1b541973bb8e1144db23a194b",
+			"revisionTime": "2017-03-21T23:07:31Z"
+		},
+		{
+			"checksumSHA1": "UF7yW+G3YWpZ609Mqup0MYaJJ6U=",
+			"path": "github.com/syhlion/greq",
+			"revision": "2e1556b4fd8c50ba5d72bcbf637f56a2a83f3dd8",
+			"revisionTime": "2018-02-06T07:13:56Z"
+		},
+		{
+			"checksumSHA1": "MpWI8ftG0xPuAALFyX/1AwRFB2o=",
+			"path": "github.com/syhlion/httplog",
+			"revision": "5be625654f5522a14f65b64f24472146e757c8dd",
+			"revisionTime": "2017-03-23T03:30:29Z"
+		},
+		{
+			"checksumSHA1": "Xxtcy1Rpy02D2wxchf2DXULTQzU=",
+			"path": "github.com/syhlion/redisocket.v2",
+			"revision": "d5c523d4df547131ae551139cee2201c8e79fa19",
+			"revisionTime": "2018-02-12T09:04:49Z"
+		},
+		{
+			"checksumSHA1": "hQbv/ZJUibzn24GDA7bnDI5SLCM=",
+			"path": "github.com/syhlion/requestwork.v2",
+			"revision": "c3c7490c0e3b99133ce77a0e1e1c57c1c62ff975",
+			"revisionTime": "2017-09-26T10:57:15Z"
+		},
+		{
+			"checksumSHA1": "ZCyVtwHjX5B5gcGZrnziX90Zl3g=",
+			"path": "github.com/urfave/cli",
+			"revision": "c6af8847eb2b7b297d07c3ede98903e95e680ef9",
+			"revisionTime": "2017-11-28T03:55:04Z"
+		},
+		{
+			"checksumSHA1": "ETvP7ajACFASoD2T2vYWoSfkuq0=",
+			"path": "github.com/urfave/negroni",
+			"revision": "5dbbc83f748fc3ad38585842b0aedab546d0ea1e",
+			"revisionTime": "2017-11-12T01:17:08Z"
+		},
+		{
+			"checksumSHA1": "X1NTlfcau2XcV6WtAHF6b/DECOA=",
+			"path": "golang.org/x/crypto/ssh/terminal",
+			"revision": "94eea52f7b742c7cbe0b03b22f0c4c8631ece122",
+			"revisionTime": "2017-11-28T01:43:40Z"
+		},
+		{
+			"checksumSHA1": "YF+/lXbyNK4PCI7ShxvQdKP48+0=",
+			"path": "golang.org/x/sys/unix",
+			"revision": "a204229cd828a74741ee7b5da9bf4794497f85ed",
+			"revisionTime": "2017-11-27T18:32:31Z"
+		},
+		{
+			"checksumSHA1": "cQoW6a5F9mbu10APPXM39YJtv48=",
+			"path": "golang.org/x/sys/windows",
+			"revision": "a204229cd828a74741ee7b5da9bf4794497f85ed",
+			"revisionTime": "2017-11-27T18:32:31Z"
+		}
+	],
+	"rootPath": "github.com/syhlion/gusher.cluster"
+}

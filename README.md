@@ -28,7 +28,7 @@ docker-compose use [doc](./docker-compose)
 
 Build from source:
 
-Package Management use [glide](https://github.com/Masterminds/glide)
+Package Management use [govendor](https://github.com/kardianos/govendor)
 
 ```
 $ go get github.com/syhlion/gusher.cluster && cd $GOPATH/github.com/syhlion/gusher.cluster

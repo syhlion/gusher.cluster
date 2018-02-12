@@ -25,12 +25,18 @@ type Client struct {
 	Worker  *requestwork.Worker
 	Timeout time.Duration
 	Headers map[string]string
+	Host    string
 }
 
 //SetHeader set http header
 func (c *Client) SetHeader(key, value string) *Client {
 	key = strings.Title(key)
 	c.Headers[key] = value
+	return c
+}
+func (c *Client) SetHost(host string) *Client {
+
+	c.Host = host
 	return c
 }
 
@@ -65,6 +71,9 @@ func (c *Client) Delete(url string, params url.Values) (data []byte, httpstatus 
 func (c *Client) resolveHeaders(req *http.Request) {
 	for key, value := range c.Headers {
 		req.Header.Set(key, value)
+	}
+	if c.Host != "" {
+		req.Host = c.Host
 	}
 }
 
