@@ -15,7 +15,7 @@ import (
 
 	"github.com/Sirupsen/logrus"
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	"github.com/syhlion/greq"
 	"github.com/syhlion/httplog"
@@ -74,6 +74,7 @@ func master(c *cli.Context) {
 	sub.HandleFunc("/push/user/{app_key}/{user_id}", PushToUser(rsender)).Methods("POST")
 	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rsender)).Methods("POST")
 	sub.HandleFunc("/push_batch/{app_key}", PushBatchMessage(rsender)).Methods("POST")
+	sub.HandleFunc("/push/{app_key}", PushMessageByPattern(rsender)).Methods("POST")
 	sub.HandleFunc("/{app_key}/channels", GetAllChannel(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/online/{channel}", GetOnlineByChannel(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/online", GetOnline(rsender)).Methods("GET")
