@@ -68,6 +68,41 @@ Sucess Response:
 
 ```
 
+### Push Message By Regex Pattern:
+
+`POST /{api}/push/{app_key}`
+
+|key|value|description|
+|----|----|----|
+|data|{"key":"value"}|string or json|
+|event|event|string|
+|channel_pattern|^App|regexp or string|
+
+Sucess Response:
+
+```
+{
+    "total":1,
+    "pattern":"^App"
+}
+```
+
+`POST /{api}/push_batch/{app_key}`
+
+|key|value|description|
+|----|----|----|
+|batch_data|[{"channel":"public","event":"notify","data":"test"},{"channel":"public","event":"notify","data":{"username":"test"}}]|json|
+
+
+Sucess Response:
+
+```
+{
+    "total":2,
+    "cap":102456 //byte
+}
+```
+
 ### Push Message:
 
 `POST /{api}/push/{app_key}/{channel}/{event}`

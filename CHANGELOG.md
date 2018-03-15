@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## [V1.5.0] 2018-03-15
+
+### [Fix] 
+- update garyburd/redigo to gomodule/redigo
+
+### [Add]
+- add feature api. push message by pattern
+
+
 ## [V1.4.1] 2018-01-12
 
 ### [Fix]
