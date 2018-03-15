@@ -7,7 +7,7 @@ import (
 	"net"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 )
 
 func RedisTestConn(conn redis.Conn) (err error) {
