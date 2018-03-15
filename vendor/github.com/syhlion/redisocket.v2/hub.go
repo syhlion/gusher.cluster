@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/websocket"
 	uuid "github.com/satori/go.uuid"
 )
@@ -270,9 +270,10 @@ func (e *Hub) listenRedis() <-chan error {
 	go func() {
 		for {
 			switch v := e.psc.Receive().(type) {
-			case redis.PMessage:
+			case redis.Message:
 
 				//過濾掉前綴
+
 				channel := strings.Replace(v.Channel, e.ChannelPrefix, "", -1)
 				//過濾掉@ 之前的字
 				sch := strings.SplitN(channel, "@", 2)

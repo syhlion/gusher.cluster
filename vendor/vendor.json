@@ -3,6 +3,34 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "t+uej2kiyqRyQYguygI8t9nJH2w=",
+			"origin": "github.com/syhlion/gusher.cluster/test/jwtgenerate/vendor/github.com/SermoDigital/jose",
+			"path": "github.com/SermoDigital/jose",
+			"revision": "d43a1270bed6b78124f42daab77196f237d157b4",
+			"revisionTime": "2018-02-12T09:22:11Z"
+		},
+		{
+			"checksumSHA1": "u92C5yEz1FLBeoXp8jujn3tUNFI=",
+			"origin": "github.com/syhlion/gusher.cluster/test/jwtgenerate/vendor/github.com/SermoDigital/jose/crypto",
+			"path": "github.com/SermoDigital/jose/crypto",
+			"revision": "d43a1270bed6b78124f42daab77196f237d157b4",
+			"revisionTime": "2018-02-12T09:22:11Z"
+		},
+		{
+			"checksumSHA1": "FJP5enLaw1JzZNu6Fen+eEKY7Lo=",
+			"origin": "github.com/syhlion/gusher.cluster/test/jwtgenerate/vendor/github.com/SermoDigital/jose/jws",
+			"path": "github.com/SermoDigital/jose/jws",
+			"revision": "d43a1270bed6b78124f42daab77196f237d157b4",
+			"revisionTime": "2018-02-12T09:22:11Z"
+		},
+		{
+			"checksumSHA1": "3gGGWQ3PcKHE+2cVlkJmIlBfBlw=",
+			"origin": "github.com/syhlion/gusher.cluster/test/jwtgenerate/vendor/github.com/SermoDigital/jose/jwt",
+			"path": "github.com/SermoDigital/jose/jwt",
+			"revision": "d43a1270bed6b78124f42daab77196f237d157b4",
+			"revisionTime": "2018-02-12T09:22:11Z"
+		},
+		{
 			"checksumSHA1": "4fRqULReH3vL0T0uCaBzXmku7X4=",
 			"path": "github.com/Sirupsen/logrus",
 			"revision": "95cd2b9c79aa5e72ab0bc69b7ccc2be15bf850f6",
@@ -27,10 +55,16 @@
 			"revisionTime": "2017-11-27T19:16:32Z"
 		},
 		{
-			"checksumSHA1": "YdFePCOhDZ/jM44yDKwRaOKJM0g=",
-			"path": "github.com/garyburd/redigo/redis",
-			"revision": "b389d5392e340092642eec4e36754e0280ad1f8e",
-			"revisionTime": "2017-11-27T19:16:32Z"
+			"checksumSHA1": "w3QCCIYHgZzIXQ+xTl7oLfFrXHs=",
+			"path": "github.com/gomodule/redigo/internal",
+			"revision": "9c11da706d9b7902c6da69c592f75637793fe121",
+			"revisionTime": "2018-03-14T22:34:43Z"
+		},
+		{
+			"checksumSHA1": "HgOVOUtWUYHcNe8aipwuEZ7YLow=",
+			"path": "github.com/gomodule/redigo/redis",
+			"revision": "9c11da706d9b7902c6da69c592f75637793fe121",
+			"revisionTime": "2018-03-14T22:34:43Z"
 		},
 		{
 			"checksumSHA1": "P88bXiukRZ20UwHbSfaT6k6dDnk=",
@@ -69,10 +103,10 @@
 			"revisionTime": "2017-03-23T03:30:29Z"
 		},
 		{
-			"checksumSHA1": "Xxtcy1Rpy02D2wxchf2DXULTQzU=",
+			"checksumSHA1": "e/dnjbHtlGHeeKt3WkSfhpWAh+o=",
 			"path": "github.com/syhlion/redisocket.v2",
-			"revision": "d5c523d4df547131ae551139cee2201c8e79fa19",
-			"revisionTime": "2018-02-12T09:04:49Z"
+			"revision": "0b98abd2ba05bb18bbac7e7acd64c09dac601fd6",
+			"revisionTime": "2018-03-15T06:48:44Z"
 		},
 		{
 			"checksumSHA1": "hQbv/ZJUibzn24GDA7bnDI5SLCM=",
