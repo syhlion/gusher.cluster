@@ -224,7 +224,7 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 		uid:     uid,
 		sid:     sid.String(),
 		ws:      ws,
-		send:    make(chan *Payload, 64),
+		send:    make(chan *Payload, 256),
 		RWMutex: new(sync.RWMutex),
 		hub:     e,
 		events:  make(map[string]EventHandler),
