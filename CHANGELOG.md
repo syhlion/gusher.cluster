@@ -1,6 +1,12 @@
 ## [Unreleased]
 
-## [V1.5.2] 2018-09-29
+
+## [v1.5.3] 2018-09-29
+
+### [Fix]
+- fix send buffer
+
+## [v1.5.2] 2018-09-29
 
 ### [Fix]
 - fix user buffer

@@ -64,7 +64,12 @@ func (c *Client) Trigger(event string, p *Payload) (err error) {
 		return errors.New("No Event")
 	}
 
-	c.send <- p
+	select {
+	case c.send <- p:
+	default:
+		c.hub.log.Println("[redisocket.v2] user trigger buffer full")
+		c.Close()
+	}
 	return
 }
 
@@ -74,7 +79,12 @@ func (c *Client) Send(data []byte) {
 		Data:      data,
 		IsPrepare: false,
 	}
-	c.send <- p
+	select {
+	case c.send <- p:
+	default:
+		c.hub.log.Println("[redisocket.v2] user send buffer full")
+		c.Close()
+	}
 	return
 }
 
