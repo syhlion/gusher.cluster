@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [V1.5.1] 2018-03-29
+
+### [Fix]
+- add buffer
+- update websocket pkg
+
 ## [V1.5.0] 2018-03-15
 
 ### [Fix] 
