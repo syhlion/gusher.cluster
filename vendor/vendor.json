@@ -73,10 +73,10 @@
 			"revisionTime": "2017-11-29T00:00:09Z"
 		},
 		{
-			"checksumSHA1": "hEnH6sgR83Qfx7UNnphNNlelmj0=",
+			"checksumSHA1": "+1LsRRZKa06yTFg/Tu5NCsyHxOA=",
 			"path": "github.com/gorilla/websocket",
-			"revision": "a91eba7f97777409bc2c443f5534d41dd20c5720",
-			"revisionTime": "2017-03-19T17:27:27Z"
+			"revision": "eb925808374e5ca90c83401a40d711dc08c0c0f6",
+			"revisionTime": "2018-03-06T18:15:48Z"
 		},
 		{
 			"checksumSHA1": "0cdNscA7+z4+lKF5usZYz3it/04=",
@@ -103,10 +103,10 @@
 			"revisionTime": "2017-03-23T03:30:29Z"
 		},
 		{
-			"checksumSHA1": "e/dnjbHtlGHeeKt3WkSfhpWAh+o=",
+			"checksumSHA1": "S1da1a2bpqRvqj4La4o40CJI38s=",
 			"path": "github.com/syhlion/redisocket.v2",
-			"revision": "0b98abd2ba05bb18bbac7e7acd64c09dac601fd6",
-			"revisionTime": "2018-03-15T06:48:44Z"
+			"revision": "b82b00f92b6809d13a24aabc37132da4400fcec1",
+			"revisionTime": "2018-03-29T10:33:10Z"
 		},
 		{
 			"checksumSHA1": "hQbv/ZJUibzn24GDA7bnDI5SLCM=",

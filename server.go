@@ -69,7 +69,7 @@ var (
 )
 
 func init() {
-	listenChannelPrefix = name + "." + version + "."
+	listenChannelPrefix = name + "."
 	/*logger init*/
 	logger = GetLogger()
 }

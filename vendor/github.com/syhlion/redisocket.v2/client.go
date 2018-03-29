@@ -118,7 +118,13 @@ func (c *Client) readPump() {
 			buf.reset(nil)
 			return
 		}
-		c.hub.messageQuene.serveChan <- buf
+		select {
+		case c.hub.messageQuene.serveChan <- buf:
+		default:
+			c.hub.log.Println("[redisocket.v2] server receive busy")
+			return
+
+		}
 
 	}
 

@@ -20,7 +20,7 @@ func (m *messageQuene) worker() {
 	log.Println("[redisocket.v2] message quene crash")
 }
 func (m *messageQuene) run() {
-	for i := 0; i <= 5; i++ {
+	for i := 0; i < 1024; i++ {
 		go m.worker()
 	}
 }
