@@ -291,7 +291,7 @@ func MultiSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandR
 		//TODO 需重構 不讓他進入訂閱模式
 		msg.cmdType = ""
 		command.Event = MultiSubscribeReplyError
-		command.Data.Channel = subChannels
+		command.Data.Channel = multiChannel
 		reply, err = json.Marshal(command)
 		if err != nil {
 			return
