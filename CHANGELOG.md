@@ -1,12 +1,16 @@
 ## [Unreleased]
 
+## [v1.6.0] 2018-03-30
 
-## [v1.5.3] 2018-09-29
+### [Add]
+- add websocket command mutli subscribe
+
+## [v1.5.3] 2018-03-29
 
 ### [Fix]
 - fix send buffer
 
-## [v1.5.2] 2018-09-29
+## [v1.5.2] 2018-03-29
 
 ### [Fix]
 - fix user buffer

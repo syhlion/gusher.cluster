@@ -10,6 +10,15 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
+func InArray(c string, s []string) (b bool) {
+	for _, v := range s {
+		if c == v {
+			return true
+		}
+	}
+	return false
+}
+
 func RedisTestConn(conn redis.Conn) (err error) {
 	_, err = conn.Do("PING")
 	conn.Close()

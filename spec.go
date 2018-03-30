@@ -5,18 +5,21 @@ import (
 )
 
 const (
-	PingEvent                 = "gusher.ping"
-	PongReplySucceeded        = "gusher.pong_succeeded"
-	RemoteEvent               = "gusher.remote"
-	LoginEvent                = "gusher.login"
-	SubscribeEvent            = "gusher.subscribe"
-	UnSubscribeEvent          = "gusher.unsubscribe"
-	RemoteReplySucceeded      = "gusher.remote_succeeded"
-	RemoteReplyError          = "gusher.remote_error"
-	SubscribeReplySucceeded   = "gusher.subscribe_succeeded"
-	SubscribeReplyError       = "gusher.subscribe_error"
-	UnSubscribeReplySucceeded = "gusher.unsubscribe_succeeded"
-	UnSubscribeReplyError     = "gusher.unsubscribe_error"
+	PingEvent                    = "gusher.ping"
+	PongReplySucceeded           = "gusher.pong_succeeded"
+	RemoteEvent                  = "gusher.remote"
+	LoginEvent                   = "gusher.login"
+	SubscribeEvent               = "gusher.subscribe"
+	MultiSubscribeEvent          = "gusher.multi_subscribe"
+	UnSubscribeEvent             = "gusher.unsubscribe"
+	RemoteReplySucceeded         = "gusher.remote_succeeded"
+	RemoteReplyError             = "gusher.remote_error"
+	SubscribeReplySucceeded      = "gusher.subscribe_succeeded"
+	SubscribeReplyError          = "gusher.subscribe_error"
+	MultiSubscribeReplySucceeded = "gusher.multi_subscribe_succeeded"
+	MultiSubscribeReplyError     = "gusher.multi_subscribe_error"
+	UnSubscribeReplySucceeded    = "gusher.unsubscribe_succeeded"
+	UnSubscribeReplyError        = "gusher.unsubscribe_error"
 )
 
 type BatchData struct {
@@ -46,7 +49,7 @@ type ChannelCommand struct {
 	Data ChannelData `json:"data"`
 }
 type ChannelData struct {
-	Channel string `json:"channel"`
+	Channel interface{} `json:"channel"`
 }
 
 type JwtPack struct {

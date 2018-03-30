@@ -12,9 +12,12 @@ gusher.remote_succeeded|remote sucess event
 gusher.remote_error|remote error event
 gusher.remote|remote event
 gusher.subscribe|subscribe event
+gusher.multi_subscribe|subscribe event
 gusher.unsubscribe|unsubscribe event
 gusher.subscribe_succeeded|subscribe sucess
+gusher.multi_subscribe_succeeded|subscribe sucess
 gusher.subscribe_error|subscribe error
+gusher.multi_subscribe_error|subscribe error
 gusher.unsubscribe_succeeded|unsubscribe sucess
 gusher.unsubscribe_error|unsubscribe error
 
@@ -28,6 +31,37 @@ gusher.unsubscribe_error|unsubscribe error
 }
 ```
 
+#### Multi Subscribe Command:
+
+command:
+```
+{
+    "event":"gusher.multi_subscribe",
+    "data":{
+        "multi_channel":[]
+    }
+}
+```
+
+reply scuess:
+```
+{
+    "event":"gusher.multi_subscribe_succeeded",
+    "data":{
+        "multi_channel":[]
+    }
+}
+```
+
+reply error:
+```
+{
+    "event":"gusher.multi_subscribe_error",
+    "data":{
+        "multi_channel":[]
+    }
+}
+```
 #### Subscribe Command:
 
 command:

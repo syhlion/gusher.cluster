@@ -22,10 +22,11 @@ var DefaultSubHandler = func(channel string, p *redisocket.Payload) (err error) 
 }
 
 type commandResponse struct {
-	cmdType string
-	handler func(string, *redisocket.Payload) (err error)
-	msg     []byte
-	data    string
+	cmdType   string
+	handler   func(string, *redisocket.Payload) (err error)
+	msg       []byte
+	data      string
+	multiData []string //multi sub use
 }
 
 func Ping() http.HandlerFunc {
@@ -92,7 +93,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 		reply, err := redis.Bytes(conn.Do("GET", token))
 		if err != nil {
 			conn.Close()
-			logger.WithError(err).Warn("redis get error")
+			logger.WithError(err).Warn("token get nil")
 			http.Error(w, "token error", http.StatusUnauthorized)
 			return
 		}
@@ -182,7 +183,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		reply, err := redis.Bytes(conn.Do("GET", token))
 		if err != nil {
 			conn.Close()
-			logger.WithError(err).Warn("redis get error")
+			logger.WithError(err).Warn("token get nil")
 			http.Error(w, "token error", http.StatusUnauthorized)
 			return
 		}
@@ -223,6 +224,10 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 			switch res.cmdType {
 			case "SUB":
 				s.On(res.data, res.handler)
+			case "MULTISUB":
+				for _, v := range res.multiData {
+					s.On(v, res.handler)
+				}
 			case "UNSUB":
 				s.Off(res.data)
 
@@ -232,6 +237,70 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		return
 	}
 
+}
+func MultiSubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
+
+	multiChannel := make([]string, 0)
+	_, err = jsonparser.ArrayEach(data, func(v []byte, dataType jsonparser.ValueType, offset int, err error) {
+		if err != nil {
+			return
+		}
+		multiChannel = append(multiChannel, string(v))
+
+	}, "multi_channel")
+	msg = &commandResponse{
+		handler: DefaultSubHandler,
+		cmdType: "MULTISUB",
+	}
+	command := &ChannelCommand{}
+	var exist bool
+	for _, ch := range auth.Channels {
+		//新增萬用字元  如果找到這個 任何頻道皆可訂閱
+		if ch == "*" {
+			exist = true
+			break
+		}
+	}
+	subChannels := make([]string, 0)
+	if exist {
+		subChannels = multiChannel
+	} else {
+		isMatch := true
+		for _, ch := range multiChannel {
+			if !InArray(ch, auth.Channels) {
+				isMatch = false
+				break
+			}
+		}
+		if isMatch {
+			subChannels = multiChannel
+		}
+	}
+	var reply []byte
+	if len(subChannels) > 0 {
+		msg.multiData = subChannels
+		command.Event = MultiSubscribeReplySucceeded
+		command.Data.Channel = subChannels
+		reply, err = json.Marshal(command)
+		if err != nil {
+			return
+		}
+		msg.msg = reply
+	} else {
+
+		//TODO 需重構 不讓他進入訂閱模式
+		msg.cmdType = ""
+		command.Event = MultiSubscribeReplyError
+		command.Data.Channel = subChannels
+		reply, err = json.Marshal(command)
+		if err != nil {
+			return
+		}
+		msg.msg = reply
+
+	}
+
+	return
 }
 
 func SubscribeCommand(appkey string, auth Auth, data []byte) (msg *commandResponse, err error) {
@@ -425,6 +494,8 @@ func CommanRouter(data []byte, pool *redis.Pool, socketId string) (fn func(appke
 		return Remote(pool, socketId), nil
 	case SubscribeEvent:
 		return SubscribeCommand, nil
+	case MultiSubscribeEvent:
+		return MultiSubscribeCommand, nil
 	case UnSubscribeEvent:
 		return UnSubscribeCommand, nil
 	case PingEvent:
