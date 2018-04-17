@@ -28,7 +28,8 @@ func (m *messageQuene) run() {
 func (m *messageQuene) serve(buffer *buffer) {
 	receiveMsg, err := buffer.client.re(buffer.buffer.Bytes())
 	if err == nil {
-		if len(receiveMsg) > 0 {
+		byteCount := len(receiveMsg)
+		if byteCount > 0 {
 			m.pool.toSid(buffer.client.sid, receiveMsg)
 		}
 	} else {

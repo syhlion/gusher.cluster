@@ -35,6 +35,8 @@ type pool struct {
 	rpool         *redis.Pool
 	channelPrefix string
 	scanInterval  time.Duration
+	msgTotal      int64
+	msgByteSum    int64
 }
 
 func (h *pool) run() <-chan error {
@@ -82,9 +84,11 @@ func (h *pool) run() <-chan error {
 					}
 				}
 			case u := <-h.joinChan:
+				statistic.AddMem()
 				h.users[u] = true
 			case u := <-h.leaveChan:
 				if _, ok := h.users[u]; ok {
+					statistic.SubMem()
 					close(u.send)
 					delete(h.users, u)
 				}

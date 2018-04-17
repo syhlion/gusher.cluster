@@ -76,6 +76,7 @@ func (c *Client) Trigger(event string, p *Payload) (err error) {
 //Send message. write msg to client
 func (c *Client) Send(data []byte) {
 	p := &Payload{
+		Len:       len(data),
 		Data:      data,
 		IsPrepare: false,
 	}
@@ -115,6 +116,7 @@ func (c *Client) readPump() {
 		if msgType != websocket.TextMessage {
 			continue
 		}
+
 		var buf *buffer
 		select {
 		case buf = <-c.hub.messageQuene.freeBufferChan:
@@ -128,6 +130,7 @@ func (c *Client) readPump() {
 			buf.reset(nil)
 			return
 		}
+		statistic.AddInMsg(buf.buffer.Len())
 		select {
 		case c.hub.messageQuene.serveChan <- buf:
 		default:
@@ -181,6 +184,7 @@ func (c *Client) writePump() {
 					return
 				}
 			}
+			statistic.AddOutMsg(msg.Len)
 			if msg.IsPrepare {
 
 				if err := c.writePreparedMessage(msg.PrepareMessage); err != nil {
