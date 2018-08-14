@@ -10,6 +10,33 @@ import (
 	redisocket "github.com/syhlion/redisocket.v2"
 )
 
+func GetAllChannelCount(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		channels, err := rsender.GetChannels(listenChannelPrefix, params["app_key"], "*")
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
+			w.WriteHeader(400)
+			w.Write([]byte("get redis error"))
+		}
+		tmp := struct {
+			Count int `json:"count"`
+		}{
+			Count: len(channels),
+		}
+		b, err := json.Marshal(tmp)
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
+			w.WriteHeader(400)
+			w.Write([]byte("json marshal error"))
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+		return
+	}
+}
 func GetAllChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +59,33 @@ func GetAllChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *ht
 		return
 	}
 }
+func GetOnlineCountByChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		online, err := rsender.GetOnlineByChannel(listenChannelPrefix, params["app_key"], params["channel"])
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
+			w.WriteHeader(400)
+			w.Write([]byte("get redis error"))
+		}
+		tmp := struct {
+			Count int `json:"count"`
+		}{
+			Count: len(online),
+		}
+		b, err := json.Marshal(tmp)
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
+			w.WriteHeader(400)
+			w.Write([]byte("json marshal error"))
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+		return
+	}
+}
 func GetOnlineByChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +97,33 @@ func GetOnlineByChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, 
 			w.Write([]byte("get redis error"))
 		}
 		b, err := json.Marshal(online)
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
+			w.WriteHeader(400)
+			w.Write([]byte("json marshal error"))
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+		return
+	}
+}
+func GetOnlineCount(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		online, err := rsender.GetOnline(listenChannelPrefix, params["app_key"])
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
+			w.WriteHeader(400)
+			w.Write([]byte("get redis error"))
+		}
+		tmp := struct {
+			Count int `json:"count"`
+		}{
+			Count: len(online),
+		}
+		b, err := json.Marshal(tmp)
 		if err != nil {
 			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
 			w.WriteHeader(400)

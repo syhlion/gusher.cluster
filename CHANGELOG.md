@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [v1.8.0] 2018-08-14
+
+### [Add]
+- add master api channels count, online count, online count by channel
+
 ## [v1.6.0] 2018-03-30
 
 ### [Add]

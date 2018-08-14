@@ -46,6 +46,19 @@ Sucess Response:
 
 ```
 
+### Get Channels Count:
+
+`GET /{app_key}/channels/count`
+Sucess Response:
+
+```
+
+{
+    "count":3
+}
+
+```
+
 ### Get Online:
 
 `GET /{app_key}/online`
@@ -57,6 +70,19 @@ Sucess Response:
 
 ```
 
+### Get Online Count:
+
+`GET /{app_key}/online/count`
+Sucess Response:
+
+```
+
+{
+    "count":3
+}
+
+```
+
 ### Get Online by channel:
 
 `GET /{app_key}/online/{channel}`
@@ -65,6 +91,19 @@ Sucess Response:
 ```
 
 ["user_id","user_id","user_id"...]
+
+```
+
+### Get Online Count by channel:
+
+`GET /{app_key}/online/{channel}/count`
+Sucess Response:
+
+```
+
+{
+    "count":3
+}
 
 ```
 
