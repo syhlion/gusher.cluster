@@ -76,8 +76,11 @@ func master(c *cli.Context) {
 	sub.HandleFunc("/push_batch/{app_key}", PushBatchMessage(rsender)).Methods("POST")
 	sub.HandleFunc("/push/{app_key}", PushMessageByPattern(rsender)).Methods("POST")
 	sub.HandleFunc("/{app_key}/channels", GetAllChannel(rsender)).Methods("GET")
+	sub.HandleFunc("/{app_key}/channels/count", GetAllChannelCount(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/online/{channel}", GetOnlineByChannel(rsender)).Methods("GET")
+	sub.HandleFunc("/{app_key}/online/{channel}/count", GetOnlineCountByChannel(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/online", GetOnline(rsender)).Methods("GET")
+	sub.HandleFunc("/{app_key}/online/count", GetOnlineCount(rsender)).Methods("GET")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
