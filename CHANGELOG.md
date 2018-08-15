@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [v1.8.1] 2018-08-15
+
+### [Fix]
+- api router path fix
+
 ## [v1.8.0] 2018-08-14
 
 ### [Add]

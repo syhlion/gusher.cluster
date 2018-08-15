@@ -85,7 +85,7 @@ Sucess Response:
 
 ### Get Online by channel:
 
-`GET /{app_key}/online/{channel}`
+`GET /{app_key}/online/bychannel/{channel}`
 Sucess Response:
 
 ```
@@ -96,7 +96,7 @@ Sucess Response:
 
 ### Get Online Count by channel:
 
-`GET /{app_key}/online/{channel}/count`
+`GET /{app_key}/online/bychannel/{channel}/count`
 Sucess Response:
 
 ```
