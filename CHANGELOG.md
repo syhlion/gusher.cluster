@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [v1.8.2] 2018-08-15
+
+### [Fix]
+- change std json to json-iterator
+
 ## [v1.8.1] 2018-08-15
 
 ### [Fix]

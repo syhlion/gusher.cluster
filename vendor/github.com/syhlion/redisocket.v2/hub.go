@@ -1,7 +1,6 @@
 package redisocket
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,8 +11,11 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/websocket"
+	jsoniter "github.com/json-iterator/go"
 	uuid "github.com/satori/go.uuid"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var statistic *Statistic
 

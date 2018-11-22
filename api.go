@@ -2,7 +2,6 @@ package main
 
 import (
 	"crypto/rsa"
-	"encoding/json"
 	"net/http"
 	"regexp"
 

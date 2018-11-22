@@ -6,10 +6,13 @@ import (
 	"time"
 
 	"github.com/Sirupsen/logrus"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/joho/godotenv"
 	"github.com/urfave/cli"
 )
+
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 var env *string
 var (

@@ -85,6 +85,12 @@
 			"revisionTime": "2017-11-10T01:03:15Z"
 		},
 		{
+			"checksumSHA1": "wGqcDfEuwxbZney6VYWbpE7uNaE=",
+			"path": "github.com/json-iterator/go",
+			"revision": "2ddf6d758266fcb080a4f9e054b9f292c85e6798",
+			"revisionTime": "2018-04-24T00:46:23Z"
+		},
+		{
 			"checksumSHA1": "zmC8/3V4ls53DJlNTKDZwPSC/dA=",
 			"path": "github.com/satori/go.uuid",
 			"revision": "5bf94b69c6b68ee1b541973bb8e1144db23a194b",
@@ -103,10 +109,10 @@
 			"revisionTime": "2017-03-23T03:30:29Z"
 		},
 		{
-			"checksumSHA1": "FERpVyZCU+XLDRsYrTHAJIKmoQU=",
+			"checksumSHA1": "suOAm+Lwh1t0kmirgeIqqFKVOM8=",
 			"path": "github.com/syhlion/redisocket.v2",
-			"revision": "1d34d6c175a80c0f6693b08c6e639f762bb902f4",
-			"revisionTime": "2018-04-17T02:23:25Z"
+			"revision": "f3a2fb113137bbef48ec122e2730527096b970c7",
+			"revisionTime": "2018-11-22T01:51:28Z"
 		},
 		{
 			"checksumSHA1": "hQbv/ZJUibzn24GDA7bnDI5SLCM=",
