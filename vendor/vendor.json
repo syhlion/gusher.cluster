@@ -6,29 +6,29 @@
 			"checksumSHA1": "t+uej2kiyqRyQYguygI8t9nJH2w=",
 			"origin": "github.com/syhlion/gusher.cluster/test/jwtgenerate/vendor/github.com/SermoDigital/jose",
 			"path": "github.com/SermoDigital/jose",
-			"revision": "d43a1270bed6b78124f42daab77196f237d157b4",
-			"revisionTime": "2018-02-12T09:22:11Z"
+			"revision": "732c4ff14491fdb5bfd04f854275caf07098d41a",
+			"revisionTime": "2018-11-22T01:56:43Z"
 		},
 		{
 			"checksumSHA1": "u92C5yEz1FLBeoXp8jujn3tUNFI=",
 			"origin": "github.com/syhlion/gusher.cluster/test/jwtgenerate/vendor/github.com/SermoDigital/jose/crypto",
 			"path": "github.com/SermoDigital/jose/crypto",
-			"revision": "d43a1270bed6b78124f42daab77196f237d157b4",
-			"revisionTime": "2018-02-12T09:22:11Z"
+			"revision": "732c4ff14491fdb5bfd04f854275caf07098d41a",
+			"revisionTime": "2018-11-22T01:56:43Z"
 		},
 		{
 			"checksumSHA1": "FJP5enLaw1JzZNu6Fen+eEKY7Lo=",
 			"origin": "github.com/syhlion/gusher.cluster/test/jwtgenerate/vendor/github.com/SermoDigital/jose/jws",
 			"path": "github.com/SermoDigital/jose/jws",
-			"revision": "d43a1270bed6b78124f42daab77196f237d157b4",
-			"revisionTime": "2018-02-12T09:22:11Z"
+			"revision": "732c4ff14491fdb5bfd04f854275caf07098d41a",
+			"revisionTime": "2018-11-22T01:56:43Z"
 		},
 		{
 			"checksumSHA1": "3gGGWQ3PcKHE+2cVlkJmIlBfBlw=",
 			"origin": "github.com/syhlion/gusher.cluster/test/jwtgenerate/vendor/github.com/SermoDigital/jose/jwt",
 			"path": "github.com/SermoDigital/jose/jwt",
-			"revision": "d43a1270bed6b78124f42daab77196f237d157b4",
-			"revisionTime": "2018-02-12T09:22:11Z"
+			"revision": "732c4ff14491fdb5bfd04f854275caf07098d41a",
+			"revisionTime": "2018-11-22T01:56:43Z"
 		},
 		{
 			"checksumSHA1": "4fRqULReH3vL0T0uCaBzXmku7X4=",
@@ -47,12 +47,6 @@
 			"path": "github.com/dgrijalva/jwt-go",
 			"revision": "dbeaa9332f19a944acb5736b4456cfcc02140e29",
 			"revisionTime": "2017-10-19T21:57:19Z"
-		},
-		{
-			"checksumSHA1": "2UmMbNHc8FBr98mJFN1k8ISOIHk=",
-			"path": "github.com/garyburd/redigo/internal",
-			"revision": "b389d5392e340092642eec4e36754e0280ad1f8e",
-			"revisionTime": "2017-11-27T19:16:32Z"
 		},
 		{
 			"checksumSHA1": "w3QCCIYHgZzIXQ+xTl7oLfFrXHs=",
@@ -91,16 +85,35 @@
 			"revisionTime": "2018-04-24T00:46:23Z"
 		},
 		{
+			"checksumSHA1": "ZTcgWKWHsrX0RXYVXn5Xeb8Q0go=",
+			"path": "github.com/modern-go/concurrent",
+			"revision": "bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94",
+			"revisionTime": "2018-03-06T01:26:44Z"
+		},
+		{
+			"checksumSHA1": "TyxdmX5pTsJDUZ1406j+GLuzk5E=",
+			"path": "github.com/modern-go/reflect2",
+			"revision": "05fbef0ca5da472bbf96c9322b84a53edc03c9fd",
+			"revisionTime": "2018-03-20T13:32:07Z"
+		},
+		{
 			"checksumSHA1": "zmC8/3V4ls53DJlNTKDZwPSC/dA=",
 			"path": "github.com/satori/go.uuid",
 			"revision": "5bf94b69c6b68ee1b541973bb8e1144db23a194b",
 			"revisionTime": "2017-03-21T23:07:31Z"
 		},
 		{
-			"checksumSHA1": "UF7yW+G3YWpZ609Mqup0MYaJJ6U=",
+			"checksumSHA1": "pOsyzLxA9jL375TDmbDdsgiMPl8=",
+			"origin": "github.com/syhlion/greq/vendor/github.com/sirupsen/logrus",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "a56b35fae81964ae67376cd8a1108bb5e0729606",
+			"revisionTime": "2018-10-31T03:24:57Z"
+		},
+		{
+			"checksumSHA1": "vCVCh3VpdS8XKjNXg7WtxS71B4M=",
 			"path": "github.com/syhlion/greq",
-			"revision": "2e1556b4fd8c50ba5d72bcbf637f56a2a83f3dd8",
-			"revisionTime": "2018-02-06T07:13:56Z"
+			"revision": "a56b35fae81964ae67376cd8a1108bb5e0729606",
+			"revisionTime": "2018-10-31T03:24:57Z"
 		},
 		{
 			"checksumSHA1": "MpWI8ftG0xPuAALFyX/1AwRFB2o=",
@@ -115,10 +128,10 @@
 			"revisionTime": "2018-11-22T01:51:28Z"
 		},
 		{
-			"checksumSHA1": "hQbv/ZJUibzn24GDA7bnDI5SLCM=",
+			"checksumSHA1": "aXFLQvDEerCwPBTkjMyylblZlBU=",
 			"path": "github.com/syhlion/requestwork.v2",
-			"revision": "c3c7490c0e3b99133ce77a0e1e1c57c1c62ff975",
-			"revisionTime": "2017-09-26T10:57:15Z"
+			"revision": "4599c250105f26ecf4b04eba1e78d22fa6165248",
+			"revisionTime": "2018-03-19T03:52:34Z"
 		},
 		{
 			"checksumSHA1": "ZCyVtwHjX5B5gcGZrnziX90Zl3g=",
@@ -133,22 +146,22 @@
 			"revisionTime": "2017-11-12T01:17:08Z"
 		},
 		{
-			"checksumSHA1": "X1NTlfcau2XcV6WtAHF6b/DECOA=",
+			"checksumSHA1": "BGm8lKZmvJbf/YOJLeL1rw2WVjA=",
 			"path": "golang.org/x/crypto/ssh/terminal",
-			"revision": "94eea52f7b742c7cbe0b03b22f0c4c8631ece122",
-			"revisionTime": "2017-11-28T01:43:40Z"
+			"revision": "f027049dab0ad238e394a753dba2d14753473a04",
+			"revisionTime": "2018-08-06T08:54:14Z"
 		},
 		{
-			"checksumSHA1": "YF+/lXbyNK4PCI7ShxvQdKP48+0=",
+			"checksumSHA1": "dknbA7aiMYr2Ie4QE7UX84algZs=",
 			"path": "golang.org/x/sys/unix",
-			"revision": "a204229cd828a74741ee7b5da9bf4794497f85ed",
-			"revisionTime": "2017-11-27T18:32:31Z"
+			"revision": "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e",
+			"revisionTime": "2018-07-27T21:32:08Z"
 		},
 		{
-			"checksumSHA1": "cQoW6a5F9mbu10APPXM39YJtv48=",
+			"checksumSHA1": "k3aXicSfO+3+JmTNstuZrsTCRyI=",
 			"path": "golang.org/x/sys/windows",
-			"revision": "a204229cd828a74741ee7b5da9bf4794497f85ed",
-			"revisionTime": "2017-11-27T18:32:31Z"
+			"revision": "bd9dbc187b6e1dacfdd2722a87e83093c2d7bd6e",
+			"revisionTime": "2018-07-27T21:32:08Z"
 		}
 	],
 	"rootPath": "github.com/syhlion/gusher.cluster"
