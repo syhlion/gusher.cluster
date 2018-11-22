@@ -7,11 +7,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/buger/jsonparser"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	uuid "github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/syhlion/greq"
 	"github.com/syhlion/redisocket.v2"
 )

@@ -13,10 +13,10 @@ import (
 
 	_ "net/http/pprof"
 
-	"github.com/Sirupsen/logrus"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 	"github.com/syhlion/greq"
 	"github.com/syhlion/httplog"
 	redisocket "github.com/syhlion/redisocket.v2"
@@ -201,7 +201,7 @@ func slave(c *cli.Context) {
 
 	/*request worker*/
 	worker := requestwork.New(50)
-	client := greq.New(worker, 15*time.Second)
+	client := greq.New(worker, 15*time.Second, c.Bool("debug"))
 	/*api start*/
 	apiListener, err := net.Listen("tcp", sc.ApiListen)
 	if err != nil {

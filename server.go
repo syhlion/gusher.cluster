@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/sirupsen/logrus"
 
 	"github.com/joho/godotenv"
 	"github.com/urfave/cli"
