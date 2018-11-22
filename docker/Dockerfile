@@ -1,4 +1,4 @@
-FROM golang:1.11.2-alpine3.7
+FROM golang:1.11.2
 
 RUN apk update && apk add git && apk add make
 RUN git clone https://github.com/syhlion/gusher.cluster.git /go/src/gusher.cluster &&\
