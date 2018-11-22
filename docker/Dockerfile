@@ -1,6 +1,6 @@
-FROM golang:1.11.2
+FROM golang:1.11.2-alpine3.7
 
-RUN apk update && apk add git && apk add make
+RUN apk update && apk add git && apk add make && apk add gcc
 RUN git clone https://github.com/syhlion/gusher.cluster.git /go/src/gusher.cluster &&\
     cd /go/src/gusher.cluster && \
     make docker-build
