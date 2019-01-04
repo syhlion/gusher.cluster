@@ -67,7 +67,7 @@ func (c *Client) Trigger(event string, p *Payload) (err error) {
 	select {
 	case c.send <- p:
 	default:
-		c.hub.log.Println("[redisocket.v2] user trigger buffer full")
+		c.hub.logger("user %s disconnect  err: trigger buffer full", c.uid)
 		c.Close()
 	}
 	return
@@ -83,7 +83,7 @@ func (c *Client) Send(data []byte) {
 	select {
 	case c.send <- p:
 	default:
-		c.hub.log.Println("[redisocket.v2] user send buffer full")
+		c.hub.logger("user %s disconnect  err: send buffer full", c.uid)
 		c.Close()
 	}
 	return
@@ -111,9 +111,11 @@ func (c *Client) readPump() {
 	for {
 		msgType, reader, err := c.ws.NextReader()
 		if err != nil {
+			c.hub.logger("user %s disconnect  err: websocket read out of max message size", c.uid)
 			return
 		}
 		if msgType != websocket.TextMessage {
+			c.hub.logger("user %s disconnect  err: send message type not text message", c.uid)
 			continue
 		}
 
@@ -128,13 +130,14 @@ func (c *Client) readPump() {
 		_, err = io.Copy(buf.buffer, reader)
 		if err != nil {
 			buf.reset(nil)
+			c.hub.logger("user %s disconnect  err: copy buffer error", c.uid)
 			return
 		}
 		statistic.AddInMsg(buf.buffer.Len())
 		select {
 		case c.hub.messageQuene.serveChan <- buf:
 		default:
-			c.hub.log.Println("[redisocket.v2] server receive busy")
+			c.hub.logger("user %s disconnect  err: server receive busy", c.uid)
 			return
 
 		}
@@ -168,6 +171,7 @@ func (c *Client) writePump() {
 		select {
 		case msg, ok := <-c.send:
 			if !ok {
+				c.hub.logger("user %s disconnect  err: channel receive error", c.uid)
 				return
 			}
 
@@ -178,9 +182,11 @@ func (c *Client) writePump() {
 				if h != nil {
 					err := h(msg.Event, msg)
 					if err != nil {
+						c.hub.logger("user %s disconnect  err: event callback execute error", c.uid)
 						return
 					}
 				} else {
+					c.hub.logger("user %s disconnect  err: no event callback", c.uid)
 					return
 				}
 			}
@@ -188,10 +194,12 @@ func (c *Client) writePump() {
 			if msg.IsPrepare {
 
 				if err := c.writePreparedMessage(msg.PrepareMessage); err != nil {
+					c.hub.logger("user %s disconnect  err: write prepared message  %s", c.uid, err)
 					return
 				}
 			} else {
 				if err := c.write(websocket.TextMessage, msg.Data); err != nil {
+					c.hub.logger("user %s disconnect  err: write normal message  %s", c.uid, err)
 					return
 				}
 
@@ -199,10 +207,12 @@ func (c *Client) writePump() {
 
 		case <-t.C:
 			if err := c.write(websocket.PingMessage, []byte{}); err != nil {
+				c.hub.logger("user %s disconnect  err: ping message  %s", c.uid, err)
 				return
 			}
 			//超過時間 都沒有事件訂閱 就斷線處理
 			if len(c.events) == 0 {
+				c.hub.logger("user %s disconnect  err: timeout to subscribe", c.uid)
 				return
 			}
 

@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [v1.8.3] 2019-01-04
+
+### [Add]
+- add redisocket.v2 package log
+
+### [Fix]
+- dockerfile use alpine
+
 ## [v1.8.2] 2018-08-15
 
 ### [Fix]
