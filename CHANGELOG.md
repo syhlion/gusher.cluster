@@ -5,6 +5,13 @@
 ### [Add]
 
 - minimize docker image
+- use go mod
+
+### [Fix]
+
+- conn-test change Sirupsen to sirupsen
+
+
 
 ## [v1.8.3] 2019-01-04
 

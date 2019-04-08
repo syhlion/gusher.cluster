@@ -13,10 +13,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
 	"github.com/buger/jsonparser"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
+	log "github.com/sirupsen/logrus"
 	"github.com/syhlion/requestwork.v2"
 	"github.com/urfave/cli"
 )
