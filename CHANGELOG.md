@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## [v1.8.4] 2019-04-05
+
+### [Add]
+
+- minimize docker image
+
 ## [v1.8.3] 2019-01-04
 
 ### [Add]
