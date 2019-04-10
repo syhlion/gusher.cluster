@@ -28,9 +28,9 @@ steps:
   settings:
     message: >
         {{#success build.status}}
-            {{repo.namespace}}/{{repo.name}} build {{build.number}} commit {{commit.sha}} succeeded. Good job.
+            {{repo.namespace}}/{{repo.name}} build {{build.number}}, commit {{commit.sha}} succeeded. Good job.
             {{else}}
-            {{repo.namespace}}/{{repo.name}} build {{build.number}} commit {{commit.sha}} failed. Fix me please.
+            {{repo.namespace}}/{{repo.name}} build {{build.number}}, commit {{commit.sha}} failed. Fix me please.
         {{/success}}
     token:
         from_secret: bot_token
