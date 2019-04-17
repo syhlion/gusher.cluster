@@ -11,7 +11,7 @@ RUN git clone https://github.com/syhlion/gusher.cluster.git  &&\
 # final stage
 FROM scratch
 WORKDIR /gusher
-COPY --from=builder /app/gusher.cluster/build/gusher.cluster .
+COPY --from=builder /app/gusher.cluster/gusher.cluster .
 
 EXPOSE 8888
 
