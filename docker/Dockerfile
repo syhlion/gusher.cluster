@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apk update && apk add git && apk add make
 RUN apk add --update gcc g++
 RUN git clone https://github.com/syhlion/gusher.cluster.git  &&\
-    cd /gusher.cluster && \
+    cd gusher.cluster && \
     make docker-build
 
 # final stage
