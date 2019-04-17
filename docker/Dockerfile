@@ -1,15 +1,17 @@
 # build stage
 FROM golang:1.12.2-alpine3.9 AS builder
 
+WORKDIR /app
 RUN apk update && apk add git && apk add make
 RUN apk add --update gcc g++
-RUN git clone https://github.com/syhlion/gusher.cluster.git /go/src/gusher.cluster &&\
+RUN git clone https://github.com/syhlion/gusher.cluster.git  &&\
     cd /go/src/gusher.cluster && \
     make docker-build
 
 # final stage
 FROM scratch
-COPY --from=builder /go/src/gusher.cluster/gusher.cluster /
+WORKDIR /gusher
+COPY --from=builder /app/gusher.cluster/build/gusher.cluster .
 
 EXPOSE 8888
 

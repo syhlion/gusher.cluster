@@ -44,7 +44,7 @@ build/darwin_amd64.tar.gz: build/darwin
 clean:
 	rm -rf build/
 docker-build:
-	go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG) " -a -o ./$(GUSHER);
+ 	 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG) " -a -o ./$(GUSHER)
 rsakey:
 	openssl genrsa -out private.pem 2048
 	openssl rsa -in private.pem -pubout -out public.pem

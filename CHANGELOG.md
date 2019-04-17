@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+
+### [Fix]
+
+- fix minimize docker image bug
+
+
 ## [v1.8.4] 2019-04-05
 
 ### [Add]
