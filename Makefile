@@ -12,6 +12,7 @@ verify-glide:
 		echo 'please install "https://github.com/Masterminds/glide"';\
 		exit 1;\
 	fi
+dockerbuild = CGO_ENABLED=0 GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG)" -a -o ./$(GUSHER)
 buildjwt = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(JWTGENERATE) -X main.compileDate=$(DATETIME)($(TZ))" -a -o build/$(JWTGENERATE)$(3) test/jwtgenerate/jwtgenerate.go
 buildconntest = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(CONNTEST) -X main.compileDate=$(DATETIME)($(TZ))" -a -o build/$(CONNTEST)$(3) test/conn-test/conn-test.go
 buildgusher = GOOS=$(1) GOARCH=$(2) go build -ldflags "-X main.version=$(TAG) -X main.name=$(GUSHER) -X main.compileDate=$(DATETIME)($(TZ))" -a -o build/$(GUSHER)$(3) 
@@ -44,7 +45,7 @@ build/darwin_amd64.tar.gz: build/darwin
 clean:
 	rm -rf build/
 docker-build:
- 	 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.name=$(GUSHER) -X main.version=$(TAG) " -a -o ./$(GUSHER)
+	$(call dockerbuild,linux,amd64,)
 rsakey:
 	openssl genrsa -out private.pem 2048
 	openssl rsa -in private.pem -pubout -out public.pem
