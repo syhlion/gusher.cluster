@@ -2,6 +2,20 @@ kind: pipeline
 name: default
 
 steps:
+- name: test
+  image: golang
+  commands:
+  - go build
+- name: docker
+  image: plugins/docker
+  settings:
+    repo: syhlion/gusher.cluster
+    auto_tag: true
+    purge: true
+    username:
+        from_secret: docker_account
+    password:
+        from_secret: docker_password
 - name: build
   image: golang
   commands:
@@ -19,8 +33,9 @@ steps:
     files: build/*
     checksum:
         - md5
-    title: {DRONE_TAG}
+    title: ${DRONE_TAG}
     note: CHANGELOG.md
+    draft: true
   when:
     event: tag
 - name: notify
