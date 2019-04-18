@@ -5,11 +5,13 @@ steps:
 - name: test
   image: golang
   commands:
-  - go build
+  - go test
+
 - name: docker
   image: plugins/docker
   settings:
     repo: syhlion/gusher.cluster
+    dockerfile: docker/Dockerfile
     auto_tag: true
     purge: true
     username:
