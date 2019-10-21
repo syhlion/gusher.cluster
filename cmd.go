@@ -90,8 +90,9 @@ func master(c *cli.Context) {
 	n.UseHandler(r)
 	serverError := make(chan error, 1)
 	server := http.Server{
-		ReadTimeout: 3 * time.Second,
-		Handler:     n,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		Handler:      n,
 	}
 	go func() {
 		err := server.Serve(apiListener)
