@@ -1,4 +1,5 @@
 gusher-redis:
+    container_name: gusher-redis
     image: redis
 gusher-master:
     image: syhlion/gusher.cluster

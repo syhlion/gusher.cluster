@@ -101,7 +101,7 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	//job redis
 	sc.RedisJobAddr = os.Getenv("GUSHER_JOB_REDIS_ADDR")
 	if sc.RedisJobAddr == "" {
-		logger.Fatal("empty env GUSHER_REDIS_ADDR")
+		logger.Fatal("empty env GUSHER_JOB_REDIS_ADDR")
 	}
 	sc.RedisJobDb, err = strconv.Atoi(os.Getenv("GUSHER_JOB_REDIS_DBNO"))
 	if err != nil {
