@@ -3,7 +3,17 @@
 
 ### [Fix]
 
+
+## [v1.8.6]
+
+- fix docker-compose
+- fix start job redis empty error msg
+
+## [v1.8.5]
+
 - fix minimize docker image bug
+
+
 
 
 ## [v1.8.4] 2019-04-05
