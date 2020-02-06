@@ -2,10 +2,12 @@ package main
 
 import (
 	"testing"
+
+	redisocket "github.com/syhlion/redisocket.v2"
 )
 
-func mockNoStarData() (a Auth, d []byte) {
-	a = Auth{
+func mockNoStarData() (a redisocket.Auth, d []byte) {
+	a = redisocket.Auth{
 		Channels: []string{"AA"},
 		UserId:   "AAA",
 		AppKey:   "TEST",
@@ -13,8 +15,8 @@ func mockNoStarData() (a Auth, d []byte) {
 	d = []byte(`{"channel":"AA"}}`)
 	return
 }
-func mockNoMatchData() (a Auth, d []byte) {
-	a = Auth{
+func mockNoMatchData() (a redisocket.Auth, d []byte) {
+	a = redisocket.Auth{
 		Channels: []string{"AA"},
 		UserId:   "AAA",
 		AppKey:   "TEST",
@@ -22,8 +24,8 @@ func mockNoMatchData() (a Auth, d []byte) {
 	d = []byte(`{"channel":"BB"}}`)
 	return
 }
-func mockAdminData() (a Auth, d []byte) {
-	a = Auth{
+func mockAdminData() (a redisocket.Auth, d []byte) {
+	a = redisocket.Auth{
 		Channels: []string{"*"},
 		UserId:   "AAA",
 		AppKey:   "TEST",
@@ -31,8 +33,8 @@ func mockAdminData() (a Auth, d []byte) {
 	d = []byte(`{"channel":"DD"}}`)
 	return
 }
-func mockStarData() (a Auth, d []byte) {
-	a = Auth{
+func mockStarData() (a redisocket.Auth, d []byte) {
+	a = redisocket.Auth{
 		Channels: []string{"@^WTF*"},
 		UserId:   "AAA",
 		AppKey:   "TEST",
