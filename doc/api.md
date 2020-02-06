@@ -210,6 +210,23 @@ Sucess Response:
 }
 ```
 
+### Reload channel to userid:
+
+`POST /{api}/reload/channel/user/{app_key}/{user_id}`
+
+|key|value|description|
+|----|----|----|
+|data|["gg","ff"]|json|
+
+Sucess Response:
+
+```
+{
+    "user_id":"",
+    "data":"["gg","ff"]"
+}
+```
+
 ### Decode:
 
 `POST /{api}/decode?data={jwt}`

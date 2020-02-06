@@ -19,12 +19,38 @@ type Client struct {
 	events map[string]EventHandler
 	send   chan *Payload
 	*sync.RWMutex
-	re  ReceiveMsgHandler
-	hub *Hub
+	re   ReceiveMsgHandler
+	hub  *Hub
+	auth *Auth
 }
 
 func (c *Client) SocketId() string {
 	return c.sid
+}
+func (c *Client) contains(a []string, x string) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Client) SetChannels(s []string) {
+	c.Lock()
+	defer c.Unlock()
+	c.auth.Channels = s
+	for k, _ := range c.events {
+		if !c.contains(s, k) {
+			delete(c.events, k)
+		}
+	}
+}
+
+func (c *Client) GetAuth() Auth {
+	c.RLock()
+	defer c.RUnlock()
+	return *c.auth
 }
 
 //On event.  client on event

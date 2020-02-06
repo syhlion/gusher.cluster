@@ -75,6 +75,7 @@ func master(c *cli.Context) {
 	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rsender)).Methods("POST")
 	sub.HandleFunc("/push_batch/{app_key}", PushBatchMessage(rsender)).Methods("POST")
 	sub.HandleFunc("/push/{app_key}", PushMessageByPattern(rsender)).Methods("POST")
+	sub.HandleFunc("/reload/channel/user/{app_key}/{user_id}", ReloadUserChannels(rsender)).Methods("POST")
 	sub.HandleFunc("/{app_key}/channels", GetAllChannel(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/channels/count", GetAllChannelCount(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/online/bychannel/{channel}", GetOnlineByChannel(rsender)).Methods("GET")

@@ -2,6 +2,7 @@ package main
 
 import (
 	jwt "github.com/dgrijalva/jwt-go"
+	redisocket "github.com/syhlion/redisocket.v2"
 )
 
 const (
@@ -43,6 +44,11 @@ type PingCommand struct {
 	InternalCommand
 	Data interface{} `json:"data"`
 }
+type PongResponse struct {
+	InternalCommand
+	Data interface{} `json:"data"`
+	Time int64       `json:"time"`
+}
 
 type ChannelCommand struct {
 	InternalCommand
@@ -53,15 +59,18 @@ type ChannelData struct {
 }
 
 type JwtPack struct {
-	Gusher Auth `json:"gusher"`
+	Gusher redisocket.Auth `json:"gusher"`
 	jwt.StandardClaims
 }
+
+/*
 type Auth struct {
 	Channels []string        `json:"channels"`
 	UserId   string          `json:"user_id"`
 	AppKey   string          `json:"app_key"`
 	Remotes  map[string]bool `json:"remotes"`
 }
+*/
 type WorkerPayload struct {
 	UserId   string      `json:"user_id"`
 	SocketId string      `json:"socket_id"`

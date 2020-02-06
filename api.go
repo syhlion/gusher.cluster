@@ -190,6 +190,47 @@ func PushToSocket(rsender *redisocket.Sender) func(w http.ResponseWriter, r *htt
 		return
 	}
 }
+func ReloadUserChannels(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		app_key := params["app_key"]
+		if app_key == "" {
+			logger.GetRequestEntry(r).Warn("empty param")
+			w.WriteHeader(400)
+			w.Write([]byte("empty param"))
+			return
+		}
+		user_id := params["user_id"]
+		data := r.FormValue("data")
+		channels := make([]string, 0)
+		err := json.Unmarshal([]byte(data), &channels)
+		if err != nil {
+			logger.GetRequestEntry(r).Warn(err)
+			w.WriteHeader(400)
+			w.Write([]byte("data unmarshal error"))
+			return
+		}
+		rsender.ReloadChannel(listenChannelPrefix, app_key, user_id, channels)
+		push := struct {
+			UserId string      `json:"user_id"`
+			Data   interface{} `json:"data"`
+		}{
+			UserId: user_id,
+			Data:   data,
+		}
+		d, err := json.Marshal(push)
+		if err != nil {
+			logger.GetRequestEntry(r).Warn(err)
+			w.WriteHeader(400)
+			w.Write([]byte("data error"))
+			return
+		}
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(d)
+		return
+	}
+}
 func PushToUser(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)

@@ -51,6 +51,10 @@ type userPayload struct {
 	Uid  string      `json:"uid"`
 	Data interface{} `json:"data"`
 }
+type reloadChannelPayload struct {
+	Uid      string   `json:"uid"`
+	Channels []string `json:"data"`
+}
 
 var (
 	//DefaultWebsocketOptional default config
@@ -173,6 +177,22 @@ func (s *Sender) PushToUid(channelPrefix, appKey string, uid string, data interf
 	return
 }
 
+//ReloadChannel  reload user channel list
+func (s *Sender) ReloadChannel(channelPrefix, appKey string, uid string, channels []string) (val int, err error) {
+	conn := s.redisManager.Get()
+	defer conn.Close()
+	u := reloadChannelPayload{
+		Uid:      uid,
+		Channels: channels,
+	}
+	d, err := json.Marshal(u)
+	if err != nil {
+		return
+	}
+	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC-RELOADCHANEL#", d))
+	return
+}
+
 //Push push single data
 func (s *Sender) Push(channelPrefix, appKey string, event string, data []byte) (val int, err error) {
 	conn := s.redisManager.Get()
@@ -194,16 +214,17 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 	}
 	go statistic.Run()
 	pool := &pool{
-		users:         make(map[*Client]bool),
-		broadcastChan: make(chan *eventPayload, 4096),
-		joinChan:      make(chan *Client),
-		leaveChan:     make(chan *Client),
-		kickSidChan:   make(chan string),
-		kickUidChan:   make(chan string),
-		uPayloadChan:  make(chan *uPayload, 4096),
-		sPayloadChan:  make(chan *sPayload, 4096),
-		shutdownChan:  make(chan int, 1),
-		rpool:         m,
+		users:              make(map[*Client]bool),
+		broadcastChan:      make(chan *eventPayload, 4096),
+		joinChan:           make(chan *Client),
+		leaveChan:          make(chan *Client),
+		kickSidChan:        make(chan string),
+		kickUidChan:        make(chan string),
+		uPayloadChan:       make(chan *uPayload, 4096),
+		uReloadChannelChan: make(chan *uReloadChannelPayload, 4096),
+		sPayloadChan:       make(chan *sPayload, 4096),
+		shutdownChan:       make(chan int, 1),
+		rpool:              m,
 	}
 	mq := &messageQuene{
 		freeBufferChan: make(chan *buffer, 8192),
@@ -227,7 +248,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 }
 
 //Upgrade gorilla websocket wrap upgrade method
-func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header, uid string, prefix string) (c *Client, err error) {
+func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header, uid string, prefix string, auth *Auth) (c *Client, err error) {
 	ws, err := e.Config.Upgrader.Upgrade(w, r, responseHeader)
 	if err != nil {
 		return
@@ -242,6 +263,7 @@ func (e *Hub) Upgrade(w http.ResponseWriter, r *http.Request, responseHeader htt
 		RWMutex: new(sync.RWMutex),
 		hub:     e,
 		events:  make(map[string]EventHandler),
+		auth:    auth,
 	}
 	e.join(c)
 	return
@@ -321,6 +343,16 @@ func (e *Hub) listenRedis() <-chan error {
 						continue
 					}
 					e.toSid(up.Sid, b)
+					continue
+				}
+
+				if channel == "#GUSHERFUNC-RELOADCHANEL#" {
+					up := &reloadChannelPayload{}
+					err := json.Unmarshal(v.Data, up)
+					if err != nil {
+						continue
+					}
+					e.reloadUidChannels(up.Uid, up.Channels)
 					continue
 				}
 				pMsg, err := websocket.NewPreparedMessage(websocket.TextMessage, v.Data)

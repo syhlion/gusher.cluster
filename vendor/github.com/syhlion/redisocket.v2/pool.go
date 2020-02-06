@@ -17,26 +17,31 @@ type uPayload struct {
 	uid  string `json:"uid"`
 	data []byte `json:"data"`
 }
+type uReloadChannelPayload struct {
+	uid      string   `json:"uid"`
+	channels []string `json:"channels"`
+}
 type sPayload struct {
 	sid  string `json:"uid"`
 	data []byte `json:"data"`
 }
 
 type pool struct {
-	users         map[*Client]bool
-	broadcastChan chan *eventPayload
-	joinChan      chan *Client
-	leaveChan     chan *Client
-	shutdownChan  chan int
-	kickUidChan   chan string
-	kickSidChan   chan string
-	uPayloadChan  chan *uPayload
-	sPayloadChan  chan *sPayload
-	rpool         *redis.Pool
-	channelPrefix string
-	scanInterval  time.Duration
-	msgTotal      int64
-	msgByteSum    int64
+	users              map[*Client]bool
+	broadcastChan      chan *eventPayload
+	joinChan           chan *Client
+	leaveChan          chan *Client
+	shutdownChan       chan int
+	kickUidChan        chan string
+	kickSidChan        chan string
+	uPayloadChan       chan *uPayload
+	uReloadChannelChan chan *uReloadChannelPayload
+	sPayloadChan       chan *sPayload
+	rpool              *redis.Pool
+	channelPrefix      string
+	scanInterval       time.Duration
+	msgTotal           int64
+	msgByteSum         int64
 }
 
 func (h *pool) run() <-chan error {
@@ -62,6 +67,14 @@ func (h *pool) run() <-chan error {
 				for u := range h.users {
 					if u.sid == n {
 						u.Close()
+					}
+				}
+			case n := <-h.uReloadChannelChan:
+				for u := range h.users {
+					if u.uid == n.uid {
+
+						u.SetChannels(n.channels)
+
 					}
 				}
 			case s := <-h.kickUidChan:
@@ -104,6 +117,10 @@ func (h *pool) run() <-chan error {
 func (h *pool) toUid(uid string, d []byte) {
 	u := &uPayload{uid: uid, data: d}
 	h.uPayloadChan <- u
+}
+func (h *pool) reloadUidChannels(uid string, channels []string) {
+	u := &uReloadChannelPayload{uid: uid, channels: channels}
+	h.uReloadChannelChan <- u
 }
 func (h *pool) toSid(sid string, d []byte) {
 	u := &sPayload{sid: sid, data: d}
