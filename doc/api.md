@@ -227,6 +227,24 @@ Sucess Response:
 }
 ```
 
+
+### add channel to userid:
+
+`POST /{api}/add/channel/user/{app_key}/{user_id}`
+
+|key|value|description|
+|----|----|----|
+|data|aa|string|
+
+Sucess Response:
+
+```
+{
+    "user_id":"",
+    "data":"aa"
+}
+```
+
 ### Decode:
 
 `POST /{api}/decode?data={jwt}`

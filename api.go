@@ -190,6 +190,54 @@ func PushToSocket(rsender *redisocket.Sender) func(w http.ResponseWriter, r *htt
 		return
 	}
 }
+func AddUserChannels(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+		app_key := params["app_key"]
+		if app_key == "" {
+			logger.GetRequestEntry(r).Warn("empty param")
+			w.WriteHeader(400)
+			w.Write([]byte("empty param"))
+			return
+		}
+		user_id := params["user_id"]
+		channel := r.FormValue("data")
+		if channel == "" {
+			w.WriteHeader(400)
+			w.Write([]byte("data empty error"))
+			return
+		}
+		rsender.AddChannel(listenChannelPrefix, app_key, user_id, channel)
+		push := struct {
+			UserId string      `json:"user_id"`
+			Data   interface{} `json:"data"`
+		}{
+			UserId: user_id,
+			Data:   channel,
+		}
+		d, err := json.Marshal(push)
+		if err != nil {
+			logger.GetRequestEntry(r).Warn(err)
+			w.WriteHeader(400)
+			w.Write([]byte("data error"))
+			return
+		}
+		a := ChannelInfoData{}
+		a.Data = struct {
+			Channel string `json:"channel"`
+		}{
+			Channel: channel,
+		}
+		a.Event = AddChannelEvent
+
+		//send to user
+		rsender.PushToUid(listenChannelPrefix, app_key, user_id, a)
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		w.WriteHeader(http.StatusOK)
+		w.Write(d)
+		return
+	}
+}
 func ReloadUserChannels(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
@@ -225,6 +273,16 @@ func ReloadUserChannels(rsender *redisocket.Sender) func(w http.ResponseWriter, 
 			w.Write([]byte("data error"))
 			return
 		}
+		a := ChannelInfoData{}
+		a.Data = struct {
+			Channels []string `json:"channels"`
+		}{
+			Channels: channels,
+		}
+		a.Event = ReloadChannelEvent
+
+		//send to user
+		rsender.PushToUid(listenChannelPrefix, app_key, user_id, a)
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write(d)

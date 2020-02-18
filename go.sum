@@ -49,6 +49,10 @@ github.com/syhlion/redisocket.v2 v0.0.0-20200206132237-699d45a9b214 h1:fLyqVceqE
 github.com/syhlion/redisocket.v2 v0.0.0-20200206132237-699d45a9b214/go.mod h1:CbP8ipcW8fidOmCTG9wXDC1Skpe/U5TJu3Rps6hD6pQ=
 github.com/syhlion/redisocket.v2 v0.0.0-20200206133807-822fc19df3fd h1:c/UuSar2zPKonpZxhC44A8KLF7ShaMDR4fImzxqx7AY=
 github.com/syhlion/redisocket.v2 v0.0.0-20200206133807-822fc19df3fd/go.mod h1:CbP8ipcW8fidOmCTG9wXDC1Skpe/U5TJu3Rps6hD6pQ=
+github.com/syhlion/redisocket.v2 v0.0.0-20200217070102-90df8ba23f00 h1:6UrCWYtyFHN26JpINJiTbH8FLGzOeWMWivbwRGJG/g8=
+github.com/syhlion/redisocket.v2 v0.0.0-20200217070102-90df8ba23f00/go.mod h1:CbP8ipcW8fidOmCTG9wXDC1Skpe/U5TJu3Rps6hD6pQ=
+github.com/syhlion/redisocket.v2 v0.0.0-20200218063042-680739eb68fc h1:KDYH28agfNvtWCmJjjzqOw9a00Rtd6WE/fUQLwpcoTQ=
+github.com/syhlion/redisocket.v2 v0.0.0-20200218063042-680739eb68fc/go.mod h1:CbP8ipcW8fidOmCTG9wXDC1Skpe/U5TJu3Rps6hD6pQ=
 github.com/syhlion/requestwork.v2 v0.0.0-20180319035234-4599c250105f h1:3d+3IMlcJgsYHFGyoGqDLZ5cfLQ5+p3TQAT0ddQxrfI=
 github.com/syhlion/requestwork.v2 v0.0.0-20180319035234-4599c250105f/go.mod h1:Pa8JjpETWUCCTY2xkzkl0PqTRYBFt1y2MEL4zIGB57k=
 github.com/urfave/cli v1.20.0 h1:fDqGv3UG/4jbVl/QkFwEdddtEDjh/5Ov6X+0B/3bPaw=

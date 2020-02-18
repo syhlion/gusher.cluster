@@ -20,6 +20,9 @@ gusher.subscribe_error|subscribe error
 gusher.multi_subscribe_error|subscribe error
 gusher.unsubscribe_succeeded|unsubscribe sucess
 gusher.unsubscribe_error|unsubscribe error
+gusher.querychannel|query channel event
+gusher.querychannel_succeeded|query channel sucess
+gusher.unsubscribe_error| query channel error
 
 #### Common Receive Message:
 
@@ -28,6 +31,34 @@ gusher.unsubscribe_error|unsubscribe error
     "channel":"",
     "event":"",
     "data":
+}
+```
+
+#### Query Channel Command:
+
+command:
+```
+{
+    "event":"gusher.querychannel",
+    "data":{}
+}
+```
+
+reply scuess:
+```
+{
+    "event":"gusher.querychannel_succeeded",
+    "data":{
+        "channels":["AA","BB"]
+    }
+}
+```
+
+reply error:
+```
+{
+    "event":"gusher.querychannel_error",
+    "data":{}
 }
 ```
 

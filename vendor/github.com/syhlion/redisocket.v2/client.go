@@ -46,6 +46,13 @@ func (c *Client) SetChannels(s []string) {
 		}
 	}
 }
+func (c *Client) AddChannel(s string) {
+	c.Lock()
+	defer c.Unlock()
+	if !c.contains(c.auth.Channels, s) {
+		c.auth.Channels = append(c.auth.Channels, s)
+	}
+}
 
 func (c *Client) GetAuth() Auth {
 	c.RLock()

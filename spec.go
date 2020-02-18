@@ -7,6 +7,11 @@ import (
 
 const (
 	PingEvent                    = "gusher.ping"
+	QueryChannelEvent            = "gusher.querychannel"
+	QueryChannelReplySucceeded   = "gusher.querychannel_succeeded"
+	QueryChannelReplyError       = "gusher.querychannel_error"
+	AddChannelEvent              = "gusher.addchannel"
+	ReloadChannelEvent           = "gusher.reloadchannel"
 	PongReplySucceeded           = "gusher.pong_succeeded"
 	RemoteEvent                  = "gusher.remote"
 	LoginEvent                   = "gusher.login"
@@ -36,6 +41,12 @@ type RemoteCommand struct {
 	InternalCommand
 	Data RemoteData `json:"data"`
 }
+
+type ChannelInfoData struct {
+	InternalCommand
+	Data interface{} `json:"data"`
+}
+
 type RemoteData struct {
 	Remote string      `json:"remote"`
 	Msg    interface{} `json:"msg"`
@@ -48,6 +59,10 @@ type PongResponse struct {
 	InternalCommand
 	Data interface{} `json:"data"`
 	Time int64       `json:"time"`
+}
+type QueryChannelResponse struct {
+	InternalCommand
+	Data interface{} `json:"data"`
 }
 
 type ChannelCommand struct {

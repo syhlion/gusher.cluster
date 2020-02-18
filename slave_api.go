@@ -356,6 +356,27 @@ func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte) (msg *co
 
 	return
 }
+func QueryChannelCommand(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error) {
+	msg = &commandResponse{
+		handler: DefaultSubHandler,
+		cmdType: "QUERYCHANNEL",
+	}
+
+	command := &QueryChannelResponse{}
+	command.Event = QueryChannelReplySucceeded
+	command.Data = struct {
+		Channels []string `json:"channels"`
+	}{
+		Channels: auth.Channels,
+	}
+
+	reply, err := json.Marshal(command)
+	if err != nil {
+		return
+	}
+	msg.msg = reply
+	return
+}
 
 func PingPongCommand(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error) {
 	msg = &commandResponse{
@@ -364,7 +385,7 @@ func PingPongCommand(appkey string, auth redisocket.Auth, data []byte) (msg *com
 	}
 
 	command := &PongResponse{}
-	command.Event = PongReplySucceeded
+	command.Event = QueryChannelReplySucceeded
 	command.Data = data
 	command.Time = time.Now().Unix()
 
@@ -493,6 +514,8 @@ func CommanRouter(data []byte, pool *redis.Pool, socketId string) (fn func(appke
 	switch val {
 	case RemoteEvent:
 		return Remote(pool, socketId), nil
+	case QueryChannelEvent:
+		return QueryChannelCommand, nil
 	case SubscribeEvent:
 		return SubscribeCommand, nil
 	case MultiSubscribeEvent:

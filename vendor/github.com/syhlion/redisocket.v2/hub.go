@@ -55,6 +55,10 @@ type reloadChannelPayload struct {
 	Uid      string   `json:"uid"`
 	Channels []string `json:"data"`
 }
+type addChannelPayload struct {
+	Uid     string `json:"uid"`
+	Channel string `json:"data"`
+}
 
 var (
 	//DefaultWebsocketOptional default config
@@ -193,6 +197,22 @@ func (s *Sender) ReloadChannel(channelPrefix, appKey string, uid string, channel
 	return
 }
 
+//AddChannel  append channel to user channel list
+func (s *Sender) AddChannel(channelPrefix, appKey string, uid string, channel string) (val int, err error) {
+	conn := s.redisManager.Get()
+	defer conn.Close()
+	u := addChannelPayload{
+		Uid:     uid,
+		Channel: channel,
+	}
+	d, err := json.Marshal(u)
+	if err != nil {
+		return
+	}
+	val, err = redis.Int(conn.Do("PUBLISH", channelPrefix+appKey+"@"+"#GUSHERFUNC-ADDCHANEL#", d))
+	return
+}
+
 //Push push single data
 func (s *Sender) Push(channelPrefix, appKey string, event string, data []byte) (val int, err error) {
 	conn := s.redisManager.Get()
@@ -222,6 +242,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 		kickUidChan:        make(chan string),
 		uPayloadChan:       make(chan *uPayload, 4096),
 		uReloadChannelChan: make(chan *uReloadChannelPayload, 4096),
+		uAddChannelChan:    make(chan *uAddChannelPayload, 4096),
 		sPayloadChan:       make(chan *sPayload, 4096),
 		shutdownChan:       make(chan int, 1),
 		rpool:              m,
@@ -353,6 +374,15 @@ func (e *Hub) listenRedis() <-chan error {
 						continue
 					}
 					e.reloadUidChannels(up.Uid, up.Channels)
+					continue
+				}
+				if channel == "#GUSHERFUNC-ADDCHANEL#" {
+					up := &addChannelPayload{}
+					err := json.Unmarshal(v.Data, up)
+					if err != nil {
+						continue
+					}
+					e.addUidChannels(up.Uid, up.Channel)
 					continue
 				}
 				pMsg, err := websocket.NewPreparedMessage(websocket.TextMessage, v.Data)

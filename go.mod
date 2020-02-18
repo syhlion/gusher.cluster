@@ -15,7 +15,7 @@ require (
 	github.com/sirupsen/logrus v1.4.1
 	github.com/syhlion/greq v1.0.5
 	github.com/syhlion/httplog v0.0.0-20170323033029-5be625654f55
-	github.com/syhlion/redisocket.v2 v0.0.0-20200206133807-822fc19df3fd
+	github.com/syhlion/redisocket.v2 v0.0.0-20200218063042-680739eb68fc
 	github.com/syhlion/requestwork.v2 v0.0.0-20180319035234-4599c250105f
 	github.com/urfave/cli v1.20.0
 	github.com/urfave/negroni v1.0.0

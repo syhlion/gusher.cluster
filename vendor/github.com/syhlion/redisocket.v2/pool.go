@@ -21,6 +21,10 @@ type uReloadChannelPayload struct {
 	uid      string   `json:"uid"`
 	channels []string `json:"channels"`
 }
+type uAddChannelPayload struct {
+	uid     string `json:"uid"`
+	channel string `json:"channel"`
+}
 type sPayload struct {
 	sid  string `json:"uid"`
 	data []byte `json:"data"`
@@ -36,6 +40,7 @@ type pool struct {
 	kickSidChan        chan string
 	uPayloadChan       chan *uPayload
 	uReloadChannelChan chan *uReloadChannelPayload
+	uAddChannelChan    chan *uAddChannelPayload
 	sPayloadChan       chan *sPayload
 	rpool              *redis.Pool
 	channelPrefix      string
@@ -74,6 +79,14 @@ func (h *pool) run() <-chan error {
 					if u.uid == n.uid {
 
 						u.SetChannels(n.channels)
+
+					}
+				}
+			case n := <-h.uAddChannelChan:
+				for u := range h.users {
+					if u.uid == n.uid {
+
+						u.AddChannel(n.channel)
 
 					}
 				}
@@ -121,6 +134,10 @@ func (h *pool) toUid(uid string, d []byte) {
 func (h *pool) reloadUidChannels(uid string, channels []string) {
 	u := &uReloadChannelPayload{uid: uid, channels: channels}
 	h.uReloadChannelChan <- u
+}
+func (h *pool) addUidChannels(uid string, channel string) {
+	u := &uAddChannelPayload{uid: uid, channel: channel}
+	h.uAddChannelChan <- u
 }
 func (h *pool) toSid(sid string, d []byte) {
 	u := &sPayload{sid: sid, data: d}
