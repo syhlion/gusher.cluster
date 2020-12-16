@@ -7,6 +7,7 @@
 ## [v1.10.1]
 
 - fix remote dont close
+- update docker base image
 
 
 
