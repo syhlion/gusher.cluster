@@ -3,6 +3,8 @@
 
 ### [Fix]
 
+- fix remote dont close
+
 ## [v1.9.0]
 
 - add reload channel api

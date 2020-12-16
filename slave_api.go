@@ -439,6 +439,7 @@ func Remote(pool *redis.Pool, socketId string) func(string, redisocket.Auth, []b
 		}
 		d, err := json.Marshal(wp)
 		conn := pool.Get()
+		defer conn.Close()
 		_, err = conn.Do("RPUSH", auth.AppKey+"@"+remote, d)
 		if err != nil {
 			return
