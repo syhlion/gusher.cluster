@@ -140,7 +140,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 				"data":  string(data),
 				"pdata": string(d),
 			}).Info("receive to sub")
-			res, err := h(appKey, s.GetAuth(), d)
+			res, err := h(appKey, s.GetAuth(), d, true)
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"data":  string(data),
@@ -210,15 +210,21 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		s.Listen(func(data []byte) (b []byte, err error) {
 			h, err := CommanRouter(data, jobPool, s.SocketId())
 			if err != nil {
+				logger.WithError(err).Info("router error")
 				return
 			}
-
 			d, _, _, err := jsonparser.Get(data, "data")
 			if err != nil {
+				logger.WithError(err).Info("get data error")
 				return
 			}
-			res, err := h(appKey, s.GetAuth(), d)
+			debug, err := jsonparser.GetBoolean(data, "debug")
 			if err != nil {
+				debug = false
+			}
+			res, err := h(appKey, s.GetAuth(), d, debug)
+			if err != nil {
+				logger.WithError(err).Info("handler error")
 				return
 			}
 			switch res.cmdType {
@@ -238,7 +244,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 	}
 
 }
-func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error) {
+func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
 
 	multiChannel := make([]string, 0)
 	_, err = jsonparser.ArrayEach(data, func(v []byte, dataType jsonparser.ValueType, offset int, err error) {
@@ -303,7 +309,7 @@ func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte) (ms
 	return
 }
 
-func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error) {
+func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
 
 	channel, err := jsonparser.GetString(data, "channel")
 	if err != nil {
@@ -356,7 +362,7 @@ func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte) (msg *co
 
 	return
 }
-func QueryChannelCommand(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error) {
+func QueryChannelCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
 	msg = &commandResponse{
 		handler: DefaultSubHandler,
 		cmdType: "QUERYCHANNEL",
@@ -378,7 +384,7 @@ func QueryChannelCommand(appkey string, auth redisocket.Auth, data []byte) (msg 
 	return
 }
 
-func PingPongCommand(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error) {
+func PingPongCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
 	msg = &commandResponse{
 		handler: DefaultSubHandler,
 		cmdType: "PING",
@@ -396,8 +402,8 @@ func PingPongCommand(appkey string, auth redisocket.Auth, data []byte) (msg *com
 	msg.msg = reply
 	return
 }
-func Remote(pool *redis.Pool, socketId string) func(string, redisocket.Auth, []byte) (msg *commandResponse, err error) {
-	return func(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error) {
+func Remote(pool *redis.Pool, socketId string) func(string, redisocket.Auth, []byte, bool) (msg *commandResponse, err error) {
+	return func(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
 
 		remote, err := jsonparser.GetString(data, "remote")
 		if err != nil {
@@ -449,12 +455,15 @@ func Remote(pool *redis.Pool, socketId string) func(string, redisocket.Auth, []b
 		if err != nil {
 			return
 		}
-		msg.msg = reply
+		if debug {
+			msg.msg = reply
+		}
+
 		return
 	}
 
 }
-func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error) {
+func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
 	channel, err := jsonparser.GetString(data, "channel")
 	if err != nil {
 		return
@@ -506,7 +515,7 @@ func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte) (msg *
 	return
 }
 
-func CommanRouter(data []byte, pool *redis.Pool, socketId string) (fn func(appkey string, auth redisocket.Auth, data []byte) (msg *commandResponse, err error), err error) {
+func CommanRouter(data []byte, pool *redis.Pool, socketId string) (fn func(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error), err error) {
 
 	val, err := jsonparser.GetString(data, "event")
 	if err != nil {

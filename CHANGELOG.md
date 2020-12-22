@@ -4,6 +4,10 @@
 ### [Fix]
 
 
+## [v1.11.0]
+
+- add remote reponse switch
+
 ## [v1.10.1]
 
 - fix remote dont close

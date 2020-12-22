@@ -163,6 +163,7 @@ command:
 ```
 {
     "event":"gusher.remote",
+    "debug": true, //option  use this option can get server response.  default false
     "data":{
         "remote":"chat"
         "uid":"",
