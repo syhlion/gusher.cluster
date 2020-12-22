@@ -44,7 +44,7 @@ func mockStarData() (a redisocket.Auth, d []byte) {
 }
 func TestSubscribeCommand(t *testing.T) {
 	a, d := mockNoStarData()
-	m, err := SubscribeCommand("TEST", a, d)
+	m, err := SubscribeCommand("TEST", a, d, false)
 	if err != nil {
 		t.Errorf("%s err:%v", "nostar", err)
 		return
@@ -54,7 +54,7 @@ func TestSubscribeCommand(t *testing.T) {
 		return
 	}
 	a, d = mockNoMatchData()
-	m, err = SubscribeCommand("TEST", a, d)
+	m, err = SubscribeCommand("TEST", a, d, false)
 	if err != nil {
 		t.Errorf("%s err:%v", "nostar", err)
 		return
@@ -64,7 +64,7 @@ func TestSubscribeCommand(t *testing.T) {
 		return
 	}
 	a, d = mockAdminData()
-	m, err = SubscribeCommand("TEST", a, d)
+	m, err = SubscribeCommand("TEST", a, d, false)
 	if err != nil {
 		t.Errorf("%s err:%v", "admin", err)
 		return
@@ -74,7 +74,7 @@ func TestSubscribeCommand(t *testing.T) {
 		return
 	}
 	a, d = mockStarData()
-	m, err = SubscribeCommand("TEST", a, d)
+	m, err = SubscribeCommand("TEST", a, d, false)
 	if m.data != "@^WTFDD" {
 		t.Error("subscribe @^WTFDD error")
 		return
