@@ -4,6 +4,11 @@
 ### [Fix]
 
 
+## [v1.12.0]
+
+- add websocket reply message add field socket_id
+
+
 ## [v1.11.0]
 
 - add remote reponse switch

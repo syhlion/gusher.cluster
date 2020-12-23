@@ -35,7 +35,8 @@ type BatchData struct {
 }
 
 type InternalCommand struct {
-	Event string `json:"event"`
+	Event    string `json:"event"`
+	SocketId string `json:"socket_id"`
 }
 type RemoteCommand struct {
 	InternalCommand

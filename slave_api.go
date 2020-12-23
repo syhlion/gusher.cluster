@@ -121,7 +121,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 			logger.WithFields(logrus.Fields{
 				"data": string(data),
 			}).Info("receive start")
-			h, err := CommanRouter(data, jobPool, s.SocketId())
+			h, err := CommanRouter(data, jobPool)
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"data": string(data),
@@ -140,7 +140,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 				"data":  string(data),
 				"pdata": string(d),
 			}).Info("receive to sub")
-			res, err := h(appKey, s.GetAuth(), d, true)
+			res, err := h(appKey, s.GetAuth(), d, s.SocketId(), true)
 			if err != nil {
 				logger.WithFields(logrus.Fields{
 					"data":  string(data),
@@ -208,7 +208,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		defer s.Close()
 
 		s.Listen(func(data []byte) (b []byte, err error) {
-			h, err := CommanRouter(data, jobPool, s.SocketId())
+			h, err := CommanRouter(data, jobPool)
 			if err != nil {
 				logger.WithError(err).Info("router error")
 				return
@@ -222,7 +222,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 			if err != nil {
 				debug = false
 			}
-			res, err := h(appKey, s.GetAuth(), d, debug)
+			res, err := h(appKey, s.GetAuth(), d, s.SocketId(), debug)
 			if err != nil {
 				logger.WithError(err).Info("handler error")
 				return
@@ -244,7 +244,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 	}
 
 }
-func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
+func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
 
 	multiChannel := make([]string, 0)
 	_, err = jsonparser.ArrayEach(data, func(v []byte, dataType jsonparser.ValueType, offset int, err error) {
@@ -286,6 +286,7 @@ func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, deb
 	if len(subChannels) > 0 {
 		msg.multiData = subChannels
 		command.Event = MultiSubscribeReplySucceeded
+		command.SocketId = socketId
 		command.Data.Channel = subChannels
 		reply, err = json.Marshal(command)
 		if err != nil {
@@ -297,6 +298,7 @@ func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, deb
 		//TODO 需重構 不讓他進入訂閱模式
 		msg.cmdType = ""
 		command.Event = MultiSubscribeReplyError
+		command.SocketId = socketId
 		command.Data.Channel = multiChannel
 		reply, err = json.Marshal(command)
 		if err != nil {
@@ -309,7 +311,7 @@ func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, deb
 	return
 }
 
-func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
+func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
 
 	channel, err := jsonparser.GetString(data, "channel")
 	if err != nil {
@@ -339,6 +341,7 @@ func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bo
 	var reply []byte
 	if exist {
 		msg.data = channel
+		command.SocketId = socketId
 		command.Event = SubscribeReplySucceeded
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
@@ -350,6 +353,7 @@ func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bo
 
 		//TODO 需重構 不讓他進入訂閱模式
 		msg.cmdType = ""
+		command.SocketId = socketId
 		command.Event = SubscribeReplyError
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
@@ -362,7 +366,7 @@ func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bo
 
 	return
 }
-func QueryChannelCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
+func QueryChannelCommand(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
 	msg = &commandResponse{
 		handler: DefaultSubHandler,
 		cmdType: "QUERYCHANNEL",
@@ -370,6 +374,7 @@ func QueryChannelCommand(appkey string, auth redisocket.Auth, data []byte, debug
 
 	command := &QueryChannelResponse{}
 	command.Event = QueryChannelReplySucceeded
+	command.SocketId = socketId
 	command.Data = struct {
 		Channels []string `json:"channels"`
 	}{
@@ -384,7 +389,7 @@ func QueryChannelCommand(appkey string, auth redisocket.Auth, data []byte, debug
 	return
 }
 
-func PingPongCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
+func PingPongCommand(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
 	msg = &commandResponse{
 		handler: DefaultSubHandler,
 		cmdType: "PING",
@@ -392,6 +397,7 @@ func PingPongCommand(appkey string, auth redisocket.Auth, data []byte, debug boo
 
 	command := &PongResponse{}
 	command.Event = QueryChannelReplySucceeded
+	command.SocketId = socketId
 	command.Data = data
 	command.Time = time.Now().Unix()
 
@@ -402,8 +408,8 @@ func PingPongCommand(appkey string, auth redisocket.Auth, data []byte, debug boo
 	msg.msg = reply
 	return
 }
-func Remote(pool *redis.Pool, socketId string) func(string, redisocket.Auth, []byte, bool) (msg *commandResponse, err error) {
-	return func(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
+func Remote(pool *redis.Pool) func(string, redisocket.Auth, []byte, string, bool) (msg *commandResponse, err error) {
+	return func(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
 
 		remote, err := jsonparser.GetString(data, "remote")
 		if err != nil {
@@ -429,6 +435,7 @@ func Remote(pool *redis.Pool, socketId string) func(string, redisocket.Auth, []b
 		//沒有這個remote 返回錯誤訊息不斷線
 		if !ok || !b {
 			command.Event = RemoteReplyError
+			command.SocketId = socketId
 			reply, err = json.Marshal(command)
 			if err != nil {
 				return
@@ -451,6 +458,7 @@ func Remote(pool *redis.Pool, socketId string) func(string, redisocket.Auth, []b
 			return
 		}
 		command.Event = RemoteReplySucceeded
+		command.SocketId = socketId
 		reply, err = json.Marshal(command)
 		if err != nil {
 			return
@@ -463,7 +471,7 @@ func Remote(pool *redis.Pool, socketId string) func(string, redisocket.Auth, []b
 	}
 
 }
-func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error) {
+func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
 	channel, err := jsonparser.GetString(data, "channel")
 	if err != nil {
 		return
@@ -493,6 +501,7 @@ func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug 
 	if exist {
 		msg.data = channel
 		command.Event = UnSubscribeReplySucceeded
+		command.SocketId = socketId
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
 		if err != nil {
@@ -505,6 +514,7 @@ func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug 
 		//TODO 需重構 先不讓他進入訂閱模式
 		msg.cmdType = ""
 		command.Event = UnSubscribeReplyError
+		command.SocketId = socketId
 		command.Data.Channel = channel
 		reply, err = json.Marshal(command)
 		if err != nil {
@@ -515,7 +525,7 @@ func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, debug 
 	return
 }
 
-func CommanRouter(data []byte, pool *redis.Pool, socketId string) (fn func(appkey string, auth redisocket.Auth, data []byte, debug bool) (msg *commandResponse, err error), err error) {
+func CommanRouter(data []byte, pool *redis.Pool) (fn func(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error), err error) {
 
 	val, err := jsonparser.GetString(data, "event")
 	if err != nil {
@@ -523,7 +533,7 @@ func CommanRouter(data []byte, pool *redis.Pool, socketId string) (fn func(appke
 	}
 	switch val {
 	case RemoteEvent:
-		return Remote(pool, socketId), nil
+		return Remote(pool), nil
 	case QueryChannelEvent:
 		return QueryChannelCommand, nil
 	case SubscribeEvent:

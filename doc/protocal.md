@@ -48,6 +48,7 @@ reply scuess:
 ```
 {
     "event":"gusher.querychannel_succeeded",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "channels":["AA","BB"]
     }
@@ -58,6 +59,7 @@ reply error:
 ```
 {
     "event":"gusher.querychannel_error",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{}
 }
 ```
@@ -78,6 +80,7 @@ reply scuess:
 ```
 {
     "event":"gusher.multi_subscribe_succeeded",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "multi_channel":[]
     }
@@ -88,6 +91,7 @@ reply error:
 ```
 {
     "event":"gusher.multi_subscribe_error",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "multi_channel":[]
     }
@@ -109,6 +113,7 @@ reply scuess:
 ```
 {
     "event":"gusher.subscribe_succeeded",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "channel":""
     }
@@ -119,6 +124,7 @@ reply error:
 ```
 {
     "event":"gusher.subscribe_error",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "channel":""
     }
@@ -141,6 +147,7 @@ reply scuess:
 ```
 {
     "event":"gusher.unsubscribe_succeeded",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "channel":""
     }
@@ -151,6 +158,7 @@ reply error:
 ```
 {
     "event":"gusher.unsubscribe_error",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "channel":"",
     }
@@ -176,6 +184,7 @@ reply scuess:
 ```
 {
     "event":"gusher.remote_succeeded",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "remote":"test"
         "uid":"",
@@ -188,6 +197,7 @@ reply error:
 ```
 {
     "event":"gusher.remote_error",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         "remote":"test",
         "uid":"",
@@ -225,6 +235,7 @@ reply :
 ```
 {
     "event":"gusher.pong_succeeded",
+    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
     "data":{
         //custom
     }
