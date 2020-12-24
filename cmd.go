@@ -253,7 +253,8 @@ func slave(c *cli.Context) {
 					"memory-acquired": m.Sys,
 					"memory-used":     m.Alloc,
 					"goroutines":      runtime.NumGoroutine(),
-				}).Infof("users now: %v", rsHub.CountOnlineUsers())
+					"users-now":       rsHub.CountOnlineUsers(),
+				}).Info("server info")
 			case <-closeConnTotal:
 				return
 			}
