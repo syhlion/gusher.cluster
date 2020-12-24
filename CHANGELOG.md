@@ -3,6 +3,11 @@
 
 ### [Fix]
 
+## [v1.13.0]
+
+- add env switch log to josn or text (default json)
+- log change to json
+
 
 ## [v1.12.0]
 

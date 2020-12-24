@@ -25,6 +25,10 @@ type Logger struct {
 	*logrus.Logger
 }
 
+func (l *Logger) GetLogger() *logrus.Logger {
+	return l.Logger
+}
+
 func (l *Logger) GetRequestEntry(r *http.Request) *logrus.Entry {
 	return l.WithFields(logrus.Fields{
 		"Method":        r.Method,

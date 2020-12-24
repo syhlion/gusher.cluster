@@ -88,7 +88,7 @@ func master(c *cli.Context) {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
 	n := negroni.New()
-	n.Use(httplog.NewLogger())
+	n.Use(httplog.NewLogger(true))
 	n.UseHandler(r)
 	serverError := make(chan error, 1)
 	server := http.Server{
@@ -192,7 +192,7 @@ func slave(c *cli.Context) {
 		logger.Fatal(err)
 	}
 
-	rsHub := redisocket.NewHub(rpool, c.Bool("debug"))
+	rsHub := redisocket.NewHub(rpool, logger.GetLogger(), c.Bool("debug"))
 	rsHub.Config.MaxMessageSize = int64(sc.MaxMessage)
 	rsHub.Config.ScanInterval = sc.ScanInterval
 	rsHub.Config.Upgrader.ReadBufferSize = sc.ReadBuffer
@@ -222,7 +222,7 @@ func slave(c *cli.Context) {
 	sub.HandleFunc("/auth", WsAuth(sc, rpool, client)).Methods("POST")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	n := negroni.New()
-	n.Use(httplog.NewLogger())
+	n.Use(httplog.NewLogger(true))
 	n.UseHandler(r)
 	serverError := make(chan error, 1)
 	server := http.Server{

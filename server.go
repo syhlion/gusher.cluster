@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -58,6 +59,7 @@ var (
 		"redis_addr:\"{{.RedisAddr}}\"\t" + "redis_dbno:\"{{.RedisDb}}\"\n" +
 		"redis_max_idle:\"{{.RedisMaxIdle}}\"\n" +
 		"redis_max_conn:\"{{.RedisMaxConn}}\"\n" +
+		"log_formatter:\"{{.LogFormatter}}\"\n" +
 		"public_key_location:\"{{.PublicKeyLocation}}\"\n\n"
 	slaveMsgFormat = "\nslave mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
 		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
@@ -68,6 +70,7 @@ var (
 		"redis_job_addr:\"{{.RedisJobAddr}}\"\t" + "redis_job_dbno:\"{{.RedisJobDb}}\"\n" +
 		"redis_job_max_idle:\"{{.RedisJobMaxIdle}}\"\n" +
 		"redis_job_max_conn:\"{{.RedisJobMaxConn}}\"\n" +
+		"log_formatter:\"{{.LogFormatter}}\"\n" +
 		"decode_service_addr:\"{{.DecodeServiceAddr}}\"\n\n"
 )
 
@@ -149,6 +152,13 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	if sc.DecodeServiceAddr == "" {
 		logger.Fatal("empty env GUSHER_DECODE_SERVICE")
 	}
+	var f logrus.Formatter
+	if strings.ToLower(sc.LogFormatter) == "json" || sc.LogFormatter == "" {
+		f = &logrus.JSONFormatter{}
+	} else {
+		f = &logrus.TextFormatter{}
+	}
+	logger.SetFormatter(f)
 	sc.StartTime = time.Now()
 	sc.CompileDate = compileDate
 	sc.Version = version
@@ -190,6 +200,15 @@ func getMasterConfig(c *cli.Context) (mc MasterConfig) {
 	if mc.ApiPrefix == "" {
 		logger.Fatal("empty env GUSHER_MASTER_URI_PREFIX")
 	}
+
+	var f logrus.Formatter
+	if strings.ToLower(mc.LogFormatter) == "json" || mc.LogFormatter == "" {
+		f = &logrus.JSONFormatter{}
+	} else {
+		f = &logrus.TextFormatter{}
+	}
+	logger.SetFormatter(f)
+
 	mc.StartTime = time.Now()
 	mc.CompileDate = compileDate
 	mc.Version = version

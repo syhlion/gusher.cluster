@@ -12,7 +12,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	uuid "github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/syhlion/greq"
 	"github.com/syhlion/redisocket.v2"
 )
@@ -117,53 +116,41 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 		}
 		defer s.Close()
 
+		logger.WithField("socket_id", s.SocketId()).Info("connect")
 		s.Listen(func(data []byte) (b []byte, err error) {
-			logger.WithFields(logrus.Fields{
-				"data": string(data),
-			}).Info("receive start")
 			h, err := CommanRouter(data, jobPool)
 			if err != nil {
-				logger.WithFields(logrus.Fields{
-					"data": string(data),
-				}).WithError(err).Warn("command router error")
+				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("router error")
 				return
 			}
-
 			d, _, _, err := jsonparser.Get(data, "data")
 			if err != nil {
-				logger.WithFields(logrus.Fields{
-					"data": string(data),
-				}).WithError(err).Warn("jsonparser data error")
+				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("get data error")
 				return
 			}
-			logger.WithFields(logrus.Fields{
-				"data":  string(data),
-				"pdata": string(d),
-			}).Info("receive to sub")
-			res, err := h(appKey, s.GetAuth(), d, s.SocketId(), true)
+			debug, err := jsonparser.GetBoolean(data, "debug")
 			if err != nil {
-				logger.WithFields(logrus.Fields{
-					"data":  string(data),
-					"pdata": string(d),
-					"res":   res,
-				}).WithError(err).Warn("sub error")
+				debug = false
+			}
+			res, err := h(appKey, s.GetAuth(), d, s.SocketId(), debug)
+			if err != nil {
+				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("handler error")
 				return
 			}
 			switch res.cmdType {
 			case "SUB":
 				s.On(res.data, res.handler)
+			case "MULTISUB":
+				for _, v := range res.multiData {
+					s.On(v, res.handler)
+				}
 			case "UNSUB":
 				s.Off(res.data)
 
 			}
-			logger.WithFields(logrus.Fields{
-				"data":  string(data),
-				"pdata": string(d),
-				"res":   res,
-			}).Info("receive to sub")
 			return res.msg, nil
-
 		})
+		logger.WithField("socket_id", s.SocketId()).Info("disconnect")
 		return
 	}
 
@@ -207,15 +194,16 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		}
 		defer s.Close()
 
+		logger.WithField("socket_id", s.SocketId()).Info("connect")
 		s.Listen(func(data []byte) (b []byte, err error) {
 			h, err := CommanRouter(data, jobPool)
 			if err != nil {
-				logger.WithError(err).Info("router error")
+				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("router error")
 				return
 			}
 			d, _, _, err := jsonparser.Get(data, "data")
 			if err != nil {
-				logger.WithError(err).Info("get data error")
+				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("get data error")
 				return
 			}
 			debug, err := jsonparser.GetBoolean(data, "debug")
@@ -224,7 +212,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 			}
 			res, err := h(appKey, s.GetAuth(), d, s.SocketId(), debug)
 			if err != nil {
-				logger.WithError(err).Info("handler error")
+				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("handler error")
 				return
 			}
 			switch res.cmdType {
@@ -240,6 +228,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 			}
 			return res.msg, nil
 		})
+		logger.WithField("socket_id", s.SocketId()).Info("disconnect")
 		return
 	}
 
