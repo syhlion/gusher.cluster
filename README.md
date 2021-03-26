@@ -1,6 +1,6 @@
 # Gusher.Cluster
 
- [![Build Status](https://travis-ci.org/syhlion/gusher.cluster.svg?branch=master)](https://travis-ci.org/syhlion/gusher.cluster)
+[![Build Status](https://drone.syhlion.tw/api/badges/syhlion/gusher.cluster/status.svg)](https://drone.syhlion.tw/syhlion/gusher.cluster)
  [![Release Status](https://img.shields.io/badge/release-1.8.2-blue.svg)](https://github.com/syhlion/gusher.cluster/releases/tag/v1.8.2)
  [![Stars](https://img.shields.io/github/stars/syhlion/gusher.cluster.svg)](https://github.com/syhlion/gusher.cluster)
 
