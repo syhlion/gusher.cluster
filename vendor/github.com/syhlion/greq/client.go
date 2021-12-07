@@ -2,6 +2,7 @@ package greq
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -106,6 +107,10 @@ type Client struct {
 	debug   bool
 }
 
+func (c *Client) CheckRedircet(f func(req *http.Request, via []*http.Request) error) {
+	c.worker.CheckRedirect(f)
+}
+
 //SetBasicAuth  set Basic auth
 func (c *Client) SetBasicAuth(username, password string) *Client {
 	auth := username + ":" + password
@@ -193,6 +198,10 @@ func (c *Client) Put(url string, params url.Values) (data []byte, httpstatus int
 	req, err := http.NewRequest(http.MethodPut, url, strings.NewReader(params.Encode()))
 	return c.resolveRequest(req, params, err)
 }
+func (c *Client) PutRaw(url string, body io.Reader) (data []byte, httpstatus int, err error) {
+	req, err := http.NewRequest(http.MethodPut, url, body)
+	return c.resolveRawRequest(req, body, err)
+}
 func (c *Client) PutWithOnceHeader(url string, params url.Values, headers map[string]string) (data []byte, httpstatus int, err error) {
 	req, err := http.NewRequest(http.MethodPut, url, strings.NewReader(params.Encode()))
 	if err != nil {
@@ -204,14 +213,28 @@ func (c *Client) PutWithOnceHeader(url string, params url.Values, headers map[st
 
 	return c.resolveRequest(req, params, err)
 }
+func (c *Client) PutRawWithOnceHeader(url string, body io.Reader, headers map[string]string) (data []byte, httpstatus int, err error) {
+	req, err := http.NewRequest(http.MethodPut, url, body)
+	if err != nil {
+		return
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	return c.resolveRawRequest(req, body, err)
+}
 
 //Delete http method Delete
 func (c *Client) Delete(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	req, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(params.Encode()))
 	return c.resolveRequest(req, params, err)
 }
+func (c *Client) DeleteRaw(url string, body io.Reader) (data []byte, httpstatus int, err error) {
+	req, err := http.NewRequest(http.MethodDelete, url, body)
+	return c.resolveRawRequest(req, body, err)
+}
 func (c *Client) DeleteWithOnceHeader(url string, params url.Values, headers map[string]string) (data []byte, httpstatus int, err error) {
-	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(params.Encode()))
+	req, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(params.Encode()))
 	if err != nil {
 		return
 	}
@@ -219,6 +242,16 @@ func (c *Client) DeleteWithOnceHeader(url string, params url.Values, headers map
 		req.Header.Set(key, value)
 	}
 	return c.resolveRequest(req, params, err)
+}
+func (c *Client) DeleteRawWithOnceHeader(url string, body io.Reader, headers map[string]string) (data []byte, httpstatus int, err error) {
+	req, err := http.NewRequest(http.MethodDelete, url, body)
+	if err != nil {
+		return
+	}
+	for key, value := range headers {
+		req.Header.Set(key, value)
+	}
+	return c.resolveRawRequest(req, body, err)
 }
 
 func (c *Client) resolveHeaders(req *http.Request) {
@@ -239,6 +272,7 @@ func (c *Client) resolveRawRequest(req *http.Request, bb io.Reader, e error) (da
 		trace          *httptrace.ClientTrace
 		t0, t3, t4, t5 time.Time
 	)
+	req.Close = true
 	t0 = time.Now()
 	if c.debug {
 		var stat Trace
@@ -291,8 +325,9 @@ func (c *Client) resolveRawRequest(req *http.Request, bb io.Reader, e error) (da
 			req.Header.Set("Content-Type", "application/json")
 		}
 	}
+	req = req.WithContext(ctx)
 
-	err = c.worker.Execute(ctx, req, func(resp *http.Response, err error) (er error) {
+	err = c.worker.Execute(req, func(resp *http.Response, err error) (er error) {
 		if err != nil {
 			return err
 		}
@@ -302,9 +337,22 @@ func (c *Client) resolveRawRequest(req *http.Request, bb io.Reader, e error) (da
 			t5 = time.Now()
 		}()
 		status = resp.StatusCode
-		body, readErr = ioutil.ReadAll(resp.Body)
-		if readErr != nil {
-			return readErr
+		switch resp.Header.Get("Content-Encoding") {
+		case "gzip":
+			reader, err := gzip.NewReader(resp.Body)
+			if err != nil {
+				return err
+			}
+			defer reader.Close()
+			body, readErr = ioutil.ReadAll(reader)
+			if readErr != nil {
+				return readErr
+			}
+		default:
+			body, readErr = ioutil.ReadAll(resp.Body)
+			if readErr != nil {
+				return readErr
+			}
 		}
 		return
 	})
@@ -323,6 +371,7 @@ func (c *Client) resolveRequest(req *http.Request, params url.Values, e error) (
 		trace          *httptrace.ClientTrace
 		t0, t3, t4, t5 time.Time
 	)
+	req.Close = true
 	t0 = time.Now()
 	if c.debug {
 		var stat Trace
@@ -371,8 +420,9 @@ func (c *Client) resolveRequest(req *http.Request, params url.Values, e error) (
 	case "PUT", "POST", "DELETE":
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
 	}
+	req = req.WithContext(ctx)
 
-	err = c.worker.Execute(ctx, req, func(resp *http.Response, err error) (er error) {
+	err = c.worker.Execute(req, func(resp *http.Response, err error) (er error) {
 		if err != nil {
 			return err
 		}
@@ -382,9 +432,22 @@ func (c *Client) resolveRequest(req *http.Request, params url.Values, e error) (
 			t5 = time.Now()
 		}()
 		status = resp.StatusCode
-		body, readErr = ioutil.ReadAll(resp.Body)
-		if readErr != nil {
-			return readErr
+		switch resp.Header.Get("Content-Encoding") {
+		case "gzip":
+			reader, err := gzip.NewReader(resp.Body)
+			if err != nil {
+				return err
+			}
+			defer reader.Close()
+			body, readErr = ioutil.ReadAll(reader)
+			if readErr != nil {
+				return readErr
+			}
+		default:
+			body, readErr = ioutil.ReadAll(resp.Body)
+			if readErr != nil {
+				return readErr
+			}
 		}
 		return
 	})
@@ -395,4 +458,8 @@ func (c *Client) resolveRequest(req *http.Request, params url.Values, e error) (
 	httpstatus = status
 	return
 
+}
+
+func (c *Client) ResolveRequest(req *http.Request, params url.Values, e error) (data []byte, httpstatus int, err error) {
+	return c.resolveRequest(req, params, err)
 }

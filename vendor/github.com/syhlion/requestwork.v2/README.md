@@ -1,7 +1,7 @@
 # requestwork
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/syhlion/requestwork.v2)](https://goreportcard.com/report/github.com/syhlion/requestwork.v2)
-[![Build Status](https://travis-ci.org/syhlion/requestwork.v2.svg?branch=master)](https://travis-ci.org/syhlion/requestwork.v2)
+[![Build Status](https://drone.syhlion.tw/api/badges/syhlion/requestwork.v2/status.svg)](https://drone.syhlion.tw/syhlion/requestwork.v2)
 
 a lib for go to batch processing send web request
 

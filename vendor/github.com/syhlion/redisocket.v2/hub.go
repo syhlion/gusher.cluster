@@ -2,9 +2,7 @@ package redisocket
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -13,6 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
 	uuid "github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -222,15 +221,14 @@ func (s *Sender) Push(channelPrefix, appKey string, event string, data []byte) (
 }
 
 //NewHub It's create a Hub
-func NewHub(m *redis.Pool, debug bool) (e *Hub) {
+func NewHub(m *redis.Pool, log *logrus.Logger, debug bool) (e *Hub) {
 
-	l := log.New(os.Stdout, "[redisocket.v2]", log.Lshortfile|log.Ldate|log.Lmicroseconds)
 	statistic = &Statistic{
 		inMemChannel:  make(chan int, 8192),
 		outMemChannel: make(chan int, 8192),
 		inMsgChannel:  make(chan int, 8192),
 		outMsgChannel: make(chan int, 8192),
-		l:             l,
+		l:             log,
 	}
 	go statistic.Run()
 	pool := &pool{
@@ -263,7 +261,7 @@ func NewHub(m *redis.Pool, debug bool) (e *Hub) {
 		pool:         pool,
 		debug:        debug,
 		closeSign:    make(chan int, 1),
-		log:          l,
+		log:          log,
 	}
 
 }
@@ -299,7 +297,7 @@ type Hub struct {
 	redisManager  *redis.Pool
 	*pool
 	debug     bool
-	log       *log.Logger
+	log       *logrus.Logger
 	closeSign chan int
 }
 
@@ -313,7 +311,7 @@ func (e *Hub) Ping() (err error) {
 }
 func (e *Hub) logger(format string, v ...interface{}) {
 	if e.debug {
-		e.log.Printf(format, v...)
+		e.log.Infof(format, v...)
 	}
 }
 

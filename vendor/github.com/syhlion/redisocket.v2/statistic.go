@@ -1,8 +1,9 @@
 package redisocket
 
 import (
-	"log"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Statistic struct {
@@ -17,7 +18,7 @@ type Statistic struct {
 	inMsgChannel  chan int
 	outMsgChannel chan int
 	lastFlushTime time.Time
-	l             *log.Logger
+	l             *logrus.Logger
 }
 
 func (s *Statistic) AddMem() {
@@ -77,5 +78,12 @@ func (s *Statistic) Run() {
 }
 func (s *Statistic) Flush(t time.Time) {
 
-	s.l.Printf(" [message] in-count: %d, in-byte: %d, out-count: %d, out-byte: %d, [member] in: %d, out: %d", s.inMsg, s.inByte, s.outMsg, s.outByte, s.inMem, s.outMem)
+	s.l.WithFields(logrus.Fields{
+		"in-count":  s.inMsg,
+		"in-Byte":   s.inByte,
+		"out-count": s.outMsg,
+		"out-byte":  s.outByte,
+		"in-mem":    s.inMem,
+		"out-mem":   s.outMem,
+	}).Info("statistic")
 }
