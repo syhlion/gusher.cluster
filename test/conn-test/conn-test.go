@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -110,8 +109,8 @@ func start(c *cli.Context) {
 			}
 			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Add("Content-Length", strconv.Itoa(len(loginUrl.Encode())))
-			ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-			err = work.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
+			//ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
+			err = work.Execute(req, func(resp *http.Response, e error) (err error) {
 				defer tokenGroup.Done()
 				if e != nil {
 					return e
@@ -253,8 +252,7 @@ func start(c *cli.Context) {
 		log.Fatal(err)
 	}
 	var pushStart time.Time
-	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	err = work.Execute(ctx, req, func(resp *http.Response, e error) (err error) {
+	err = work.Execute(req, func(resp *http.Response, e error) (err error) {
 		if e != nil {
 			return
 		}
