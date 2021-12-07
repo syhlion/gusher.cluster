@@ -6,7 +6,6 @@
 ## [v1.13.1]
 
 - fix gorilla websocket CVE bug
-- fix jwt-go CVE bug
 - fix jsonparser CVE bug
 
 ## [v1.13.0]
