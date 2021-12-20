@@ -3,6 +3,10 @@
 
 ### [Fix]
 
+## [v1.13.2]
+
+- fix jwt bug change package github.com/dgrijalva/jwt-go  to https://github.com/golang-jwt/jwt
+
 ## [v1.13.1]
 
 - fix gorilla websocket CVE bug

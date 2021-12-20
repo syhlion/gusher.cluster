@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	jwt "github.com/golang-jwt/jwt"
 	"github.com/gomodule/redigo/redis"
 )
 
