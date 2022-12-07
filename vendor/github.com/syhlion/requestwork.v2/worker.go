@@ -19,10 +19,10 @@ type result struct {
 	err  error
 }
 
-//DefaultMaxIdleConnPerHost max idle
+// DefaultMaxIdleConnPerHost max idle
 const DefaultMaxIdleConnPerHost = 20
 
-//New return http worker
+// New return http worker
 func New(threads int) *Worker {
 	tr := &http.Transport{
 		Proxy: NoProxyAllowed,
@@ -51,12 +51,12 @@ func New(threads int) *Worker {
 
 }
 
-//NoProxyAllowed no proxy
+// NoProxyAllowed no proxy
 func NoProxyAllowed(request *http.Request) (*url.URL, error) {
 	return nil, nil
 }
 
-//Worker instance
+// Worker instance
 type Worker struct {
 	jobQuene chan *job
 	threads  int
@@ -71,7 +71,7 @@ func (w *Worker) CheckRedirect(f func(req *http.Request, via []*http.Request) er
 	w.client.CheckRedirect = f
 }
 
-//Execute exec http request
+// Execute exec http request
 func (w *Worker) Execute(req *http.Request, h func(resp *http.Response, err error) error) (err error) {
 
 	j := &job{req, h, make(chan error)}

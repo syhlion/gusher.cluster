@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -86,7 +87,7 @@ func init() {
 	ip, _ = getExternalIP()
 }
 
-//New return http client
+// New return http client
 func New(worker *requestwork.Worker, timeout time.Duration, debug bool) *Client {
 	return &Client{
 		worker:  worker,
@@ -97,7 +98,7 @@ func New(worker *requestwork.Worker, timeout time.Duration, debug bool) *Client 
 	}
 }
 
-//Client instance
+// Client instance
 type Client struct {
 	worker  *requestwork.Worker
 	timeout time.Duration
@@ -111,7 +112,7 @@ func (c *Client) CheckRedircet(f func(req *http.Request, via []*http.Request) er
 	c.worker.CheckRedirect(f)
 }
 
-//SetBasicAuth  set Basic auth
+// SetBasicAuth  set Basic auth
 func (c *Client) SetBasicAuth(username, password string) *Client {
 	auth := username + ":" + password
 	hash := base64.StdEncoding.EncodeToString([]byte(auth))
@@ -121,7 +122,7 @@ func (c *Client) SetBasicAuth(username, password string) *Client {
 	return c
 }
 
-//SetHeader set http header
+// SetHeader set http header
 func (c *Client) SetHeader(key, value string) *Client {
 	key = strings.Title(key)
 	c.lock.Lock()
@@ -130,7 +131,7 @@ func (c *Client) SetHeader(key, value string) *Client {
 	return c
 }
 
-//SetHost set host
+// SetHost set host
 func (c *Client) SetHost(host string) *Client {
 	c.lock.Lock()
 	defer c.lock.Unlock()
@@ -139,7 +140,7 @@ func (c *Client) SetHost(host string) *Client {
 	return c
 }
 
-//Get http method get
+// Get http method get
 func (c *Client) Get(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	if params != nil {
 		url += "?" + params.Encode()
@@ -162,7 +163,7 @@ func (c *Client) GetWithOnceHeader(url string, params url.Values, headers map[st
 	return c.resolveRequest(req, params, err)
 }
 
-//Post http method post
+// Post http method post
 func (c *Client) Post(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(params.Encode()))
 	return c.resolveRequest(req, params, err)
@@ -193,7 +194,7 @@ func (c *Client) PostWithOnceHeader(url string, params url.Values, headers map[s
 	return c.resolveRequest(req, params, err)
 }
 
-//Put http method put
+// Put http method put
 func (c *Client) Put(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	req, err := http.NewRequest(http.MethodPut, url, strings.NewReader(params.Encode()))
 	return c.resolveRequest(req, params, err)
@@ -224,7 +225,7 @@ func (c *Client) PutRawWithOnceHeader(url string, body io.Reader, headers map[st
 	return c.resolveRawRequest(req, body, err)
 }
 
-//Delete http method Delete
+// Delete http method Delete
 func (c *Client) Delete(url string, params url.Values) (data []byte, httpstatus int, err error) {
 	req, err := http.NewRequest(http.MethodDelete, url, strings.NewReader(params.Encode()))
 	return c.resolveRequest(req, params, err)
@@ -274,6 +275,7 @@ func (c *Client) resolveRawRequest(req *http.Request, bb io.Reader, e error) (da
 	)
 	req.Close = true
 	t0 = time.Now()
+	ctx := context.Background()
 	if c.debug {
 		var stat Trace
 		defer func() {
@@ -284,6 +286,7 @@ func (c *Client) resolveRawRequest(req *http.Request, bb io.Reader, e error) (da
 			stat.Method = req.Method
 			stat.Body = string(data)
 			stat.TCPConnection = t3.Sub(t0)
+			fmt.Println(t3.Sub(t0))
 			stat.ServerProcessing = t4.Sub(t3)
 			stat.ContentTransfer = t5.Sub(t4)
 			stat.Connect = t3.Sub(t0)
@@ -309,12 +312,12 @@ func (c *Client) resolveRawRequest(req *http.Request, bb io.Reader, e error) (da
 			GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
 			GotFirstResponseByte: func() { t4 = time.Now() },
 		}
-		req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
+		ctx = httptrace.WithClientTrace(context.Background(), trace)
 	}
 	if e != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 
 	defer cancel()
 	c.resolveHeaders(req)
@@ -373,6 +376,7 @@ func (c *Client) resolveRequest(req *http.Request, params url.Values, e error) (
 	)
 	req.Close = true
 	t0 = time.Now()
+	ctx := context.Background()
 	if c.debug {
 		var stat Trace
 		defer func() {
@@ -406,13 +410,12 @@ func (c *Client) resolveRequest(req *http.Request, params url.Values, e error) (
 			GotConn:              func(_ httptrace.GotConnInfo) { t3 = time.Now() },
 			GotFirstResponseByte: func() { t4 = time.Now() },
 		}
-		req = req.WithContext(httptrace.WithClientTrace(context.Background(), trace))
+		ctx = httptrace.WithClientTrace(context.Background(), trace)
 	}
 	if e != nil {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 	c.resolveHeaders(req)
 
@@ -462,4 +465,60 @@ func (c *Client) resolveRequest(req *http.Request, params url.Values, e error) (
 
 func (c *Client) ResolveRequest(req *http.Request, params url.Values, e error) (data []byte, httpstatus int, err error) {
 	return c.resolveRequest(req, params, err)
+}
+
+// ResolveTraceRequest 自定義 httptrace
+func (c *Client) ResolveTraceRequest(req *http.Request, trace *httptrace.ClientTrace) (data []byte, httpstatus int, err error) {
+	var (
+		body   []byte
+		status int
+	)
+	req.Close = true
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	req = req.WithContext(httptrace.WithClientTrace(ctx, trace))
+
+	defer cancel()
+	c.resolveHeaders(req)
+
+	switch req.Method {
+	case "PUT", "POST", "DELETE":
+		if req.Header.Get("Content-Type") == "" {
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+		}
+	}
+
+	err = c.worker.Execute(req, func(resp *http.Response, err error) (er error) {
+		if err != nil {
+			return err
+		}
+		var readErr error
+		defer func() {
+			resp.Body.Close()
+		}()
+		status = resp.StatusCode
+		switch resp.Header.Get("Content-Encoding") {
+		case "gzip":
+			reader, err := gzip.NewReader(resp.Body)
+			if err != nil {
+				return err
+			}
+			defer reader.Close()
+			body, readErr = ioutil.ReadAll(reader)
+			if readErr != nil {
+				return readErr
+			}
+		default:
+			body, readErr = ioutil.ReadAll(resp.Body)
+			if readErr != nil {
+				return readErr
+			}
+		}
+		return
+	})
+	if err != nil {
+		return
+	}
+	data = body
+	httpstatus = status
+	return
 }

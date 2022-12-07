@@ -12,6 +12,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	uuid "github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/syhlion/greq"
 	"github.com/syhlion/redisocket.v2"
 )
@@ -116,7 +117,10 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 		}
 		defer s.Close()
 
-		logger.WithField("socket_id", s.SocketId()).Info("connect")
+		logger.WithFields(logrus.Fields{
+			"socket_id": s.SocketId(),
+			"userid":    auth.UserId,
+		}).Info("connect")
 		s.Listen(func(data []byte) (b []byte, err error) {
 			h, err := CommanRouter(data, jobPool)
 			if err != nil {
@@ -150,7 +154,10 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 			}
 			return res.msg, nil
 		})
-		logger.WithField("socket_id", s.SocketId()).Info("disconnect")
+		logger.WithFields(logrus.Fields{
+			"socket_id": s.SocketId(),
+			"userid":    auth.UserId,
+		}).Info("disconnect")
 		return
 	}
 
@@ -194,7 +201,10 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		}
 		defer s.Close()
 
-		logger.WithField("socket_id", s.SocketId()).Info("connect")
+		logger.WithFields(logrus.Fields{
+			"socket_id": s.SocketId(),
+			"userid":    auth.UserId,
+		}).Info("connect")
 		s.Listen(func(data []byte) (b []byte, err error) {
 			h, err := CommanRouter(data, jobPool)
 			if err != nil {
@@ -228,7 +238,11 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 			}
 			return res.msg, nil
 		})
-		logger.WithField("socket_id", s.SocketId()).Info("disconnect")
+		logger.WithFields(
+			logrus.Fields{
+				"socket_id": s.SocketId(),
+				"userid":    auth.UserId,
+			}).Info("disconnect")
 		return
 	}
 
