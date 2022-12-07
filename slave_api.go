@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -117,6 +118,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 		}
 		defer s.Close()
 
+		t1 := time.Now()
 		logger.WithFields(logrus.Fields{
 			"socket_id": s.SocketId(),
 			"userid":    auth.UserId,
@@ -154,9 +156,11 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 			}
 			return res.msg, nil
 		})
+		t2 := time.Now()
 		logger.WithFields(logrus.Fields{
 			"socket_id": s.SocketId(),
 			"userid":    auth.UserId,
+			"duration":  fmt.Sprintf("%v", t2.Sub(t1)),
 		}).Info("disconnect")
 		return
 	}
@@ -201,6 +205,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		}
 		defer s.Close()
 
+		t1 := time.Now()
 		logger.WithFields(logrus.Fields{
 			"socket_id": s.SocketId(),
 			"userid":    auth.UserId,
@@ -238,10 +243,12 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 			}
 			return res.msg, nil
 		})
+		t2 := time.Now()
 		logger.WithFields(
 			logrus.Fields{
 				"socket_id": s.SocketId(),
 				"userid":    auth.UserId,
+				"duration":  fmt.Sprintf("%v", t2.Sub(t1)),
 			}).Info("disconnect")
 		return
 	}
