@@ -158,6 +158,8 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 		})
 		t2 := time.Now()
 		logger.WithFields(logrus.Fields{
+			"start_at":  t1,
+			"start_end": t2,
 			"socket_id": s.SocketId(),
 			"userid":    auth.UserId,
 			"duration":  fmt.Sprintf("%v", t2.Sub(t1)),
@@ -246,6 +248,8 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		t2 := time.Now()
 		logger.WithFields(
 			logrus.Fields{
+				"start_at":  t1,
+				"start_end": t2,
 				"socket_id": s.SocketId(),
 				"userid":    auth.UserId,
 				"duration":  fmt.Sprintf("%v", t2.Sub(t1)),
