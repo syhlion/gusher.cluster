@@ -164,7 +164,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 			"socket_id":          s.SocketId(),
 			"user_id":            auth.UserId,
 			"conn_duration":      fmt.Sprintf("%v", t2.Sub(t1)),
-			"conn_duration_nano": fmt.Sprintf("%d", t2.Sub(t1)),
+			"conn_duration_nano": t2.Sub(t1),
 		}).Info("disconnect")
 		return
 	}
@@ -256,7 +256,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 				"socket_id":          s.SocketId(),
 				"user_id":            auth.UserId,
 				"conn_duration":      fmt.Sprintf("%v", t2.Sub(t1)),
-				"conn_duration_nano": fmt.Sprintf("%d", t2.Sub(t1)),
+				"conn_duration_nano": t2.Sub(t1),
 			}).Info("disconnect")
 		return
 	}
