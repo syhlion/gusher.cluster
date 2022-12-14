@@ -121,7 +121,8 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 		t1 := time.Now()
 		logger.WithFields(logrus.Fields{
 			"socket_id": s.SocketId(),
-			"userid":    auth.UserId,
+			"conn_at":   t1,
+			"user_id":   auth.UserId,
 		}).Info("connect")
 		s.Listen(func(data []byte) (b []byte, err error) {
 			h, err := CommanRouter(data, jobPool)
@@ -158,11 +159,12 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 		})
 		t2 := time.Now()
 		logger.WithFields(logrus.Fields{
-			"conn_at":       t1,
-			"conn_end":      t2,
-			"socket_id":     s.SocketId(),
-			"userid":        auth.UserId,
-			"conn_duration": fmt.Sprintf("%v", t2.Sub(t1)),
+			"conn_at":            t1,
+			"conn_end":           t2,
+			"socket_id":          s.SocketId(),
+			"user_id":            auth.UserId,
+			"conn_duration":      fmt.Sprintf("%v", t2.Sub(t1)),
+			"conn_duration_nano": fmt.Sprintf("%d", t2.Sub(t1)),
 		}).Info("disconnect")
 		return
 	}
@@ -209,8 +211,9 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 
 		t1 := time.Now()
 		logger.WithFields(logrus.Fields{
+			"conn_at":   t1,
 			"socket_id": s.SocketId(),
-			"userid":    auth.UserId,
+			"user_id":   auth.UserId,
 		}).Info("connect")
 		s.Listen(func(data []byte) (b []byte, err error) {
 			h, err := CommanRouter(data, jobPool)
@@ -248,11 +251,12 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 		t2 := time.Now()
 		logger.WithFields(
 			logrus.Fields{
-				"conn_at":       t1,
-				"conn_end":      t2,
-				"socket_id":     s.SocketId(),
-				"userid":        auth.UserId,
-				"conn_duration": fmt.Sprintf("%v", t2.Sub(t1)),
+				"conn_at":            t1,
+				"conn_end":           t2,
+				"socket_id":          s.SocketId(),
+				"user_id":            auth.UserId,
+				"conn_duration":      fmt.Sprintf("%v", t2.Sub(t1)),
+				"conn_duration_nano": fmt.Sprintf("%d", t2.Sub(t1)),
 			}).Info("disconnect")
 		return
 	}
