@@ -4,6 +4,7 @@ import "time"
 
 type MasterConfig struct {
 	LogFormatter      string
+	NatsAddr          string
 	RedisAddr         string
 	RedisDb           int
 	RedisMaxIdle      int
@@ -23,6 +24,8 @@ func (m MasterConfig) GetStartTime() string {
 
 type SlaveConfig struct {
 	LogFormatter      string
+	NatsAddr          string
+	PublicKeyLocation string
 	LogInterval       time.Duration
 	ScanInterval      time.Duration
 	MaxMessage        int

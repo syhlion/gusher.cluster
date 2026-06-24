@@ -148,10 +148,16 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	if err != nil {
 		sc.WriteBuffer = 8192
 	}
-	sc.DecodeServiceAddr = os.Getenv("GUSHER_DECODE_SERVICE")
-	if sc.DecodeServiceAddr == "" {
-		logger.Fatal("empty env GUSHER_DECODE_SERVICE")
+	sc.NatsAddr = os.Getenv("GUSHER_NATS_ADDR")
+	if sc.NatsAddr == "" {
+		logger.Fatal("empty env GUSHER_NATS_ADDR")
 	}
+	// 本機 JWT 驗證(取代 decode service):slave 需公鑰
+	sc.PublicKeyLocation = os.Getenv("GUSHER_PUBLIC_PEM_FILE")
+	if sc.PublicKeyLocation == "" {
+		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")
+	}
+	sc.DecodeServiceAddr = os.Getenv("GUSHER_DECODE_SERVICE") // 保留欄位相容,已不必填
 	var f logrus.Formatter
 	if strings.ToLower(sc.LogFormatter) == "json" || sc.LogFormatter == "" {
 		f = &logrus.JSONFormatter{}
@@ -171,6 +177,10 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 func getMasterConfig(c *cli.Context) (mc MasterConfig) {
 	envInit(c)
 	mc = MasterConfig{}
+	mc.NatsAddr = os.Getenv("GUSHER_NATS_ADDR")
+	if mc.NatsAddr == "" {
+		logger.Fatal("empty env GUSHER_NATS_ADDR")
+	}
 	mc.PublicKeyLocation = os.Getenv("GUSHER_PUBLIC_PEM_FILE")
 	if mc.PublicKeyLocation == "" {
 		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")

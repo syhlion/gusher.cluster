@@ -1,10 +1,10 @@
 package main
 
 import (
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -14,7 +14,6 @@ import (
 	"github.com/gorilla/mux"
 	uuid "github.com/satori/go.uuid"
 	"github.com/sirupsen/logrus"
-	"github.com/syhlion/greq"
 	"github.com/syhlion/redisocket.v2"
 )
 
@@ -36,30 +35,21 @@ func Ping() http.HandlerFunc {
 		w.Write([]byte("pong"))
 	}
 }
-func WsAuth(sc SlaveConfig, pool *redis.Pool, reqClient *greq.Client) http.HandlerFunc {
+func WsAuth(sc SlaveConfig, pool *redis.Pool, pubKey *rsa.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		jwt := r.FormValue("jwt")
+		jwtStr := r.FormValue("jwt")
 
-		v := url.Values{}
-		v.Add("data", jwt)
-
-		b, _, err := reqClient.Post(sc.DecodeServiceAddr, v)
+		// 本機 RSA 公鑰驗 JWT(取代 POST 去 decode service + greq)
+		jp, err := Decode(pubKey, jwtStr)
 		if err != nil {
-			logger.WithError(err).Warn("post decode service error")
+			logger.WithError(err).Warn("jwt local decode error")
 			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
 			return
 		}
-		a := &JwtPack{}
-		err = json.Unmarshal(b, a)
+		b, err := json.Marshal(jp.Gusher)
 		if err != nil {
 			logger.WithError(err).Warn("json marshal error")
-			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
-			return
-		}
-		b, err = json.Marshal(a.Gusher)
-		if err != nil {
-			logger.WithError(err).Warn("json marshl error")
 			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
 			return
 		}
@@ -80,7 +70,7 @@ func WsAuth(sc SlaveConfig, pool *redis.Pool, reqClient *greq.Client) http.Handl
 	}
 
 }
-func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
+func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redisocket.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		appKey := params["app_key"]
@@ -171,7 +161,7 @@ func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *red
 
 }
 
-func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
+func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redisocket.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		appKey := params["app_key"]

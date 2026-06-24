@@ -66,9 +66,6 @@ github.com/shurcooL/sanitized_anchor_name
 # github.com/sirupsen/logrus v1.9.0
 ## explicit; go 1.13
 github.com/sirupsen/logrus
-# github.com/syhlion/greq v1.1.2
-## explicit; go 1.19
-github.com/syhlion/greq
 # github.com/syhlion/httplog v0.0.0-20200804071957-8dddff4f795c
 ## explicit
 github.com/syhlion/httplog
