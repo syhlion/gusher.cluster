@@ -83,11 +83,8 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	sc = SlaveConfig{}
 	envInit(c)
 
-	//common redis
+	//redis 已不使用(realtime 走 NATS、auth 本機驗、remote 走 NATS),欄位保留相容、不再強制
 	sc.RedisAddr = os.Getenv("GUSHER_REDIS_ADDR")
-	if sc.RedisAddr == "" {
-		logger.Fatal("empty env GUSHER_REDIS_ADDR")
-	}
 	var err error
 	sc.RedisDb, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_DBNO"))
 	if err != nil {
@@ -101,11 +98,7 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	if err != nil {
 		sc.RedisMaxConn = 800
 	}
-	//job redis
 	sc.RedisJobAddr = os.Getenv("GUSHER_JOB_REDIS_ADDR")
-	if sc.RedisJobAddr == "" {
-		logger.Fatal("empty env GUSHER_JOB_REDIS_ADDR")
-	}
 	sc.RedisJobDb, err = strconv.Atoi(os.Getenv("GUSHER_JOB_REDIS_DBNO"))
 	if err != nil {
 		sc.RedisJobDb = 0
@@ -148,10 +141,16 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	if err != nil {
 		sc.WriteBuffer = 8192
 	}
-	sc.DecodeServiceAddr = os.Getenv("GUSHER_DECODE_SERVICE")
-	if sc.DecodeServiceAddr == "" {
-		logger.Fatal("empty env GUSHER_DECODE_SERVICE")
+	sc.NatsAddr = os.Getenv("GUSHER_NATS_ADDR")
+	if sc.NatsAddr == "" {
+		logger.Fatal("empty env GUSHER_NATS_ADDR")
 	}
+	// 本機 JWT 驗證(取代 decode service):slave 需公鑰
+	sc.PublicKeyLocation = os.Getenv("GUSHER_PUBLIC_PEM_FILE")
+	if sc.PublicKeyLocation == "" {
+		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")
+	}
+	sc.DecodeServiceAddr = os.Getenv("GUSHER_DECODE_SERVICE") // 保留欄位相容,已不必填
 	var f logrus.Formatter
 	if strings.ToLower(sc.LogFormatter) == "json" || sc.LogFormatter == "" {
 		f = &logrus.JSONFormatter{}
@@ -171,14 +170,15 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 func getMasterConfig(c *cli.Context) (mc MasterConfig) {
 	envInit(c)
 	mc = MasterConfig{}
+	mc.NatsAddr = os.Getenv("GUSHER_NATS_ADDR")
+	if mc.NatsAddr == "" {
+		logger.Fatal("empty env GUSHER_NATS_ADDR")
+	}
 	mc.PublicKeyLocation = os.Getenv("GUSHER_PUBLIC_PEM_FILE")
 	if mc.PublicKeyLocation == "" {
 		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")
 	}
-	mc.RedisAddr = os.Getenv("GUSHER_REDIS_ADDR")
-	if mc.RedisAddr == "" {
-		logger.Fatal("empty env GUSHER_REDIS_ADDR")
-	}
+	mc.RedisAddr = os.Getenv("GUSHER_REDIS_ADDR") // 已不使用,保留相容
 	var err error
 	mc.RedisDb, err = strconv.Atoi(os.Getenv("GUSHER_REDIS_DBNO"))
 	if err != nil {

@@ -14,13 +14,11 @@ import (
 	_ "net/http/pprof"
 
 	jwt "github.com/golang-jwt/jwt"
-	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
+	nats "github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
-	"github.com/syhlion/greq"
 	"github.com/syhlion/httplog"
 	redisocket "github.com/syhlion/redisocket.v2"
-	"github.com/syhlion/requestwork.v2"
 	"github.com/urfave/cli"
 	"github.com/urfave/negroni"
 )
@@ -29,6 +27,13 @@ import (
 func master(c *cli.Context) {
 
 	mc := getMasterConfig(c)
+	/*logging: 輸出 stdout/file/both ＋ 輪替(env 驅動)*/
+	ls, logErr := setupLoggingFromEnv()
+	if logErr != nil {
+		logger.Fatal(logErr)
+	}
+	logger = ls.Logrus
+	defer ls.Close()
 
 	b, err := ioutil.ReadFile(mc.PublicKeyLocation)
 	if err != nil {
@@ -39,28 +44,18 @@ func master(c *cli.Context) {
 		logger.Warnf("Did not start \"%sdecode\" api", mc.ApiPrefix)
 	}
 
-	/*redis init*/
-	rpool := redis.NewPool(func() (redis.Conn, error) {
-		c, err := redis.Dial("tcp", mc.RedisAddr)
-		if err != nil {
-			return nil, err
-		}
-		_, err = c.Do("SELECT", mc.RedisDb)
-		if err != nil {
-			c.Close()
-			return nil, err
-		}
-		return c, nil
-	}, 10)
-	rpool.MaxIdle = mc.RedisMaxIdle
-	rpool.MaxActive = mc.RedisMaxConn
-
-	/*Test redis connect*/
-	err = RedisTestConn(rpool.Get())
+	/*NATS:publish + presence 聚合(master 無連線,presence 查詢經 request/reply 匯總各 slave)*/
+	nc, err := nats.Connect(mc.NatsAddr, nats.Name("gusher-master"))
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal("nats connect error: ", err)
 	}
-	rsender := redisocket.NewSender(rpool)
+	defer nc.Close()
+	broker := redisocket.NewNATSBroker(nc)
+	presence, err := redisocket.NewMemoryPresence(nc, listenChannelPrefix)
+	if err != nil {
+		logger.Fatal("nats presence error: ", err)
+	}
+	rsender := redisocket.NewSenderWithBrokerAndPresence(broker, presence)
 
 	/*api start*/
 	apiListener, err := net.Listen("tcp", mc.ApiListen)
@@ -101,7 +96,7 @@ func master(c *cli.Context) {
 		serverError <- err
 	}()
 	go func() {
-		logger.Error(http.ListenAndServe(":7799", nil))
+		logger.Error(http.ListenAndServe("127.0.0.1:7799", nil))
 	}()
 
 	// block and listen syscall
@@ -127,72 +122,38 @@ func runtimeStats() (m *runtime.MemStats) {
 	return m
 }
 
-//slave server
+// slave server
 func slave(c *cli.Context) {
 
 	sc := getSlaveConfig(c)
-	/*redis init*/
-	rpool := redis.NewPool(func() (redis.Conn, error) {
-		c, err := redis.Dial("tcp", sc.RedisAddr)
-		if err != nil {
-			return nil, err
-		}
-		_, err = c.Do("SELECT", sc.RedisDb)
-		if err != nil {
-			c.Close()
-			return nil, err
-		}
-		return c, nil
-	}, 10)
-
-	rpool.MaxIdle = sc.RedisMaxIdle
-	rpool.MaxActive = sc.RedisMaxConn
-	rpool.Wait = true
-	rpool.IdleTimeout = 240 * time.Second
-	rpool.TestOnBorrow = func(c redis.Conn, t time.Time) error {
-		if time.Since(t) < time.Minute {
-			return nil
-		}
-		_, err := c.Do("PING")
-		return err
+	/*logging: 輸出 stdout/file/both ＋ 輪替(env 驅動);引擎用 slog、app 用 logrus、同一目的地*/
+	ls, logErr := setupLoggingFromEnv()
+	if logErr != nil {
+		logger.Fatal(logErr)
 	}
-
-	jobRpool := redis.NewPool(func() (redis.Conn, error) {
-		c, err := redis.Dial("tcp", sc.RedisJobAddr)
-		if err != nil {
-			return nil, err
-		}
-		_, err = c.Do("SELECT", sc.RedisJobDb)
-		if err != nil {
-			c.Close()
-			return nil, err
-		}
-		return c, nil
-	}, 10)
-
-	jobRpool.MaxIdle = sc.RedisJobMaxIdle
-	jobRpool.MaxActive = sc.RedisJobMaxConn
-	jobRpool.Wait = true
-	jobRpool.IdleTimeout = 240 * time.Second
-	jobRpool.TestOnBorrow = func(c redis.Conn, t time.Time) error {
-		if time.Since(t) < time.Minute {
-			return nil
-		}
-		_, err := c.Do("PING")
-		return err
-	}
-
-	/*Test redis connect*/
-	err := RedisTestConn(rpool.Get())
+	logger = ls.Logrus
+	defer ls.Close()
+	/*本機 JWT 驗證:載入公鑰(取代 decode service + greq)*/
+	pemBytes, err := ioutil.ReadFile(sc.PublicKeyLocation)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	err = RedisTestConn(jobRpool.Get())
+	publicPem, err := jwt.ParseRSAPublicKeyFromPEM(pemBytes)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal("parse public key error: ", err)
 	}
 
-	rsHub := redisocket.NewHub(rpool, logger.GetLogger(), c.Bool("debug"))
+	/*NATS:bus + presence(取代 redis pub/sub + sorted-set presence)*/
+	nc, err := nats.Connect(sc.NatsAddr, nats.Name("gusher-slave"))
+	if err != nil {
+		logger.Fatal("nats connect error: ", err)
+	}
+	broker := redisocket.NewNATSBroker(nc)
+	presence, err := redisocket.NewMemoryPresence(nc, listenChannelPrefix)
+	if err != nil {
+		logger.Fatal("nats presence error: ", err)
+	}
+	rsHub := redisocket.NewHubWithBrokerAndPresence(broker, presence, ls.Slog, c.Bool("debug"))
 	rsHub.Config.MaxMessageSize = int64(sc.MaxMessage)
 	rsHub.Config.ScanInterval = sc.ScanInterval
 	rsHub.Config.Upgrader.ReadBufferSize = sc.ReadBuffer
@@ -201,10 +162,6 @@ func slave(c *cli.Context) {
 	go func() {
 		rsHubErr <- rsHub.Listen(listenChannelPrefix)
 	}()
-
-	/*request worker*/
-	worker := requestwork.New(50)
-	client := greq.New(worker, 15*time.Second, c.Bool("debug"))
 	/*api start*/
 	apiListener, err := net.Listen("tcp", sc.ApiListen)
 	if err != nil {
@@ -217,9 +174,9 @@ func slave(c *cli.Context) {
 	//server := http.NewServeMux()
 
 	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
-	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, jobRpool, rsHub, client)).Methods("GET")
-	sub.HandleFunc("/wtf/{app_key}", WtfConnect(sc, rpool, jobRpool, rsHub, client)).Methods("GET")
-	sub.HandleFunc("/auth", WsAuth(sc, rpool, client)).Methods("POST")
+	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, publicPem, nc, rsHub)).Methods("GET")
+	sub.HandleFunc("/wtf/{app_key}", WsConnect(sc, publicPem, nc, rsHub)).Methods("GET")
+	sub.HandleFunc("/auth", WsAuth(sc, publicPem)).Methods("POST")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	n := negroni.New()
 	n.Use(httplog.NewLogger(true))
@@ -234,7 +191,7 @@ func slave(c *cli.Context) {
 		serverError <- err
 	}()
 	go func() {
-		logger.Error(http.ListenAndServe(":8899", nil))
+		logger.Error(http.ListenAndServe("127.0.0.1:8899", nil))
 	}()
 
 	closeConnTotal := make(chan int, 0)
@@ -265,7 +222,7 @@ func slave(c *cli.Context) {
 		closeConnTotal <- 1
 		apiListener.Close()
 		rsHub.Close()
-		rpool.Close()
+		nc.Close()
 	}()
 
 	// block and listen syscall

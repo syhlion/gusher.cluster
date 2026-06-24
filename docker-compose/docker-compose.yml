@@ -1,24 +1,48 @@
-gusher-redis:
-    container_name: gusher-redis
-    image: redis
-gusher-master:
-    image: syhlion/gusher.cluster
-    volumes: 
-        - /public_key_path:/data/key
-    links: 
-        - gusher-redis
-    command: master
-    env_file:
-        - ./docker-env.example
-    ports: 
-        - "7777:8888"
-gusher-slave:
-    image: syhlion/gusher.cluster
-    command: slave
-    env_file:
-        - ./docker-env.example
-    links: 
-        - gusher-redis
-        - gusher-master
+# gusher.cluster NATS 版（無 redis）
+# 用法:在 repo 根目錄 `docker compose -f docker-compose/docker-compose.yml up --build`
+# 需在本目錄放 public.pem（master/slave 用來本機驗 JWT;測試可用 test/key/public.pem）。
+
+services:
+  nats:
+    image: nats:2.10-alpine
+    container_name: gusher-nats
+    command: ["-js"] # 啟用 JetStream（remote 要「不能掉」時用;core pub/sub 不需要）
     ports:
-        - "8888:8888"
+      - "4222:4222"
+
+  gusher-master:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: gusher.cluster:nats
+    container_name: gusher-master
+    depends_on: [nats]
+    command: ["master"]
+    environment:
+      GUSHER_NATS_ADDR: "nats://nats:4222"
+      GUSHER_MASTER_API_LISTEN: ":7777"
+      GUSHER_MASTER_URI_PREFIX: "/"
+      GUSHER_PUBLIC_PEM_FILE: "/gusher/public.pem"
+      GUSHER_LOG_OUTPUT: "stdout" # stdout | file | both
+      GUSHER_LOG_FORMAT: "json"
+    volumes:
+      - ./public.pem:/gusher/public.pem:ro
+    ports:
+      - "7777:7777"
+
+  gusher-slave:
+    image: gusher.cluster:nats
+    container_name: gusher-slave
+    depends_on: [nats, gusher-master]
+    command: ["slave"]
+    environment:
+      GUSHER_NATS_ADDR: "nats://nats:4222"
+      GUSHER_API_LISTEN: ":8888"
+      GUSHER_API_URI_PREFIX: "/"
+      GUSHER_PUBLIC_PEM_FILE: "/gusher/public.pem"
+      GUSHER_LOG_OUTPUT: "stdout"
+      GUSHER_LOG_FORMAT: "json"
+    volumes:
+      - ./public.pem:/gusher/public.pem:ro
+    ports:
+      - "8888:8888"

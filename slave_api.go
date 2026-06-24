@@ -1,20 +1,18 @@
 package main
 
 import (
+	"crypto/rsa"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
 
 	"github.com/buger/jsonparser"
-	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
-	uuid "github.com/satori/go.uuid"
+	nats "github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
-	"github.com/syhlion/greq"
 	"github.com/syhlion/redisocket.v2"
 )
 
@@ -36,173 +34,50 @@ func Ping() http.HandlerFunc {
 		w.Write([]byte("pong"))
 	}
 }
-func WsAuth(sc SlaveConfig, pool *redis.Pool, reqClient *greq.Client) http.HandlerFunc {
+func WsAuth(sc SlaveConfig, pubKey *rsa.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		jwt := r.FormValue("jwt")
-
-		v := url.Values{}
-		v.Add("data", jwt)
-
-		b, _, err := reqClient.Post(sc.DecodeServiceAddr, v)
-		if err != nil {
-			logger.WithError(err).Warn("post decode service error")
+		jwtStr := r.FormValue("jwt")
+		// 本機驗 JWT;通過即把「JWT 本身」當 token 回給 client(無狀態、無 redis)。
+		// client 後續 /ws?token=<JWT>,該端點再本機驗一次 → 全程零 redis、保留原兩步流程。
+		if _, err := Decode(pubKey, jwtStr); err != nil {
+			logger.WithError(err).Warn("jwt local decode error")
 			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
 			return
 		}
-		a := &JwtPack{}
-		err = json.Unmarshal(b, a)
-		if err != nil {
-			logger.WithError(err).Warn("json marshal error")
-			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
-			return
-		}
-		b, err = json.Marshal(a.Gusher)
-		if err != nil {
-			logger.WithError(err).Warn("json marshl error")
-			http.Error(w, "jwt decode fail", http.StatusUnauthorized)
-			return
-		}
-		uid := uuid.NewV1()
-		conn := pool.Get()
-		defer conn.Close()
-		conn.Send("SET", uid.String(), string(b))
-		conn.Send("EXPIRE", uid.String(), 60)
-		conn.Flush()
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(struct {
 			Token string `json:"token"`
-		}{
-			Token: uid.String(),
-		})
-		return
+		}{Token: jwtStr})
 	}
-
 }
-func WtfConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
+
+// WsConnect 同時供 /ws 與 /wtf(原 WtfConnect 已併入,去除重複)。
+// token 參數即 JWT,本機 RSA 公鑰驗證 → auth,無 redis。
+func WsConnect(sc SlaveConfig, pubKey *rsa.PublicKey, nc *nats.Conn, rHub *redisocket.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		appKey := params["app_key"]
-		token := r.FormValue("token")
+		token := r.FormValue("token") // token 即 JWT
 		if appKey == "" || token == "" {
 			logger.Warn("app_key or token is nil")
 			http.Error(w, "app_key is nil", http.StatusUnauthorized)
 			return
 		}
-		conn := pool.Get()
-		reply, err := redis.Bytes(conn.Do("GET", token))
+		jp, err := Decode(pubKey, token)
 		if err != nil {
-			conn.Close()
-			logger.WithError(err).Warn("token get nil")
+			logger.WithError(err).Warn("jwt decode error")
 			http.Error(w, "token error", http.StatusUnauthorized)
 			return
 		}
-		conn.Close()
-		auth := &redisocket.Auth{}
-		err = json.Unmarshal(reply, auth)
-		if err != nil {
-			logger.WithError(err).Warn("json unmarshal error")
-			http.Error(w, "token error", http.StatusUnauthorized)
-			return
-		}
+		auth := jp.Gusher
 		if appKey != auth.AppKey {
 			http.Error(w, "appkey error", http.StatusUnauthorized)
 			return
 		}
 
-		s, err := rHub.Upgrade(w, r, nil, auth.UserId, appKey, auth)
-		if err != nil {
-			logger.WithError(err).Warnf("upgrade ws connection error")
-			return
-		}
-		defer s.Close()
-
-		t1 := time.Now()
-		logger.WithFields(logrus.Fields{
-			"socket_id": s.SocketId(),
-			"conn_at":   t1,
-			"user_id":   auth.UserId,
-		}).Info("connect")
-		s.Listen(func(data []byte) (b []byte, err error) {
-			h, err := CommanRouter(data, jobPool)
-			if err != nil {
-				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("router error")
-				return
-			}
-			d, _, _, err := jsonparser.Get(data, "data")
-			if err != nil {
-				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("get data error")
-				return
-			}
-			debug, err := jsonparser.GetBoolean(data, "debug")
-			if err != nil {
-				debug = false
-			}
-			res, err := h(appKey, s.GetAuth(), d, s.SocketId(), debug)
-			if err != nil {
-				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("handler error")
-				return
-			}
-			switch res.cmdType {
-			case "SUB":
-				s.On(res.data, res.handler)
-			case "MULTISUB":
-				for _, v := range res.multiData {
-					s.On(v, res.handler)
-				}
-			case "UNSUB":
-				s.Off(res.data)
-
-			}
-			return res.msg, nil
-		})
-		t2 := time.Now()
-		logger.WithFields(logrus.Fields{
-			"conn_at":            t1,
-			"conn_end":           t2,
-			"socket_id":          s.SocketId(),
-			"user_id":            auth.UserId,
-			"conn_duration":      fmt.Sprintf("%v", t2.Sub(t1)),
-			"conn_duration_nano": t2.Sub(t1),
-		}).Info("disconnect")
-		return
-	}
-
-}
-
-func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redisocket.Hub, reqClient *greq.Client) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		appKey := params["app_key"]
-		token := r.FormValue("token")
-		if appKey == "" || token == "" {
-			logger.Warn("app_key or token is nil")
-			http.Error(w, "app_key is nil", http.StatusUnauthorized)
-			return
-		}
-		conn := pool.Get()
-		reply, err := redis.Bytes(conn.Do("GET", token))
-		if err != nil {
-			conn.Close()
-			logger.WithError(err).Warn("token get nil")
-			http.Error(w, "token error", http.StatusUnauthorized)
-			return
-		}
-		conn.Close()
-		auth := &redisocket.Auth{}
-		err = json.Unmarshal(reply, auth)
-		if err != nil {
-			logger.WithError(err).Warn("json unmarshal error")
-			http.Error(w, "token error", http.StatusUnauthorized)
-			return
-		}
-		if appKey != auth.AppKey {
-			http.Error(w, "appkey error", http.StatusUnauthorized)
-			return
-		}
-
-		s, err := rHub.Upgrade(w, r, nil, auth.UserId, appKey, auth)
+		s, err := rHub.Upgrade(w, r, nil, auth.UserId, appKey, &auth)
 		if err != nil {
 			logger.WithError(err).Warnf("upgrade ws connection error")
 			return
@@ -216,7 +91,7 @@ func WsConnect(sc SlaveConfig, pool *redis.Pool, jobPool *redis.Pool, rHub *redi
 			"user_id":   auth.UserId,
 		}).Info("connect")
 		s.Listen(func(data []byte) (b []byte, err error) {
-			h, err := CommanRouter(data, jobPool)
+			h, err := CommanRouter(data, nc)
 			if err != nil {
 				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("router error")
 				return
@@ -426,7 +301,7 @@ func PingPongCommand(appkey string, auth redisocket.Auth, data []byte, socketId 
 	msg.msg = reply
 	return
 }
-func Remote(pool *redis.Pool) func(string, redisocket.Auth, []byte, string, bool) (msg *commandResponse, err error) {
+func Remote(nc *nats.Conn) func(string, redisocket.Auth, []byte, string, bool) (msg *commandResponse, err error) {
 	return func(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
 
 		remote, err := jsonparser.GetString(data, "remote")
@@ -469,10 +344,12 @@ func Remote(pool *redis.Pool) func(string, redisocket.Auth, []byte, string, bool
 			AppKey:   auth.AppKey,
 		}
 		d, err := json.Marshal(wp)
-		conn := pool.Get()
-		defer conn.Close()
-		_, err = conn.Do("RPUSH", auth.AppKey+"@"+remote, d)
 		if err != nil {
+			return
+		}
+		// 發佈到 NATS rpc subject(取代 RPUSH redis;外部 worker 訂閱消費)
+		// subject:<prefix>rpc.<appKey>.<remote>,與 bus(ch.)/presence 命名空間分離
+		if err = nc.Publish(listenChannelPrefix+"rpc."+auth.AppKey+"."+remote, d); err != nil {
 			return
 		}
 		command.Event = RemoteReplySucceeded
@@ -543,7 +420,7 @@ func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, socket
 	return
 }
 
-func CommanRouter(data []byte, pool *redis.Pool) (fn func(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error), err error) {
+func CommanRouter(data []byte, nc *nats.Conn) (fn func(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error), err error) {
 
 	val, err := jsonparser.GetString(data, "event")
 	if err != nil {
@@ -551,7 +428,7 @@ func CommanRouter(data []byte, pool *redis.Pool) (fn func(appkey string, auth re
 	}
 	switch val {
 	case RemoteEvent:
-		return Remote(pool), nil
+		return Remote(nc), nil
 	case QueryChannelEvent:
 		return QueryChannelCommand, nil
 	case SubscribeEvent:
