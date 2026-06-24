@@ -2,9 +2,8 @@ package redisocket
 
 import (
 	"errors"
+	"sync/atomic"
 	"time"
-
-	"github.com/gomodule/redigo/redis"
 )
 
 type eventPayload struct {
@@ -14,20 +13,20 @@ type eventPayload struct {
 
 // pool 用
 type uPayload struct {
-	uid  string `json:"uid"`
-	data []byte `json:"data"`
+	uid  string
+	data []byte
 }
 type uReloadChannelPayload struct {
-	uid      string   `json:"uid"`
-	channels []string `json:"channels"`
+	uid      string
+	channels []string
 }
 type uAddChannelPayload struct {
-	uid     string `json:"uid"`
-	channel string `json:"channel"`
+	uid     string
+	channel string
 }
 type sPayload struct {
-	sid  string `json:"uid"`
-	data []byte `json:"data"`
+	sid  string
+	data []byte
 }
 
 type pool struct {
@@ -35,18 +34,27 @@ type pool struct {
 	broadcastChan      chan *eventPayload
 	joinChan           chan *Client
 	leaveChan          chan *Client
-	shutdownChan       chan int
+	quit               chan struct{}
 	kickUidChan        chan string
 	kickSidChan        chan string
 	uPayloadChan       chan *uPayload
 	uReloadChannelChan chan *uReloadChannelPayload
 	uAddChannelChan    chan *uAddChannelPayload
 	sPayloadChan       chan *sPayload
-	rpool              *redis.Pool
+	presence           Presence
 	channelPrefix      string
 	scanInterval       time.Duration
 	msgTotal           int64
 	msgByteSum         int64
+	stat               *Statistic
+	// userCount 為 users map 大小的 atomic 鏡像,供 pool goroutine 外安全讀取
+	// (CountOnlineUsers)。只在 pool goroutine 內 join/leave 時更新。
+	userCount int64
+}
+
+// onlineCount 回傳目前在線連線數,可在 pool goroutine 外安全呼叫。
+func (h *pool) onlineCount() int {
+	return int(atomic.LoadInt64(&h.userCount))
 }
 
 func (h *pool) run() <-chan error {
@@ -64,10 +72,12 @@ func (h *pool) run() <-chan error {
 				for u := range h.users {
 					u.Trigger(p.event, p.payload)
 				}
-			case <-h.shutdownChan:
+			case <-h.quit:
+				// graceful shutdown:關閉所有 client(觸發其 read/writePump 退出)後結束。
 				for u := range h.users {
 					u.Close()
 				}
+				return
 			case n := <-h.kickSidChan:
 				for u := range h.users {
 					if u.sid == n {
@@ -110,13 +120,15 @@ func (h *pool) run() <-chan error {
 					}
 				}
 			case u := <-h.joinChan:
-				statistic.AddMem()
+				h.stat.AddMem()
 				h.users[u] = true
+				atomic.AddInt64(&h.userCount, 1)
 			case u := <-h.leaveChan:
 				if _, ok := h.users[u]; ok {
-					statistic.SubMem()
+					h.stat.SubMem()
 					close(u.send)
 					delete(h.users, u)
+					atomic.AddInt64(&h.userCount, -1)
 				}
 			case <-t.C:
 				h.syncOnline()
@@ -127,69 +139,74 @@ func (h *pool) run() <-chan error {
 	}()
 	return errChan
 }
+
+// 以下 input 方法皆 select on quit:shutdown 後 pool.run 已退出,
+// 這些 send 不會永久阻塞(否則呼叫端 goroutine 會洩漏)。
 func (h *pool) toUid(uid string, d []byte) {
-	u := &uPayload{uid: uid, data: d}
-	h.uPayloadChan <- u
+	select {
+	case h.uPayloadChan <- &uPayload{uid: uid, data: d}:
+	case <-h.quit:
+	}
 }
 func (h *pool) reloadUidChannels(uid string, channels []string) {
-	u := &uReloadChannelPayload{uid: uid, channels: channels}
-	h.uReloadChannelChan <- u
+	select {
+	case h.uReloadChannelChan <- &uReloadChannelPayload{uid: uid, channels: channels}:
+	case <-h.quit:
+	}
 }
 func (h *pool) addUidChannels(uid string, channel string) {
-	u := &uAddChannelPayload{uid: uid, channel: channel}
-	h.uAddChannelChan <- u
+	select {
+	case h.uAddChannelChan <- &uAddChannelPayload{uid: uid, channel: channel}:
+	case <-h.quit:
+	}
 }
 func (h *pool) toSid(sid string, d []byte) {
-	u := &sPayload{sid: sid, data: d}
-	h.sPayloadChan <- u
-}
-func (h *pool) shutdown() {
-	h.shutdownChan <- 1
+	select {
+	case h.sPayloadChan <- &sPayload{sid: sid, data: d}:
+	case <-h.quit:
+	}
 }
 func (h *pool) kickUid(uid string) {
-	h.kickUidChan <- uid
+	select {
+	case h.kickUidChan <- uid:
+	case <-h.quit:
+	}
 }
 func (h *pool) kickSid(sid string) {
-	h.kickSidChan <- sid
+	select {
+	case h.kickSidChan <- sid:
+	case <-h.quit:
+	}
 }
 func (h *pool) syncOnline() (err error) {
-	conn := h.rpool.Get()
-	defer conn.Close()
-	t := time.Now()
-	nt := t.Unix()
-	dt := t.Unix() - 86400
-	conn.Send("MULTI")
+	// 在 pool goroutine 內快照所有成員(讀 u.events 需 u.RLock),再交給 presence 批次處理。
+	members := make([]PresenceMember, 0, len(h.users))
 	for u := range h.users {
-		if u.uid != "" {
-			conn.Send("ZADD", h.channelPrefix+u.prefix+"@"+"online", "CH", nt, u.uid)
-		}
 		u.RLock()
+		chs := make([]string, 0, len(u.events))
 		for e := range u.events {
-			conn.Send("ZADD", h.channelPrefix+u.prefix+"@"+"channels:"+e, "CH", nt, u.uid)
-			conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"channels:"+e, 300)
+			chs = append(chs, e)
 		}
 		u.RUnlock()
-		conn.Send("EXPIRE", h.channelPrefix+u.prefix+"@"+"online", 300)
+		members = append(members, PresenceMember{AppKey: u.prefix, Uid: u.uid, Channels: chs})
 	}
-	conn.Do("EXEC")
-	tmp, err := redis.Strings(conn.Do("keys", h.channelPrefix+"*"))
-	if err != nil {
-		return
-	}
-	//刪除過時的key
-	conn.Send("MULTI")
-	for _, k := range tmp {
-		conn.Send("ZREMRANGEBYSCORE", k, dt, nt-60)
-	}
-	conn.Do("EXEC")
-	return
+	return h.presence.Sync(h.channelPrefix, members)
 }
 func (h *pool) broadcast(event string, p *Payload) {
-	h.broadcastChan <- &eventPayload{p, event}
+	select {
+	case h.broadcastChan <- &eventPayload{p, event}:
+	case <-h.quit:
+	}
 }
 func (h *pool) join(c *Client) {
-	h.joinChan <- c
+	select {
+	case h.joinChan <- c:
+	case <-h.quit:
+	}
 }
 func (h *pool) leave(c *Client) {
-	h.leaveChan <- c
+	select {
+	case h.leaveChan <- c:
+	case <-h.quit:
+	}
 }

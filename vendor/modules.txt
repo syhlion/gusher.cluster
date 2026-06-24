@@ -17,6 +17,9 @@ github.com/golang-jwt/jwt
 ## explicit
 github.com/gomodule/redigo/internal
 github.com/gomodule/redigo/redis
+# github.com/google/uuid v1.6.0
+## explicit
+github.com/google/uuid
 # github.com/gorilla/mux v1.8.0
 ## explicit; go 1.12
 github.com/gorilla/mux
@@ -29,12 +32,28 @@ github.com/joho/godotenv
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
+# github.com/klauspost/compress v1.18.6
+## explicit; go 1.24
+github.com/klauspost/compress/flate
+github.com/klauspost/compress/internal/le
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.2
 ## explicit; go 1.12
 github.com/modern-go/reflect2
+# github.com/nats-io/nats.go v1.52.0
+## explicit; go 1.25.0
+github.com/nats-io/nats.go
+github.com/nats-io/nats.go/encoders/builtin
+github.com/nats-io/nats.go/internal/parser
+github.com/nats-io/nats.go/util
+# github.com/nats-io/nkeys v0.4.16
+## explicit; go 1.25.0
+github.com/nats-io/nkeys
+# github.com/nats-io/nuid v1.0.1
+## explicit
+github.com/nats-io/nuid
 # github.com/russross/blackfriday/v2 v2.0.1
 ## explicit
 github.com/russross/blackfriday/v2
@@ -53,8 +72,8 @@ github.com/syhlion/greq
 # github.com/syhlion/httplog v0.0.0-20200804071957-8dddff4f795c
 ## explicit
 github.com/syhlion/httplog
-# github.com/syhlion/redisocket.v2 v0.0.0-20211207071445-a4e6857cee8f
-## explicit; go 1.12
+# github.com/syhlion/redisocket.v2 v0.0.0-20260624092217-c4652be98cb8
+## explicit; go 1.25.0
 github.com/syhlion/redisocket.v2
 # github.com/syhlion/requestwork.v2 v0.0.0-20221121064106-5982b8b66fbe
 ## explicit; go 1.19
@@ -65,8 +84,20 @@ github.com/urfave/cli
 # github.com/urfave/negroni v1.0.0
 ## explicit
 github.com/urfave/negroni
-# golang.org/x/sys v0.2.0
-## explicit; go 1.17
-golang.org/x/sys/internal/unsafeheader
+# golang.org/x/crypto v0.52.0
+## explicit; go 1.25.0
+golang.org/x/crypto/blake2b
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/internal/alias
+golang.org/x/crypto/internal/poly1305
+golang.org/x/crypto/nacl/box
+golang.org/x/crypto/nacl/secretbox
+golang.org/x/crypto/salsa20/salsa
+# golang.org/x/sys v0.45.0
+## explicit; go 1.25.0
+golang.org/x/sys/cpu
 golang.org/x/sys/unix
 golang.org/x/sys/windows
+# gopkg.in/natefinch/lumberjack.v2 v2.2.1
+## explicit; go 1.13
+gopkg.in/natefinch/lumberjack.v2

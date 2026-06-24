@@ -29,6 +29,13 @@ import (
 func master(c *cli.Context) {
 
 	mc := getMasterConfig(c)
+	/*logging: 輸出 stdout/file/both ＋ 輪替(env 驅動)*/
+	ls, logErr := setupLoggingFromEnv()
+	if logErr != nil {
+		logger.Fatal(logErr)
+	}
+	logger = ls.Logrus
+	defer ls.Close()
 
 	b, err := ioutil.ReadFile(mc.PublicKeyLocation)
 	if err != nil {
@@ -131,6 +138,13 @@ func runtimeStats() (m *runtime.MemStats) {
 func slave(c *cli.Context) {
 
 	sc := getSlaveConfig(c)
+	/*logging: 輸出 stdout/file/both ＋ 輪替(env 驅動);引擎用 slog、app 用 logrus、同一目的地*/
+	ls, logErr := setupLoggingFromEnv()
+	if logErr != nil {
+		logger.Fatal(logErr)
+	}
+	logger = ls.Logrus
+	defer ls.Close()
 	/*redis init*/
 	rpool := redis.NewPool(func() (redis.Conn, error) {
 		c, err := redis.Dial("tcp", sc.RedisAddr)
@@ -192,7 +206,7 @@ func slave(c *cli.Context) {
 		logger.Fatal(err)
 	}
 
-	rsHub := redisocket.NewHub(rpool, logger.GetLogger(), c.Bool("debug"))
+	rsHub := redisocket.NewHub(rpool, ls.Slog, c.Bool("debug"))
 	rsHub.Config.MaxMessageSize = int64(sc.MaxMessage)
 	rsHub.Config.ScanInterval = sc.ScanInterval
 	rsHub.Config.Upgrader.ReadBufferSize = sc.ReadBuffer
