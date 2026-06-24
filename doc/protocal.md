@@ -7,10 +7,6 @@ Events|Discription
 ---|---
 gusher.ping|ping event
 gusher.pong_succeeded|pong success event
-gusher.remote|remote event
-gusher.remote_succeeded|remote sucess event
-gusher.remote_error|remote error event
-gusher.remote|remote event
 gusher.subscribe|subscribe event
 gusher.multi_subscribe|subscribe event
 gusher.unsubscribe|unsubscribe event
@@ -165,61 +161,6 @@ reply error:
 }
 ```
 
-#### Remote Command:
-
-command:
-```
-{
-    "event":"gusher.remote",
-    "debug": true, //option  use this option can get server response.  default false
-    "data":{
-        "remote":"chat"
-        "uid":"",
-        "payload":{"msg":1},
-    }
-}
-```
-
-reply scuess:
-```
-{
-    "event":"gusher.remote_succeeded",
-    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
-    "data":{
-        "remote":"test"
-        "uid":"",
-        "payload":{},
-    }
-}
-```
-
-reply error:
-```
-{
-    "event":"gusher.remote_error",
-    "socket_id":"cd19cdaa-44f1-11eb-80c2-784f43873ba3",
-    "data":{
-        "remote":"test",
-        "uid":"",
-        "payload":{}
-    }
-}
-```
-
-this command use redis RPUSH {app_key}@{remote} {data}
-
-data:
-```
-{
-    "user_id":"Test_User",
-    "uid":"abc",
-    "socket_id":"abc-bbb-ccc-ddd-eee", //unique socket id
-    "app_key":"TEST",
-    "data":""
-}
-```
-
-
 #### Ping Command:
 command:
 ```
@@ -245,18 +186,15 @@ reply :
 
 ## JWT Protocol
 
-this is default test jwt look [this](https://github.com/syhlion/gusher.cluster/blob/master/test/jwt/jwt.go)
+The JWT carries a `gusher` claim, signed RS256. Generate a test token with
+[`test/jwtgenerate`](https://github.com/syhlion/gusher.cluster/tree/master/test/jwtgenerate).
+
 ```
 {
     "gusher":{
         "user_id":"Test_User",
         "channels":["AA","BB"],
         "app_key":"TEST"
-        "remotes":{
-            "cmd1":true,
-            "cmd2":true
-        }
-        
     }
 }
 ```

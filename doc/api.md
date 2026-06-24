@@ -257,11 +257,7 @@ Sucess Response:
     "gusher":{
         "channels":[],
         "user_id":"",
-        "app_key":"",
-        "remotes":{
-            "cmd1":true,
-            "cmd2":true
-        }
+        "app_key":""
     }
 }
 ```
