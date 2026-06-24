@@ -11,7 +11,6 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/gorilla/mux"
-	nats "github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
 	"github.com/syhlion/redisocket.v2"
 )
@@ -55,7 +54,7 @@ func WsAuth(sc SlaveConfig, pubKey *rsa.PublicKey) http.HandlerFunc {
 
 // WsConnect 同時供 /ws 與 /wtf(原 WtfConnect 已併入,去除重複)。
 // token 參數即 JWT,本機 RSA 公鑰驗證 → auth,無 redis。
-func WsConnect(sc SlaveConfig, pubKey *rsa.PublicKey, nc *nats.Conn, rHub *redisocket.Hub) http.HandlerFunc {
+func WsConnect(sc SlaveConfig, pubKey *rsa.PublicKey, rHub *redisocket.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := mux.Vars(r)
 		appKey := params["app_key"]
@@ -91,7 +90,7 @@ func WsConnect(sc SlaveConfig, pubKey *rsa.PublicKey, nc *nats.Conn, rHub *redis
 			"user_id":   auth.UserId,
 		}).Info("connect")
 		s.Listen(func(data []byte) (b []byte, err error) {
-			h, err := CommanRouter(data, nc)
+			h, err := CommanRouter(data)
 			if err != nil {
 				logger.WithField("socket_id", s.SocketId()).WithError(err).Info("router error")
 				return
@@ -301,71 +300,6 @@ func PingPongCommand(appkey string, auth redisocket.Auth, data []byte, socketId 
 	msg.msg = reply
 	return
 }
-func Remote(nc *nats.Conn) func(string, redisocket.Auth, []byte, string, bool) (msg *commandResponse, err error) {
-	return func(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
-
-		remote, err := jsonparser.GetString(data, "remote")
-		if err != nil {
-			return
-		}
-		uid, err := jsonparser.GetString(data, "uid")
-		if err != nil {
-			return
-		}
-		payload, _, _, err := jsonparser.Get(data, "payload")
-		if err != nil {
-			return
-		}
-		p := JsonCheck(string(payload))
-		msg = &commandResponse{
-			cmdType: "REMOTE",
-		}
-		var reply []byte
-		command := &RemoteCommand{}
-		command.Data.Remote = remote
-		b, ok := auth.Remotes[remote]
-
-		//沒有這個remote 返回錯誤訊息不斷線
-		if !ok || !b {
-			command.Event = RemoteReplyError
-			command.SocketId = socketId
-			reply, err = json.Marshal(command)
-			if err != nil {
-				return
-			}
-			msg.msg = reply
-			return
-		}
-		wp := WorkerPayload{
-			UserId:   auth.UserId,
-			Data:     p,
-			Uid:      uid,
-			SocketId: socketId,
-			AppKey:   auth.AppKey,
-		}
-		d, err := json.Marshal(wp)
-		if err != nil {
-			return
-		}
-		// 發佈到 NATS rpc subject(取代 RPUSH redis;外部 worker 訂閱消費)
-		// subject:<prefix>rpc.<appKey>.<remote>,與 bus(ch.)/presence 命名空間分離
-		if err = nc.Publish(listenChannelPrefix+"rpc."+auth.AppKey+"."+remote, d); err != nil {
-			return
-		}
-		command.Event = RemoteReplySucceeded
-		command.SocketId = socketId
-		reply, err = json.Marshal(command)
-		if err != nil {
-			return
-		}
-		if debug {
-			msg.msg = reply
-		}
-
-		return
-	}
-
-}
 func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error) {
 	channel, err := jsonparser.GetString(data, "channel")
 	if err != nil {
@@ -420,15 +354,13 @@ func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, socket
 	return
 }
 
-func CommanRouter(data []byte, nc *nats.Conn) (fn func(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error), err error) {
+func CommanRouter(data []byte) (fn func(appkey string, auth redisocket.Auth, data []byte, socketId string, debug bool) (msg *commandResponse, err error), err error) {
 
 	val, err := jsonparser.GetString(data, "event")
 	if err != nil {
 		return
 	}
 	switch val {
-	case RemoteEvent:
-		return Remote(nc), nil
 	case QueryChannelEvent:
 		return QueryChannelCommand, nil
 	case SubscribeEvent:
