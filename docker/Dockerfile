@@ -1,18 +1,13 @@
-# build stage
-FROM golang:1.19.2-alpine3.16 AS builder
-
+# build stage（本地原始碼 + vendor;Go 1.25，無 redis、NATS 後端）
+FROM golang:1.25-alpine AS builder
 WORKDIR /app
-RUN apk update && apk add git && apk add make
-RUN apk add --update gcc g++
-RUN git clone https://github.com/syhlion/gusher.cluster.git  &&\
-    cd gusher.cluster && \
-    make docker-build
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor \
+    -ldflags "-X main.name=gusher" -o /gusher.cluster .
 
 # final stage
-FROM alpine:3.16.2
+FROM alpine:3.20
 WORKDIR /gusher
-COPY --from=builder /app/gusher.cluster/gusher.cluster .
-
-EXPOSE 8888
-
+COPY --from=builder /gusher.cluster .
+EXPOSE 7777 8888
 ENTRYPOINT ["./gusher.cluster"]
