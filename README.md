@@ -1,87 +1,79 @@
 # Gusher.Cluster
 
 [![Build Status](https://drone.syhlion.tw/api/badges/syhlion/gusher.cluster/status.svg)](https://drone.syhlion.tw/syhlion/gusher.cluster)
- [![Release Status](https://img.shields.io/badge/release-1.8.2-blue.svg)](https://github.com/syhlion/gusher.cluster/releases/tag/v1.8.2)
  [![Stars](https://img.shields.io/github/stars/syhlion/gusher.cluster.svg)](https://github.com/syhlion/gusher.cluster)
 
- [gusher](https://github.com/syhlion/gusher) plus version ,support cluster
+Self-hosted realtime push service (Pusher-style). Browsers hold a **WebSocket**
+and subscribe to channels; backends **POST** to push a message into a channel.
+Horizontally scalable, **backed by NATS — no Redis**.
 
-📐 **Architecture**: [English](docs/ARCHITECTURE.md) · [繁體中文](docs/ARCHITECTURE.zh-TW.md) — NATS-backed realtime push (no Redis).
+📐 **Architecture**: [English](docs/ARCHITECTURE.md) · [繁體中文](docs/ARCHITECTURE.zh-TW.md)
 
-## Changelog
+## How it works
 
-[CHANGELOG](./CHANGELOG.md)
+- **slave** — holds the WebSocket connections, verifies the JWT locally, and
+  fans out messages to subscribers.
+- **master** — a stateless REST API to **push** messages and **query** presence.
+- **NATS** — carries messages between nodes (bus) and answers presence queries
+  (request/reply). No Redis, no token store, no decode service.
+
+```
+client ──ws──▶ slave ──subscribe──▶  NATS  ◀──publish── master ◀──POST── backend
+```
 
 ## Requirements
 
-* redis
+- **NATS** (the only backend) — `nats-server` 2.10+
+- An **RSA key pair** — master/slave verify the JWT with the **public key**;
+  your own auth service signs JWTs with the private key.
 
-## Usage
+## Run
 
-Docker example use [doc](./docker)
+### docker-compose (quickest)
 
-```
-docker pull syhlion/gusher.cluster
-docker run --name docker-redis -d redis
-docker run --env-file env.example --link docker-redis --name gusher-master -p 7999:8888 -d syhlion/gusher.cluster master //master mode
-docker run --env-file env.example --link docker-redis --link gusher-master --name gusher-slave -p 8000:8888 -d syhlion/gusher.cluster slave //slave mode
-//note env & link hostname
-```
+Put your `public.pem` next to the compose file, then:
 
-docker-compose use [doc](./docker-compose) 
-
-Build from source:
-
-Package Management use [govendor](https://github.com/kardianos/govendor)
-
-```
-$ go get github.com/syhlion/gusher.cluster && cd $GOPATH/github.com/syhlion/gusher.cluster
-$ make build/linux
-
+```sh
+docker compose -f docker-compose/docker-compose.yml up --build
 ```
 
-Download:
+Brings up `nats` + `gusher-master` (`:7777`) + `gusher-slave` (`:8888`), no Redis.
 
-[release](./releases)
+### From source
 
+```sh
+go build -ldflags "-X main.name=gusher" -o gusher.cluster .
 
+# slave
+GUSHER_NATS_ADDR=nats://127.0.0.1:4222 GUSHER_PUBLIC_PEM_FILE=./public.pem \
+GUSHER_API_LISTEN=:8888 GUSHER_API_URI_PREFIX=/ ./gusher.cluster slave
 
-And Set ENV  like [example](./env.example)
+# master
+GUSHER_NATS_ADDR=nats://127.0.0.1:4222 GUSHER_PUBLIC_PEM_FILE=./public.pem \
+GUSHER_MASTER_API_LISTEN=:7777 GUSHER_MASTER_URI_PREFIX=/ ./gusher.cluster master
+```
 
+See `slave.env.example` / `master.env.example` for the full env list.
 
-Than Use
+## Client flow
 
-master mode:
+1. `POST /auth` with `jwt=<JWT>` → `{"token":"<JWT>"}` (the JWT is verified
+   locally and returned as the token — stateless, no store).
+2. `GET /ws/{app_key}?token=<token>` → WebSocket. Subscribe with
+   `{"event":"gusher.subscribe","data":{"channel":"AA"}}`.
+3. Backend pushes: `POST /push/{app_key}/{channel}/{event}` with `data=...`.
 
-`$ ./gusher.cluster master` or `./gusher.cluster master --env-file env.example`
+The JWT carries the `gusher` claim — `{"app_key","user_id","channels"}` — signed
+**RS256**. See [doc/protocal.md](./doc/protocal.md) for the full WebSocket
+protocol and [doc/api.md](./doc/api.md) for the REST API.
 
-slave mode:
+## Logging
 
-`$ ./gusher.cluster slave` or `./gusher.cluster slave --env-file env.example`
+Output is selectable and rotated, via env:
 
-
-
-## Third party lib
-
-client js:
-
-[gusher-js](https://github.com/cswleocsw/gusher-js)
-
-backend php:
-
-[gusher-php](https://github.com/benjaminchen/gusher-php)
-
-## Api
-
-[Api Doc](./doc/api.md)
-
-
-## Internal Protocal
-
-[Protocal Doc](./doc/protocal.md)
-
-## Thanks
-
-* [@leo](https://github.com/cswleocsw) , [@benjamin](https://github.com/benjaminchen) support api lib
-* [pusher](https://pusher.com) inspiration
-* [gorilla/websocket](https://github.com/gorilla/websocket)
+| Env | Values |
+|---|---|
+| `GUSHER_LOG_OUTPUT` | `stdout` (default) / `file` / `both` |
+| `GUSHER_LOG_FILE` | path (for `file` / `both`) |
+| `GUSHER_LOG_FORMAT` | `json` (default) / `text` |
+| `GUSHER_LOG_MAX_SIZE_MB` / `_MAX_BACKUPS` / `_MAX_AGE_DAYS` / `_COMPRESS` | rotation |

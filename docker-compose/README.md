@@ -1,17 +1,15 @@
-# gusher.cluster docker-compose
+# gusher.cluster docker-compose (NATS)
 
-simple start gusher.clsuter service
+Starts `nats` + `gusher-master` (`:7777`) + `gusher-slave` (`:8888`) — no Redis.
 
 ## Usage
 
-docker-compose.yml:
+Put your RSA `public.pem` in this directory (for a quick test:
+`cp ../test/key/public.pem .`), then from the repo root:
 
-gusher-master volumes `/public-key-path` need to custom
-
-then
-
-```
-$ docker-compose up
+```sh
+docker compose -f docker-compose/docker-compose.yml up --build
 ```
 
-It will be start gusher.cluster service
+master/slave verify the JWT with that public key. Env is set inline in
+`docker-compose.yml` (`GUSHER_NATS_ADDR`, `GUSHER_LOG_*`, listen / prefix).

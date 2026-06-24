@@ -1,5 +1,20 @@
 ## [Unreleased]
 
+### [Changed]
+
+- **Migrate from Redis to NATS** — realtime bus (subject routing) and presence
+  (per-node memory + request/reply) now run on NATS; **Redis is removed**.
+- **Local JWT auth** — verify the JWT with the RSA public key in-process; no
+  decode service, no token store. The `/auth` → `/ws?token=` flow is unchanged.
+- Adopt the modernized `redisocket.v2` engine (slog logger; output
+  stdout/file/both + log rotation via `GUSHER_LOG_*`).
+- pprof bound to localhost; `/ws` and `/wtf` share one handler.
+
+### [Removed]
+
+- The `remote` feature (`gusher.remote`, fire-and-forget RPUSH) — unused. A
+  future client→backend channel will use NATS request/reply.
+- All Redis env (`GUSHER_REDIS_*`, `GUSHER_JOB_REDIS_*`, `GUSHER_DECODE_SERVICE`).
 
 ### [Fix]
 
