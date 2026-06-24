@@ -13,13 +13,10 @@ const (
 	AddChannelEvent              = "gusher.addchannel"
 	ReloadChannelEvent           = "gusher.reloadchannel"
 	PongReplySucceeded           = "gusher.pong_succeeded"
-	RemoteEvent                  = "gusher.remote"
 	LoginEvent                   = "gusher.login"
 	SubscribeEvent               = "gusher.subscribe"
 	MultiSubscribeEvent          = "gusher.multi_subscribe"
 	UnSubscribeEvent             = "gusher.unsubscribe"
-	RemoteReplySucceeded         = "gusher.remote_succeeded"
-	RemoteReplyError             = "gusher.remote_error"
 	SubscribeReplySucceeded      = "gusher.subscribe_succeeded"
 	SubscribeReplyError          = "gusher.subscribe_error"
 	MultiSubscribeReplySucceeded = "gusher.multi_subscribe_succeeded"
@@ -38,20 +35,11 @@ type InternalCommand struct {
 	Event    string `json:"event"`
 	SocketId string `json:"socket_id"`
 }
-type RemoteCommand struct {
-	InternalCommand
-	Data RemoteData `json:"data"`
-}
-
 type ChannelInfoData struct {
 	InternalCommand
 	Data interface{} `json:"data"`
 }
 
-type RemoteData struct {
-	Remote string      `json:"remote"`
-	Msg    interface{} `json:"msg"`
-}
 type PingCommand struct {
 	InternalCommand
 	Data interface{} `json:"data"`
@@ -77,20 +65,4 @@ type ChannelData struct {
 type JwtPack struct {
 	Gusher redisocket.Auth `json:"gusher"`
 	jwt.StandardClaims
-}
-
-/*
-type Auth struct {
-	Channels []string        `json:"channels"`
-	UserId   string          `json:"user_id"`
-	AppKey   string          `json:"app_key"`
-	Remotes  map[string]bool `json:"remotes"`
-}
-*/
-type WorkerPayload struct {
-	UserId   string      `json:"user_id"`
-	SocketId string      `json:"socket_id"`
-	Uid      string      `json:"uid"`
-	AppKey   string      `json:"app_key"`
-	Data     interface{} `json:"data"`
 }
