@@ -12,11 +12,9 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/json-iterator/go v1.1.12
 	github.com/nats-io/nats.go v1.52.0
-	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/syhlion/httplog v0.0.0-20200804071957-8dddff4f795c
 	github.com/syhlion/redisocket.v2 v0.0.0-20260624092217-c4652be98cb8
-	github.com/syhlion/requestwork.v2 v0.0.0-20221121064106-5982b8b66fbe
 	github.com/urfave/cli v1.22.10
 	github.com/urfave/negroni v1.0.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1

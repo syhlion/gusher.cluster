@@ -57,9 +57,6 @@ github.com/nats-io/nuid
 # github.com/russross/blackfriday/v2 v2.0.1
 ## explicit
 github.com/russross/blackfriday/v2
-# github.com/satori/go.uuid v1.2.0
-## explicit
-github.com/satori/go.uuid
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 ## explicit
 github.com/shurcooL/sanitized_anchor_name
@@ -72,9 +69,6 @@ github.com/syhlion/httplog
 # github.com/syhlion/redisocket.v2 v0.0.0-20260624092217-c4652be98cb8
 ## explicit; go 1.25.0
 github.com/syhlion/redisocket.v2
-# github.com/syhlion/requestwork.v2 v0.0.0-20221121064106-5982b8b66fbe
-## explicit; go 1.19
-github.com/syhlion/requestwork.v2
 # github.com/urfave/cli v1.22.10
 ## explicit; go 1.11
 github.com/urfave/cli

@@ -14,7 +14,6 @@ import (
 	_ "net/http/pprof"
 
 	jwt "github.com/golang-jwt/jwt"
-	"github.com/gomodule/redigo/redis"
 	"github.com/gorilla/mux"
 	nats "github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
@@ -134,67 +133,6 @@ func slave(c *cli.Context) {
 	}
 	logger = ls.Logrus
 	defer ls.Close()
-	/*redis init*/
-	rpool := redis.NewPool(func() (redis.Conn, error) {
-		c, err := redis.Dial("tcp", sc.RedisAddr)
-		if err != nil {
-			return nil, err
-		}
-		_, err = c.Do("SELECT", sc.RedisDb)
-		if err != nil {
-			c.Close()
-			return nil, err
-		}
-		return c, nil
-	}, 10)
-
-	rpool.MaxIdle = sc.RedisMaxIdle
-	rpool.MaxActive = sc.RedisMaxConn
-	rpool.Wait = true
-	rpool.IdleTimeout = 240 * time.Second
-	rpool.TestOnBorrow = func(c redis.Conn, t time.Time) error {
-		if time.Since(t) < time.Minute {
-			return nil
-		}
-		_, err := c.Do("PING")
-		return err
-	}
-
-	jobRpool := redis.NewPool(func() (redis.Conn, error) {
-		c, err := redis.Dial("tcp", sc.RedisJobAddr)
-		if err != nil {
-			return nil, err
-		}
-		_, err = c.Do("SELECT", sc.RedisJobDb)
-		if err != nil {
-			c.Close()
-			return nil, err
-		}
-		return c, nil
-	}, 10)
-
-	jobRpool.MaxIdle = sc.RedisJobMaxIdle
-	jobRpool.MaxActive = sc.RedisJobMaxConn
-	jobRpool.Wait = true
-	jobRpool.IdleTimeout = 240 * time.Second
-	jobRpool.TestOnBorrow = func(c redis.Conn, t time.Time) error {
-		if time.Since(t) < time.Minute {
-			return nil
-		}
-		_, err := c.Do("PING")
-		return err
-	}
-
-	/*Test redis connect*/
-	err := RedisTestConn(rpool.Get())
-	if err != nil {
-		logger.Fatal(err)
-	}
-	err = RedisTestConn(jobRpool.Get())
-	if err != nil {
-		logger.Fatal(err)
-	}
-
 	/*本機 JWT 驗證:載入公鑰(取代 decode service + greq)*/
 	pemBytes, err := ioutil.ReadFile(sc.PublicKeyLocation)
 	if err != nil {
@@ -236,9 +174,9 @@ func slave(c *cli.Context) {
 	//server := http.NewServeMux()
 
 	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
-	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, rpool, jobRpool, rsHub)).Methods("GET")
-	sub.HandleFunc("/wtf/{app_key}", WtfConnect(sc, rpool, jobRpool, rsHub)).Methods("GET")
-	sub.HandleFunc("/auth", WsAuth(sc, rpool, publicPem)).Methods("POST")
+	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, publicPem, nc, rsHub)).Methods("GET")
+	sub.HandleFunc("/wtf/{app_key}", WsConnect(sc, publicPem, nc, rsHub)).Methods("GET")
+	sub.HandleFunc("/auth", WsAuth(sc, publicPem)).Methods("POST")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	n := negroni.New()
 	n.Use(httplog.NewLogger(true))
@@ -285,8 +223,6 @@ func slave(c *cli.Context) {
 		apiListener.Close()
 		rsHub.Close()
 		nc.Close()
-		rpool.Close()
-		jobRpool.Close()
 	}()
 
 	// block and listen syscall

@@ -16,7 +16,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
 	log "github.com/sirupsen/logrus"
-	"github.com/syhlion/requestwork.v2"
 	"github.com/urfave/cli"
 )
 
@@ -94,7 +93,7 @@ func start(c *cli.Context) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	work := requestwork.New(5)
+	httpClient := &http.Client{Timeout: 30 * time.Second}
 	loginUrl := url.Values{}
 
 	loginUrl.Add("jwt", jwt)
@@ -103,30 +102,30 @@ func start(c *cli.Context) {
 	for i := 0; i < conn_total; i++ {
 		tokenGroup.Add(1)
 		go func() {
+			defer tokenGroup.Done()
 			req, err := http.NewRequest("POST", wsAuthurl.String(), bytes.NewBufferString(loginUrl.Encode()))
 			if err != nil {
 				log.Fatal(err)
 			}
 			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-			req.Header.Add("Content-Length", strconv.Itoa(len(loginUrl.Encode())))
-			//ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-			err = work.Execute(req, func(resp *http.Response, e error) (err error) {
-				defer tokenGroup.Done()
-				if e != nil {
-					return e
-				}
-				defer resp.Body.Close()
-				b, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					return err
-				}
-				v, err := jsonparser.GetString(b, "token")
-				if err != nil {
-					return err
-				}
-				tokenChan <- v
+			resp, err := httpClient.Do(req)
+			if err != nil {
+				log.Println("auth request error:", err)
 				return
-			})
+			}
+			defer resp.Body.Close()
+			b, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Println("auth read error:", err)
+				return
+			}
+			// /auth 回傳的 token 即 JWT(無狀態、無 redis);/ws?token=<JWT> 會本機驗
+			v, err := jsonparser.GetString(b, "token")
+			if err != nil {
+				log.Println("auth token parse error:", err)
+				return
+			}
+			tokenChan <- v
 		}()
 
 	}
@@ -252,21 +251,16 @@ func start(c *cli.Context) {
 		log.Fatal(err)
 	}
 	var pushStart time.Time
-	err = work.Execute(req, func(resp *http.Response, e error) (err error) {
-		if e != nil {
-			return
-		}
-		defer resp.Body.Close()
-		b, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return err
-		}
-		if c.Bool("debug") {
-			log.Println("master response", string(b))
-		}
-		pushStart = time.Now()
-		return
-	})
+	pushResp, err := httpClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+	pb, _ := ioutil.ReadAll(pushResp.Body)
+	pushResp.Body.Close()
+	if c.Bool("debug") {
+		log.Println("master response", string(pb))
+	}
+	pushStart = time.Now()
 	log.Println("Waiting...")
 	wg.Wait()
 	t := time.Now().Sub(pushStart)
