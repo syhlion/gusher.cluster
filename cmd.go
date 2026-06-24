@@ -97,7 +97,7 @@ func master(c *cli.Context) {
 		serverError <- err
 	}()
 	go func() {
-		logger.Error(http.ListenAndServe(":7799", nil))
+		logger.Error(http.ListenAndServe("127.0.0.1:7799", nil))
 	}()
 
 	// block and listen syscall
@@ -253,7 +253,7 @@ func slave(c *cli.Context) {
 		serverError <- err
 	}()
 	go func() {
-		logger.Error(http.ListenAndServe(":8899", nil))
+		logger.Error(http.ListenAndServe("127.0.0.1:8899", nil))
 	}()
 
 	closeConnTotal := make(chan int, 0)
