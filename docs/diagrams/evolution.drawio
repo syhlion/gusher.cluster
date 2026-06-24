@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="evolution">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="2" value="gusher 架構變遷：Redis（遷移前的基礎） → NATS（目標架構）" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=20;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="20" width="1320" height="40" as="geometry" />
+        </mxCell>
+
+        <mxCell id="10" value="① Redis 版（遷移前）" style="swimlane;startSize=34;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="620" height="660" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="瀏覽器 client（WebSocket，雙向）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="10">
+          <mxGeometry x="180" y="50" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="slave 節點 ×N&#xa;（持有 ws 連線、fan-out）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="10">
+          <mxGeometry x="40" y="160" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="13" value="master 節點&#xa;（publish API，無連線）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="10">
+          <mxGeometry x="330" y="160" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="14" value="Redis（單一後端，身兼三職）&#xa;&#xa;① pub/sub 匯流排：PSUBSCRIBE 全收、本地過濾&#xa;② presence：sorted-set 全域 store（KEYS/ZADD 熱路徑）&#xa;③ auth token：SET + TTL 交握" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=center;verticalAlign=middle;fontSize=12;" vertex="1" parent="10">
+          <mxGeometry x="110" y="380" width="400" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="15" value="痛點：pub/sub 無持久；presence 被 10萬連線 hammer；&#xa;KEYS 阻塞整台 Redis;master/slave 拆分；多一個 auth-token 狀態" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontColor=#b85450;" vertex="1" parent="10">
+          <mxGeometry x="40" y="570" width="540" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="20" value="ws（雙向）" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;endArrow=classic;exitX=0.4;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="10" source="11" target="12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="21" value="PSUBSCRIBE&#xa;→ fan-out" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;exitX=0.4;exitY=1;exitDx=0;exitDy=0;entryX=0.3;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="10" source="12" target="14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="22" value="PUBLISH" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=classic;exitX=0.6;exitY=1;exitDx=0;exitDy=0;entryX=0.7;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="10" source="13" target="14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="40" value="② NATS 版（目標）" style="swimlane;startSize=34;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="740" y="80" width="620" height="660" as="geometry" />
+        </mxCell>
+        <mxCell id="41" value="瀏覽器 client（WebSocket，雙向）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="40">
+          <mxGeometry x="180" y="50" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="42" value="對稱節點 ×N&#xa;（持 ws ＋ publish；master/slave 溶解）&#xa;presence：本機記憶體&#xa;auth：本機 JWT 驗證（無 token store）" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="40">
+          <mxGeometry x="150" y="160" width="320" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="43" value="NATS（單一後端）&#xa;&#xa;subject 路由：gusher.&lt;appKey&gt;.&lt;channel&gt;&#xa;節點只收「訂閱的 channel」（非全收）&#xa;presence 跨節點聚合走 request/reply（無 store）&#xa;remote 走 JetStream（不能掉的副作用）" style="shape=hexagon;perimeter=hexagonPerimeter2;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;align=center;verticalAlign=middle;fontSize=12;" vertex="1" parent="40">
+          <mxGeometry x="110" y="380" width="400" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="44" value="收穫：messaging 天生好手、水平擴展；presence 不需 store、&#xa;免 KEYS;對稱節點維運單純;auth 少一個狀態與一次往返" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=11;fontColor=#82b366;" vertex="1" parent="40">
+          <mxGeometry x="40" y="560" width="540" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="50" value="ws（雙向）" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="40" source="41" target="42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="51" value="subject pub/sub&#xa;＋ request/reply" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;endArrow=classic;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="40" source="42" target="43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="90" value="連線層不變（redisocket 引擎）；只換底下的 bus/presence 後端" style="text;html=1;strokeColor=none;fillColor=none;align=center;fontSize=13;fontStyle=2;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="40" y="750" width="1320" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

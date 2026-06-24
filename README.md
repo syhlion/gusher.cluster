@@ -6,6 +6,8 @@
 
  [gusher](https://github.com/syhlion/gusher) plus version ,support cluster
 
+📐 **Architecture**: [English](docs/ARCHITECTURE.md) · [繁體中文](docs/ARCHITECTURE.zh-TW.md) — NATS-backed realtime push (no Redis).
+
 ## Changelog
 
 [CHANGELOG](./CHANGELOG.md)
