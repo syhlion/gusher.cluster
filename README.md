@@ -1,23 +1,23 @@
 # Gusher.Cluster
 
 [![Build Status](https://drone.syhlion.tw/api/badges/syhlion/gusher.cluster/status.svg)](https://drone.syhlion.tw/syhlion/gusher.cluster)
- [![Stars](https://img.shields.io/github/stars/syhlion/gusher.cluster.svg)](https://github.com/syhlion/gusher.cluster)
- [![Go](https://img.shields.io/github/go-mod/go-version/syhlion/gusher.cluster.svg)](go.mod)
- [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
- [![Backed by NATS](https://img.shields.io/badge/backed%20by-NATS-27AAE1.svg)](https://nats.io)
- [![docs English](https://img.shields.io/badge/docs-English-blue.svg)](README.md)
- [![docs 繁體中文](https://img.shields.io/badge/docs-%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-lightgrey.svg)](README.zh-TW.md)
+[![Stars](https://img.shields.io/github/stars/syhlion/gusher.cluster.svg)](https://github.com/syhlion/gusher.cluster)
+[![Go](https://img.shields.io/github/go-mod/go-version/syhlion/gusher.cluster.svg)](go.mod)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Backed by NATS](https://img.shields.io/badge/backed%20by-NATS-27AAE1.svg)](https://nats.io)
+[![docs English](https://img.shields.io/badge/docs-English-blue.svg)](README.md)
+[![docs 繁體中文](https://img.shields.io/badge/docs-%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-lightgrey.svg)](README.zh-TW.md)
 
 Self-hosted realtime push service (Pusher-style). Browsers hold a **WebSocket**
 and subscribe to channels; backends **POST** to push a message into a channel.
 Horizontally scalable, **backed by NATS — no Redis**.
 
-📐 **Architecture**: [English](docs/ARCHITECTURE.md) · [繁體中文](docs/ARCHITECTURE.zh-TW.md)
+## Architecture
 
-## How it works
+![system](docs/diagrams/system.drawio.png)
 
-- **slave** — holds the WebSocket connections, verifies the JWT locally, and
-  fans out messages to subscribers.
+- **slave** — holds the WebSocket connections, verifies the JWT locally (RSA
+  public key), and fans out messages to subscribers.
 - **master** — a stateless REST API to **push** messages and **query** presence.
 - **NATS** — carries messages between nodes (bus) and answers presence queries
   (request/reply). No Redis, no token store, no decode service.
@@ -26,17 +26,18 @@ Horizontally scalable, **backed by NATS — no Redis**.
 client ──ws──▶ slave ──subscribe──▶  NATS  ◀──publish── master ◀──POST── backend
 ```
 
+Both roles are stateless and scale horizontally. Full write-up (bus, presence,
+evolution from Redis) in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
 ## Requirements
 
-- **NATS** (the only backend) — `nats-server` 2.10+
+- **NATS** (the only backend) — `nats-server` 2.10+.
 - An **RSA key pair** — master/slave verify the JWT with the **public key**;
   your own auth service signs JWTs with the private key. See
   [docs/KEYS.md](docs/KEYS.md) for the full generate → sign → verify → rotate
   walkthrough.
 
-## Run
-
-### docker-compose (quickest)
+## Quick start (Docker Compose)
 
 Put your `public.pem` next to the compose file, then:
 
@@ -46,7 +47,7 @@ docker compose -f docker-compose/docker-compose.yml up --build
 
 Brings up `nats` + `gusher-master` (`:7777`) + `gusher-slave` (`:8888`), no Redis.
 
-### From source
+## Run (from source)
 
 ```sh
 go build -ldflags "-X main.name=gusher" -o gusher.cluster .
@@ -62,13 +63,6 @@ GUSHER_MASTER_API_LISTEN=:7777 GUSHER_MASTER_URI_PREFIX=/ ./gusher.cluster maste
 
 See `slave.env.example` / `master.env.example` for the full env list.
 
-## Ops
-
-- **Health**: `GET /ping` (liveness) · `GET /ready` (readiness — 200 only while
-  NATS is connected).
-- **NATS auth**: set `GUSHER_NATS_CREDS=/path/to/app.creds` for user credentials;
-  use a `tls://` address (or NATS server config) for TLS. The client auto-reconnects.
-
 ## Client flow
 
 1. `POST /auth` with `jwt=<JWT>` → `{"token":"<JWT>"}` (the JWT is verified
@@ -81,6 +75,13 @@ The JWT carries the `gusher` claim — `{"app_key","user_id","channels"}` — si
 **RS256**. See [doc/protocal.md](./doc/protocal.md) for the full WebSocket
 protocol and [doc/api.md](./doc/api.md) for the REST API.
 
+## Ops
+
+- **Health**: `GET /ping` (liveness) · `GET /ready` (readiness — 200 only while
+  NATS is connected).
+- **NATS auth**: set `GUSHER_NATS_CREDS=/path/to/app.creds` for user credentials;
+  use a `tls://` address (or NATS server config) for TLS. The client auto-reconnects.
+
 ## Logging
 
 Output is selectable and rotated, via env:
@@ -91,3 +92,17 @@ Output is selectable and rotated, via env:
 | `GUSHER_LOG_FILE` | path (for `file` / `both`) |
 | `GUSHER_LOG_FORMAT` | `json` (default) / `text` |
 | `GUSHER_LOG_MAX_SIZE_MB` / `_MAX_BACKUPS` / `_MAX_AGE_DAYS` / `_COMPRESS` | rotation |
+
+## Docs
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture, NATS bus/presence, evolution from Redis (with diagrams)
+- [doc/protocal.md](./doc/protocal.md) — WebSocket protocol
+- [doc/api.md](./doc/api.md) — REST API
+- [docs/KEYS.md](docs/KEYS.md) — RSA keys: generate → sign → verify → rotate
+- [docs/LOAD-TEST.md](docs/LOAD-TEST.md) — load testing
+
+## Tests
+
+```
+go test ./...     # unit + e2e (e2e spins up an in-process NATS, no external deps)
+```
