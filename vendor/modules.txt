@@ -66,7 +66,7 @@ github.com/sirupsen/logrus
 # github.com/syhlion/httplog v0.0.0-20200804071957-8dddff4f795c
 ## explicit
 github.com/syhlion/httplog
-# github.com/syhlion/redisocket.v2 v0.0.0-20260624092217-c4652be98cb8
+# github.com/syhlion/redisocket.v2 v1.0.0
 ## explicit; go 1.25.0
 github.com/syhlion/redisocket.v2
 # github.com/urfave/cli v1.22.10
