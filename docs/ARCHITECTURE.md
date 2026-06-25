@@ -81,4 +81,5 @@ and the API listen / prefix vars.
 - [redisocket.v2 ARCHITECTURE](https://github.com/syhlion/redisocket.v2/blob/master/docs/ARCHITECTURE.md)
   — the ws hub engine (Broker / Presence abstraction)
 - `doc/protocal.md` — the client WebSocket protocol (events)
+- [LOAD-TEST](LOAD-TEST.md) — load testing & how to scale to ~100k
 - `docker-compose/` — the NATS deployment

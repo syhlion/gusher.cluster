@@ -70,4 +70,5 @@ API listen / prefix。
 - [redisocket.v2 架構](https://github.com/syhlion/redisocket.v2/blob/master/docs/ARCHITECTURE.zh-TW.md)
   — ws hub 引擎（Broker / Presence 抽象）
 - `doc/protocal.md` — client WebSocket 協定（events）
+- [壓力測試](LOAD-TEST.zh-TW.md) — 壓測與如何擴到 ~10 萬
 - `docker-compose/` — NATS 部署
