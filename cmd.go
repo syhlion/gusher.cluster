@@ -13,7 +13,7 @@ import (
 
 	_ "net/http/pprof"
 
-	jwt "github.com/golang-jwt/jwt"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	redisocket "github.com/syhlion/redisocket.v2"
 	"github.com/urfave/cli"

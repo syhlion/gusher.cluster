@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func makePrivateKey() (pkey *rsa.PrivateKey, err error) {
@@ -43,13 +43,13 @@ func getJwtToken() (t string, err error) {
 	}
 	type MyCustomClaims struct {
 		Gusher GusherData `json:"gusher"`
-		jwt.StandardClaims
+		jwt.RegisteredClaims
 	}
 	gd := GusherData{
 		"test", []string{"AA", "BB"}, "TEST1",
 	}
 	claims := MyCustomClaims{
-		gd, jwt.StandardClaims{},
+		gd, jwt.RegisteredClaims{},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
 	t, err = token.SignedString(privateKey)

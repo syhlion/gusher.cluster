@@ -1,7 +1,7 @@
 package main
 
 import (
-	jwt "github.com/golang-jwt/jwt"
+	jwt "github.com/golang-jwt/jwt/v5"
 	redisocket "github.com/syhlion/redisocket.v2"
 )
 
@@ -64,5 +64,5 @@ type ChannelData struct {
 
 type JwtPack struct {
 	Gusher redisocket.Auth `json:"gusher"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
