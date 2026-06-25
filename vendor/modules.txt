@@ -26,7 +26,7 @@ github.com/google/uuid
 # github.com/gorilla/mux v1.8.0
 ## explicit; go 1.12
 github.com/gorilla/mux
-# github.com/gorilla/websocket v1.5.0
+# github.com/gorilla/websocket v1.5.3
 ## explicit; go 1.12
 github.com/gorilla/websocket
 # github.com/joho/godotenv v1.4.0
@@ -91,7 +91,7 @@ github.com/russross/blackfriday/v2
 github.com/shurcooL/sanitized_anchor_name
 # github.com/stretchr/testify v1.7.0
 ## explicit; go 1.13
-# github.com/syhlion/redisocket.v2 v1.0.0
+# github.com/syhlion/redisocket.v2 v1.0.1
 ## explicit; go 1.25.0
 github.com/syhlion/redisocket.v2
 # github.com/urfave/cli v1.22.10
