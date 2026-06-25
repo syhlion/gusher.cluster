@@ -186,7 +186,7 @@ func MultiSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, soc
 		msg.msg = reply
 	} else {
 
-		//TODO 需重構 不讓他進入訂閱模式
+		// cmdType 留空 → WsConnect 不會呼叫 s.On,故不進訂閱模式;只回錯誤訊息。
 		msg.cmdType = ""
 		command.Event = MultiSubscribeReplyError
 		command.SocketId = socketId
@@ -242,7 +242,7 @@ func SubscribeCommand(appkey string, auth redisocket.Auth, data []byte, socketId
 		msg.msg = reply
 	} else {
 
-		//TODO 需重構 不讓他進入訂閱模式
+		// cmdType 留空 → WsConnect 不會呼叫 s.On,故不進訂閱模式;只回錯誤訊息。
 		msg.cmdType = ""
 		command.SocketId = socketId
 		command.Event = SubscribeReplyError
@@ -339,7 +339,7 @@ func UnSubscribeCommand(appkey string, auth redisocket.Auth, data []byte, socket
 	} else {
 		msg.data = channel
 
-		//TODO 需重構 先不讓他進入訂閱模式
+		// cmdType 留空 → WsConnect 不會呼叫 s.On,故不進訂閱模式;只回錯誤訊息。
 		msg.cmdType = ""
 		command.Event = UnSubscribeReplyError
 		command.SocketId = socketId

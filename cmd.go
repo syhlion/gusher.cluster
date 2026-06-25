@@ -17,7 +17,6 @@ import (
 	"github.com/gorilla/mux"
 	redisocket "github.com/syhlion/redisocket.v2"
 	"github.com/urfave/cli"
-	"github.com/urfave/negroni"
 )
 
 // master server
@@ -80,14 +79,12 @@ func master(c *cli.Context) {
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
-	n := negroni.New()
-	n.Use(RequestLogger(ls.Slog))
-	n.UseHandler(r)
+	handler := RequestLogger(ls.Slog)(r)
 	serverError := make(chan error, 1)
 	server := http.Server{
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 60 * time.Second,
-		Handler:      n,
+		Handler:      handler,
 	}
 	go func() {
 		err := server.Serve(apiListener)
@@ -173,17 +170,16 @@ func slave(c *cli.Context) {
 
 	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
 	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, publicPem, rsHub)).Methods("GET")
+	// /wtf 是 /ws 的 legacy alias(同一 handler),保留相容舊客戶端;新接入一律用 /ws。
 	sub.HandleFunc("/wtf/{app_key}", WsConnect(sc, publicPem, rsHub)).Methods("GET")
 	sub.HandleFunc("/auth", WsAuth(sc, publicPem)).Methods("POST")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	sub.HandleFunc("/ready", Ready(nc)).Methods("GET")
-	n := negroni.New()
-	n.Use(RequestLogger(ls.Slog))
-	n.UseHandler(r)
+	handler := RequestLogger(ls.Slog)(r)
 	serverError := make(chan error, 1)
 	server := http.Server{
 		ReadTimeout: 3 * time.Second,
-		Handler:     n,
+		Handler:     handler,
 	}
 	go func() {
 		err := server.Serve(apiListener)

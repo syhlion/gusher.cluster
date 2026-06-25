@@ -3,12 +3,7 @@ package main
 import "time"
 
 type MasterConfig struct {
-	LogFormatter      string
 	NatsAddr          string
-	RedisAddr         string
-	RedisDb           int
-	RedisMaxIdle      int
-	RedisMaxConn      int
 	ApiListen         string
 	ApiPrefix         string
 	PublicKeyLocation string
@@ -23,23 +18,13 @@ func (m MasterConfig) GetStartTime() string {
 }
 
 type SlaveConfig struct {
-	LogFormatter      string
 	NatsAddr          string
 	PublicKeyLocation string
 	LogInterval       time.Duration
 	ScanInterval      time.Duration
 	MaxMessage        int
-	RedisAddr         string
-	RedisDb           int
-	RedisMaxIdle      int
-	RedisMaxConn      int
-	RedisJobAddr      string
-	RedisJobDb        int
-	RedisJobMaxIdle   int
-	RedisJobMaxConn   int
 	ApiListen         string
 	ApiPrefix         string
-	DecodeServiceAddr string
 	Version           string
 	CompileDate       string
 	ExternalIp        string
