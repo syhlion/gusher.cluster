@@ -11,7 +11,6 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 	"github.com/syhlion/redisocket.v2"
 )
 
@@ -84,7 +83,7 @@ func WsConnect(sc SlaveConfig, pubKey *rsa.PublicKey, rHub *redisocket.Hub) http
 		defer s.Close()
 
 		t1 := time.Now()
-		logger.WithFields(logrus.Fields{
+		logger.WithFields(Fields{
 			"conn_at":   t1,
 			"socket_id": s.SocketId(),
 			"user_id":   auth.UserId,
@@ -124,7 +123,7 @@ func WsConnect(sc SlaveConfig, pubKey *rsa.PublicKey, rHub *redisocket.Hub) http
 		})
 		t2 := time.Now()
 		logger.WithFields(
-			logrus.Fields{
+			Fields{
 				"conn_at":            t1,
 				"conn_end":           t2,
 				"socket_id":          s.SocketId(),

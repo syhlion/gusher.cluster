@@ -1,40 +1,95 @@
 package main
 
 import (
+	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
+	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/urfave/negroni"
 )
 
+// Fields is a structured-field map (replaces logrus.Fields).
+type Fields map[string]any
+
+// logLevel is the shared, mutable level for every handler we build. The `-d`
+// debug flag flips it to Debug at startup (see envInit). Defaults to Info.
+var logLevel = new(slog.LevelVar)
+
+// Logger is a thin slog wrapper that keeps a small, chainable, logrus-like API
+// so existing call sites work while logrus is removed. The output destination
+// (stdout / file / both) and rotation are decided in logsetup.go.
+type Logger struct{ l *slog.Logger }
+
+// GetLogger returns a default stdout JSON logger — used before the env-driven
+// setup runs (e.g. config-loading fatals).
 func GetLogger() *Logger {
-	l := logrus.New()
-	/*
-		e := l.WithFields(logrus.Fields{
-			"Version":        version,
-			"RuntimeVersion": runtime.Version(),
-		})
-	*/
+	return &Logger{l: slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: logLevel}))}
+}
 
-	return &Logger{
-		l,
+func newLogger(l *slog.Logger) *Logger { return &Logger{l: l} }
+
+func (l *Logger) Debug(args ...any)              { l.l.Debug(argsMsg(args)) }
+func (l *Logger) Debugf(format string, a ...any) { l.l.Debug(fmt.Sprintf(format, a...)) }
+func (l *Logger) Info(args ...any)               { l.l.Info(argsMsg(args)) }
+func (l *Logger) Warn(args ...any)               { l.l.Warn(argsMsg(args)) }
+func (l *Logger) Error(args ...any)              { l.l.Error(argsMsg(args)) }
+func (l *Logger) Warnf(format string, a ...any)  { l.l.Warn(fmt.Sprintf(format, a...)) }
+func (l *Logger) Fatal(args ...any)              { l.l.Error(argsMsg(args)); os.Exit(1) }
+
+func (l *Logger) WithError(err error) *Entry       { return &Entry{l: l.l, attrs: []any{"error", err}} }
+func (l *Logger) WithField(k string, v any) *Entry { return &Entry{l: l.l, attrs: []any{k, v}} }
+func (l *Logger) WithFields(f Fields) *Entry       { return &Entry{l: l.l, attrs: fieldArgs(f)} }
+func (l *Logger) GetRequestEntry(r *http.Request) *Entry {
+	return &Entry{l: l.l, attrs: []any{
+		"method", r.Method, "uri", r.RequestURI, "remote", r.RemoteAddr,
+		"length", r.ContentLength, "ua", r.UserAgent(),
+	}}
+}
+
+// Entry accumulates attributes for a single log line.
+type Entry struct {
+	l     *slog.Logger
+	attrs []any
+}
+
+func (e *Entry) WithError(err error) *Entry       { e.attrs = append(e.attrs, "error", err); return e }
+func (e *Entry) WithField(k string, v any) *Entry { e.attrs = append(e.attrs, k, v); return e }
+func (e *Entry) Info(args ...any)                 { e.l.Info(argsMsg(args), e.attrs...) }
+func (e *Entry) Warn(args ...any)                 { e.l.Warn(argsMsg(args), e.attrs...) }
+func (e *Entry) Warnf(format string, a ...any)    { e.l.Warn(fmt.Sprintf(format, a...), e.attrs...) }
+func (e *Entry) Error(args ...any)                { e.l.Error(argsMsg(args), e.attrs...) }
+
+func argsMsg(args []any) string {
+	if len(args) == 1 {
+		if s, ok := args[0].(string); ok {
+			return s
+		}
 	}
-
+	return fmt.Sprint(args...)
 }
 
-type Logger struct {
-	*logrus.Logger
+func fieldArgs(f Fields) []any {
+	a := make([]any, 0, len(f)*2)
+	for k, v := range f {
+		a = append(a, k, v)
+	}
+	return a
 }
 
-func (l *Logger) GetLogger() *logrus.Logger {
-	return l.Logger
-}
-
-func (l *Logger) GetRequestEntry(r *http.Request) *logrus.Entry {
-	return l.WithFields(logrus.Fields{
-		"Method":        r.Method,
-		"RequestUri":    r.RequestURI,
-		"RemoteAddr":    r.RemoteAddr,
-		"ContentLength": r.ContentLength,
-		"UserAgent":     r.UserAgent(),
+// RequestLogger is a negroni middleware that logs each HTTP request via slog
+// (replaces the logrus-based httplog).
+func RequestLogger(l *slog.Logger) negroni.Handler {
+	return negroni.HandlerFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+		start := time.Now()
+		next(w, r)
+		status := 0
+		if nrw, ok := w.(negroni.ResponseWriter); ok {
+			status = nrw.Status()
+		}
+		l.Info("http",
+			"method", r.Method, "path", r.URL.Path, "status", status,
+			"remote", r.RemoteAddr, "dur", time.Since(start).String())
 	})
 }

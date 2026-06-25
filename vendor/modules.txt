@@ -60,12 +60,8 @@ github.com/russross/blackfriday/v2
 # github.com/shurcooL/sanitized_anchor_name v1.0.0
 ## explicit
 github.com/shurcooL/sanitized_anchor_name
-# github.com/sirupsen/logrus v1.9.0
+# github.com/stretchr/testify v1.7.0
 ## explicit; go 1.13
-github.com/sirupsen/logrus
-# github.com/syhlion/httplog v0.0.0-20200804071957-8dddff4f795c
-## explicit
-github.com/syhlion/httplog
 # github.com/syhlion/redisocket.v2 v1.0.0
 ## explicit; go 1.25.0
 github.com/syhlion/redisocket.v2
@@ -87,8 +83,6 @@ golang.org/x/crypto/salsa20/salsa
 # golang.org/x/sys v0.45.0
 ## explicit; go 1.25.0
 golang.org/x/sys/cpu
-golang.org/x/sys/unix
-golang.org/x/sys/windows
 # gopkg.in/natefinch/lumberjack.v2 v2.2.1
 ## explicit; go 1.13
 gopkg.in/natefinch/lumberjack.v2

@@ -15,8 +15,6 @@ import (
 
 	jwt "github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
-	"github.com/syhlion/httplog"
 	redisocket "github.com/syhlion/redisocket.v2"
 	"github.com/urfave/cli"
 	"github.com/urfave/negroni"
@@ -31,7 +29,7 @@ func master(c *cli.Context) {
 	if logErr != nil {
 		logger.Fatal(logErr)
 	}
-	logger = ls.Logrus
+	logger = ls.App
 	defer ls.Close()
 
 	b, err := ioutil.ReadFile(mc.PublicKeyLocation)
@@ -83,7 +81,7 @@ func master(c *cli.Context) {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
 	n := negroni.New()
-	n.Use(httplog.NewLogger(true))
+	n.Use(RequestLogger(ls.Slog))
 	n.UseHandler(r)
 	serverError := make(chan error, 1)
 	server := http.Server{
@@ -126,12 +124,12 @@ func runtimeStats() (m *runtime.MemStats) {
 func slave(c *cli.Context) {
 
 	sc := getSlaveConfig(c)
-	/*logging: 輸出 stdout/file/both ＋ 輪替(env 驅動);引擎用 slog、app 用 logrus、同一目的地*/
+	/*logging: 輸出 stdout/file/both ＋ 輪替(env 驅動);引擎與 app 皆 slog、同一目的地*/
 	ls, logErr := setupLoggingFromEnv()
 	if logErr != nil {
 		logger.Fatal(logErr)
 	}
-	logger = ls.Logrus
+	logger = ls.App
 	defer ls.Close()
 	/*本機 JWT 驗證:載入公鑰(取代 decode service + greq)*/
 	pemBytes, err := ioutil.ReadFile(sc.PublicKeyLocation)
@@ -180,7 +178,7 @@ func slave(c *cli.Context) {
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
 	sub.HandleFunc("/ready", Ready(nc)).Methods("GET")
 	n := negroni.New()
-	n.Use(httplog.NewLogger(true))
+	n.Use(RequestLogger(ls.Slog))
 	n.UseHandler(r)
 	serverError := make(chan error, 1)
 	server := http.Server{
@@ -207,7 +205,7 @@ func slave(c *cli.Context) {
 			select {
 			case <-t.C:
 				m := runtimeStats()
-				logger.WithFields(logrus.Fields{
+				logger.WithFields(Fields{
 					"memory-acquired": m.Sys,
 					"memory-used":     m.Alloc,
 					"goroutines":      runtime.NumGoroutine(),
