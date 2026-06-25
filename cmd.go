@@ -15,7 +15,6 @@ import (
 
 	jwt "github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
-	nats "github.com/nats-io/nats.go"
 	"github.com/sirupsen/logrus"
 	"github.com/syhlion/httplog"
 	redisocket "github.com/syhlion/redisocket.v2"
@@ -45,7 +44,7 @@ func master(c *cli.Context) {
 	}
 
 	/*NATS:publish + presence 聚合(master 無連線,presence 查詢經 request/reply 匯總各 slave)*/
-	nc, err := nats.Connect(mc.NatsAddr, nats.Name("gusher-master"))
+	nc, err := connectNATS(mc.NatsAddr, "gusher-master")
 	if err != nil {
 		logger.Fatal("nats connect error: ", err)
 	}
@@ -79,6 +78,7 @@ func master(c *cli.Context) {
 	sub.HandleFunc("/{app_key}/online", GetOnline(rsender)).Methods("GET")
 	sub.HandleFunc("/{app_key}/online/count", GetOnlineCount(rsender)).Methods("GET")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
+	sub.HandleFunc("/ready", Ready(nc)).Methods("GET")
 	if rsaKeyErr == nil {
 		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
 	}
@@ -103,7 +103,7 @@ func master(c *cli.Context) {
 	shutdow_observer := make(chan os.Signal, 1)
 	t := template.Must(template.New("gusher master start msg").Parse(masterMsgFormat))
 	t.Execute(os.Stdout, mc)
-	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case <-shutdow_observer:
 		logger.Info("Receive signal")
@@ -144,7 +144,7 @@ func slave(c *cli.Context) {
 	}
 
 	/*NATS:bus + presence(取代 redis pub/sub + sorted-set presence)*/
-	nc, err := nats.Connect(sc.NatsAddr, nats.Name("gusher-slave"))
+	nc, err := connectNATS(sc.NatsAddr, "gusher-slave")
 	if err != nil {
 		logger.Fatal("nats connect error: ", err)
 	}
@@ -178,6 +178,7 @@ func slave(c *cli.Context) {
 	sub.HandleFunc("/wtf/{app_key}", WsConnect(sc, publicPem, rsHub)).Methods("GET")
 	sub.HandleFunc("/auth", WsAuth(sc, publicPem)).Methods("POST")
 	sub.HandleFunc("/ping", Ping()).Methods("GET")
+	sub.HandleFunc("/ready", Ready(nc)).Methods("GET")
 	n := negroni.New()
 	n.Use(httplog.NewLogger(true))
 	n.UseHandler(r)
@@ -229,14 +230,14 @@ func slave(c *cli.Context) {
 	shutdow_observer := make(chan os.Signal, 1)
 	t := template.Must(template.New("gusher slave start msg").Parse(slaveMsgFormat))
 	t.Execute(os.Stdout, sc)
-	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
+	signal.Notify(shutdow_observer, syscall.SIGINT, syscall.SIGTERM)
 	select {
 	case <-shutdow_observer:
 		logger.Info("receive signal")
 	case err := <-serverError:
 		logger.Error(err)
 	case err := <-rsHubErr:
-		logger.Error("redis sub connection diconnect ", err)
+		logger.Error("hub listen stopped: ", err)
 	}
 	return
 

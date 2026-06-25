@@ -55,6 +55,13 @@ GUSHER_MASTER_API_LISTEN=:7777 GUSHER_MASTER_URI_PREFIX=/ ./gusher.cluster maste
 
 See `slave.env.example` / `master.env.example` for the full env list.
 
+## Ops
+
+- **Health**: `GET /ping` (liveness) · `GET /ready` (readiness — 200 only while
+  NATS is connected).
+- **NATS auth**: set `GUSHER_NATS_CREDS=/path/to/app.creds` for user credentials;
+  use a `tls://` address (or NATS server config) for TLS. The client auto-reconnects.
+
 ## Client flow
 
 1. `POST /auth` with `jwt=<JWT>` → `{"token":"<JWT>"}` (the JWT is verified

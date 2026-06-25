@@ -3,9 +3,12 @@ name: default
 
 steps:
 - name: test
-  image: golang
+  image: golang:1.25
+  environment:
+    GOFLAGS: -mod=vendor
   commands:
-  - go test
+  - go vet ./...
+  - go build ./...
 
 - name: docker
   image: plugins/docker
