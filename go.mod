@@ -14,7 +14,7 @@ require (
 	github.com/nats-io/nats.go v1.52.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/syhlion/httplog v0.0.0-20200804071957-8dddff4f795c
-	github.com/syhlion/redisocket.v2 v0.0.0-20260624092217-c4652be98cb8
+	github.com/syhlion/redisocket.v2 v1.0.0
 	github.com/urfave/cli v1.22.10
 	github.com/urfave/negroni v1.0.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
