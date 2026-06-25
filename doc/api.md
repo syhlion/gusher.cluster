@@ -32,6 +32,12 @@ Success Response:
 pong
 ```
 
+### Ready:
+
+`GET /{prefix}/ready`
+
+Readiness probe — `200 ready` when NATS is connected, `503 nats not connected` otherwise.
+
 ## Master Api
 
 
@@ -271,6 +277,12 @@ Success Response:
 ```
 pong
 ```
+
+### Ready:
+
+`GET /{prefix}/ready`
+
+Readiness probe — `200 ready` when NATS is connected, `503 nats not connected` otherwise.
 
 * note1: if channels slice have "*" char that user can sub all channels
 * note2: support *  like test = t*st or app* = apple
