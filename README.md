@@ -3,6 +3,8 @@
 [![Build Status](https://drone.syhlion.tw/api/badges/syhlion/gusher.cluster/status.svg)](https://drone.syhlion.tw/syhlion/gusher.cluster)
  [![Stars](https://img.shields.io/github/stars/syhlion/gusher.cluster.svg)](https://github.com/syhlion/gusher.cluster)
 
+> 🌐 **English** · [繁體中文](README.zh-TW.md)
+
 Self-hosted realtime push service (Pusher-style). Browsers hold a **WebSocket**
 and subscribe to channels; backends **POST** to push a message into a channel.
 Horizontally scalable, **backed by NATS — no Redis**.
