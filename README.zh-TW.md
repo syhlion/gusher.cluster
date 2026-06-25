@@ -2,6 +2,10 @@
 
 [![Build Status](https://drone.syhlion.tw/api/badges/syhlion/gusher.cluster/status.svg)](https://drone.syhlion.tw/syhlion/gusher.cluster)
  [![Stars](https://img.shields.io/github/stars/syhlion/gusher.cluster.svg)](https://github.com/syhlion/gusher.cluster)
+ [![Go](https://img.shields.io/github/go-mod/go-version/syhlion/gusher.cluster.svg)](go.mod)
+ [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+ [![Backed by NATS](https://img.shields.io/badge/backed%20by-NATS-27AAE1.svg)](https://nats.io)
+ [![Docs](https://img.shields.io/badge/docs-EN%20%7C%20%E7%B9%81%E4%B8%AD-success.svg)](docs/)
 
 > 🌐 [English](README.md) · **繁體中文**
 
