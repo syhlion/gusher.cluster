@@ -5,9 +5,8 @@
  [![Go](https://img.shields.io/github/go-mod/go-version/syhlion/gusher.cluster.svg)](go.mod)
  [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
  [![Backed by NATS](https://img.shields.io/badge/backed%20by-NATS-27AAE1.svg)](https://nats.io)
- [![Docs](https://img.shields.io/badge/docs-EN%20%7C%20%E7%B9%81%E4%B8%AD-success.svg)](docs/)
-
-> 🌐 [English](README.md) · **繁體中文**
+ [![docs English](https://img.shields.io/badge/docs-English-lightgrey.svg)](README.md)
+ [![docs 繁體中文](https://img.shields.io/badge/docs-%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-blue.svg)](README.zh-TW.md)
 
 自架的即時推播服務（仿 Pusher 風格）。瀏覽器以 **WebSocket** 連線並訂閱頻道；
 後端則 **POST** 把訊息推進頻道。可水平擴展，**以 NATS 為後端——不需要 Redis**。
