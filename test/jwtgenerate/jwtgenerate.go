@@ -9,8 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jws"
+	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/urfave/cli"
 )
 
@@ -28,7 +27,7 @@ var (
 			cli.StringFlag{
 				Name:  "payload",
 				Usage: "You want to hash payload",
-				Value: "{\"gusher\":{\"user_id\":\"Test_User\",\"channels\":[\"AA\",\"BB\"],\"app_key\":\"TEST\",\"remotes\":{\"cmd1\":true}}}",
+				Value: "{\"gusher\":{\"user_id\":\"Test_User\",\"channels\":[\"AA\",\"BB\"],\"app_key\":\"TEST\"}}",
 			},
 			cli.StringFlag{
 				Name:  "private-key",
@@ -65,14 +64,13 @@ func start(c *cli.Context) {
 		log.Println(err)
 		os.Exit(1)
 	}
-	rsaPrivate, err := crypto.ParseRSAPrivateKeyFromPEM(privateKey)
+	rsaPrivate, err := jwt.ParseRSAPrivateKeyFromPEM(privateKey)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
 	}
 
-	jwt := jws.NewJWT(jws.Claims(claims), crypto.SigningMethodRS256)
-	token, err := jwt.Serialize(rsaPrivate)
+	token, err := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims(claims)).SignedString(rsaPrivate)
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)

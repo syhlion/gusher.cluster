@@ -3,9 +3,8 @@ module github.com/syhlion/gusher.cluster
 go 1.25.0
 
 require (
-	github.com/SermoDigital/jose v0.9.1
 	github.com/buger/jsonparser v1.1.1
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
