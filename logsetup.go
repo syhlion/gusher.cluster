@@ -7,20 +7,16 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sirupsen/logrus"
 	lumberjack "gopkg.in/natefinch/lumberjack.v2"
 )
 
-// LogSetup 把「輸出目的地（stdout/file/both）＋ 格式 ＋ 輪替」這件事集中設定,
-// 並產出兩個寫到「同一個目的地」的 logger:
-//   - Logrus:gusher 自身的 app 日誌(沿用既有 WithFields/WithError 呼叫點)
-//   - Slog  :傳給 redisocket 引擎(引擎已改吃 *slog.Logger)
-//
-// 取代原本壞掉的 GUSHER_LOG_FORMATTER(從未被賦值),改由下列 env 驅動。
+// LogSetup 把「輸出目的地（stdout/file/both）＋ 格式 ＋ 輪替」集中設定。
+// 全程 slog:App 給 gusher 自身日誌(slog-backed 的 *Logger)、Slog 給 redisocket
+// 引擎,兩者同一個 handler/writer。取代原本壞掉的 GUSHER_LOG_FORMATTER。
 type LogSetup struct {
-	Logrus *Logger
-	Slog   *slog.Logger
-	Close  func() error
+	App   *Logger
+	Slog  *slog.Logger
+	Close func() error
 }
 
 // setupLoggingFromEnv 依環境變數建立 LogSetup:
@@ -54,28 +50,16 @@ func setupLoggingFromEnv() (*LogSetup, error) {
 		closer = lj.Close
 	}
 
-	// gusher app 日誌（logrus）導到同一個 writer
-	ll := logrus.New()
-	ll.SetOutput(w)
+	opts := &slog.HandlerOptions{Level: logLevel}
+	var h slog.Handler
 	if format == "text" {
-		ll.SetFormatter(&logrus.TextFormatter{})
+		h = slog.NewTextHandler(w, opts)
 	} else {
-		ll.SetFormatter(&logrus.JSONFormatter{})
+		h = slog.NewJSONHandler(w, opts)
 	}
+	sl := slog.New(h)
 
-	// 引擎日誌（slog）寫到同一個 writer
-	var sh slog.Handler
-	if format == "text" {
-		sh = slog.NewTextHandler(w, nil)
-	} else {
-		sh = slog.NewJSONHandler(w, nil)
-	}
-
-	return &LogSetup{
-		Logrus: &Logger{ll},
-		Slog:   slog.New(sh),
-		Close:  closer,
-	}, nil
+	return &LogSetup{App: newLogger(sl), Slog: sl, Close: closer}, nil
 }
 
 func getenvDefault(key, def string) string {

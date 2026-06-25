@@ -1,13 +1,12 @@
 package main
 
 import (
+	"log/slog"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 
 	"github.com/joho/godotenv"
 	"github.com/urfave/cli"
@@ -151,13 +150,7 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 		logger.Fatal("empty env GUSHER_PUBLIC_PEM_FILE")
 	}
 	sc.DecodeServiceAddr = os.Getenv("GUSHER_DECODE_SERVICE") // 保留欄位相容,已不必填
-	var f logrus.Formatter
-	if strings.ToLower(sc.LogFormatter) == "json" || sc.LogFormatter == "" {
-		f = &logrus.JSONFormatter{}
-	} else {
-		f = &logrus.TextFormatter{}
-	}
-	logger.SetFormatter(f)
+	// log 格式/輸出由 setupLoggingFromEnv 處理(GUSHER_LOG_*)
 	sc.StartTime = time.Now()
 	sc.CompileDate = compileDate
 	sc.Version = version
@@ -200,14 +193,7 @@ func getMasterConfig(c *cli.Context) (mc MasterConfig) {
 	if mc.ApiPrefix == "" {
 		logger.Fatal("empty env GUSHER_MASTER_URI_PREFIX")
 	}
-
-	var f logrus.Formatter
-	if strings.ToLower(mc.LogFormatter) == "json" || mc.LogFormatter == "" {
-		f = &logrus.JSONFormatter{}
-	} else {
-		f = &logrus.TextFormatter{}
-	}
-	logger.SetFormatter(f)
+	// log 格式/輸出由 setupLoggingFromEnv 處理(GUSHER_LOG_*)
 
 	mc.StartTime = time.Now()
 	mc.CompileDate = compileDate
@@ -231,9 +217,9 @@ func envInit(c *cli.Context) {
 	}
 
 	if c.Bool("debug") {
-		logger.Logger.Level = logrus.DebugLevel
+		logLevel.Set(slog.LevelDebug)
 	} else {
-		logger.Logger.Level = logrus.InfoLevel
+		logLevel.Set(slog.LevelInfo)
 	}
 
 }

@@ -15,8 +15,8 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/gorilla/websocket"
 	"github.com/joho/godotenv"
-	log "github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
+	"log"
 )
 
 var (
@@ -159,7 +159,7 @@ func start(c *cli.Context) {
 	connChan := make(chan *websocket.Conn, conn_total)
 
 	connGroup := sync.WaitGroup{}
-	log.Infof("%v connect start!", conn_total)
+	log.Printf("%v connect start!", conn_total)
 	for wsurl := range wsurlChan {
 		connGroup.Add(1)
 		go func(wsurl *url.URL) {
@@ -204,7 +204,7 @@ func start(c *cli.Context) {
 
 				if err != nil {
 					if c.Bool("debug") {
-						log.Error("test", err)
+						log.Println("test", err)
 					}
 					if !subStatus {
 						listen_wg.Done()
@@ -235,7 +235,7 @@ func start(c *cli.Context) {
 	}
 
 	listen_wg.Wait()
-	log.Infof("%v connect finish", connTotal)
+	log.Printf("%v connect finish", connTotal)
 	//push start
 	v := url.Values{}
 
@@ -265,12 +265,12 @@ func start(c *cli.Context) {
 	wg.Wait()
 	t := time.Now().Sub(pushStart)
 	if connTotal == 0 {
-		log.Error("0 client connect, please check slave server!")
+		log.Println("0 client connect, please check slave server!")
 	} else if connTotal == int(counter) {
-		log.Error("no client read message, please check master server!")
+		log.Println("no client read message, please check master server!")
 	} else {
 
-		log.Infof("%v client connect, %v error read , receive msg time:%s", connTotal, counter, t)
+		log.Printf("%v client connect, %v error read , receive msg time:%s", connTotal, counter, t)
 	}
 
 	return
