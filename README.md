@@ -5,9 +5,8 @@
  [![Go](https://img.shields.io/github/go-mod/go-version/syhlion/gusher.cluster.svg)](go.mod)
  [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
  [![Backed by NATS](https://img.shields.io/badge/backed%20by-NATS-27AAE1.svg)](https://nats.io)
- [![Docs](https://img.shields.io/badge/docs-EN%20%7C%20%E7%B9%81%E4%B8%AD-success.svg)](docs/)
-
-> 🌐 **English** · [繁體中文](README.zh-TW.md)
+ [![docs English](https://img.shields.io/badge/docs-English-blue.svg)](README.md)
+ [![docs 繁體中文](https://img.shields.io/badge/docs-%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-lightgrey.svg)](README.zh-TW.md)
 
 Self-hosted realtime push service (Pusher-style). Browsers hold a **WebSocket**
 and subscribe to channels; backends **POST** to push a message into a channel.
