@@ -1,13 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
-
-	"github.com/urfave/negroni"
 )
 
 // Fields is a structured-field map (replaces logrus.Fields).
@@ -78,18 +78,55 @@ func fieldArgs(f Fields) []any {
 	return a
 }
 
-// RequestLogger is a negroni middleware that logs each HTTP request via slog
-// (replaces the logrus-based httplog).
-func RequestLogger(l *slog.Logger) negroni.Handler {
-	return negroni.HandlerFunc(func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		start := time.Now()
-		next(w, r)
-		status := 0
-		if nrw, ok := w.(negroni.ResponseWriter); ok {
-			status = nrw.Status()
-		}
-		l.Info("http",
-			"method", r.Method, "path", r.URL.Path, "status", status,
-			"remote", r.RemoteAddr, "dur", time.Since(start).String())
-	})
+// RequestLogger is a stdlib middleware that logs each HTTP request via slog
+// (replaces the negroni-based middleware). Wrap a handler: RequestLogger(l)(h).
+func RequestLogger(l *slog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			rec := &statusRecorder{ResponseWriter: w}
+			next.ServeHTTP(rec, r)
+			status := rec.status
+			if status == 0 {
+				status = http.StatusOK
+			}
+			l.Info("http",
+				"method", r.Method, "path", r.URL.Path, "status", status,
+				"remote", r.RemoteAddr, "dur", time.Since(start).String())
+		})
+	}
+}
+
+// statusRecorder captures the response status while delegating everything to
+// the underlying ResponseWriter. It preserves http.Hijacker so the /ws
+// websocket upgrade still works through the logging middleware.
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (s *statusRecorder) WriteHeader(code int) {
+	s.status = code
+	s.ResponseWriter.WriteHeader(code)
+}
+
+func (s *statusRecorder) Write(b []byte) (int, error) {
+	if s.status == 0 {
+		s.status = http.StatusOK
+	}
+	return s.ResponseWriter.Write(b)
+}
+
+func (s *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := s.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, fmt.Errorf("ResponseWriter does not support Hijack")
+	}
+	return h.Hijack()
+}
+
+func (s *statusRecorder) Flush() {
+	if f, ok := s.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
 }

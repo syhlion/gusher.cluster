@@ -6,7 +6,6 @@ import (
 	"net"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/gomodule/redigo/redis"
 )
 
 func InArray(c string, s []string) (b bool) {
@@ -16,12 +15,6 @@ func InArray(c string, s []string) (b bool) {
 		}
 	}
 	return false
-}
-
-func RedisTestConn(conn redis.Conn) (err error) {
-	_, err = conn.Do("PING")
-	conn.Close()
-	return
 }
 
 func JsonCheck(data string) (j interface{}) {

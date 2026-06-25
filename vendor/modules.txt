@@ -97,9 +97,6 @@ github.com/syhlion/redisocket.v2
 # github.com/urfave/cli v1.22.10
 ## explicit; go 1.11
 github.com/urfave/cli
-# github.com/urfave/negroni v1.0.0
-## explicit
-github.com/urfave/negroni
 # golang.org/x/crypto v0.52.0
 ## explicit; go 1.25.0
 golang.org/x/crypto/bcrypt
