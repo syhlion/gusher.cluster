@@ -27,7 +27,9 @@ client ──ws──▶ slave ──subscribe──▶  NATS  ◀──publish�
 
 - **NATS** (the only backend) — `nats-server` 2.10+
 - An **RSA key pair** — master/slave verify the JWT with the **public key**;
-  your own auth service signs JWTs with the private key.
+  your own auth service signs JWTs with the private key. See
+  [docs/KEYS.md](docs/KEYS.md) for the full generate → sign → verify → rotate
+  walkthrough.
 
 ## Run
 
