@@ -44,6 +44,8 @@ build/darwin_amd64.tar.gz: build/darwin
 	$(call tar,darwin,amd64,)
 clean:
 	rm -rf build/
+smoke:
+	./scripts/smoke.sh
 docker-build:
 	$(call dockerbuild,linux,amd64,)
 rsakey:
