@@ -1,5 +1,10 @@
 ## [Unreleased]
 
+## [v3.0.0] - 2026-06-26
+
+> **Breaking**: HTTP API redesigned to a clean resource-oriented REST shape under
+> `/v1` (see below). No external consumers yet — hard cutover, no aliases.
+
 ### [Added]
 
 - **Engineering console** (master): `GET /ui` — a single self-contained HTML page
