@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gusher.cluster — realtime demo</title>
+<style>
+ :root{color-scheme:dark}
+ body{font:14px/1.5 system-ui,monospace;margin:0;background:#0b0e14;color:#c9d1d9}
+ header{padding:14px 20px;border-bottom:1px solid #2d333b}
+ header h1{font-size:18px;margin:0}
+ header .sub{color:#8b949e;font-size:13px}
+ .wrap{display:flex;gap:16px;padding:20px;flex-wrap:wrap}
+ .pane{flex:1;min-width:320px;border:1px solid #2d333b;border-radius:8px;background:#0d1117}
+ .pane h2{font-size:14px;margin:0;padding:10px 14px;border-bottom:1px solid #2d333b;color:#7ee787}
+ .pane .body{padding:14px}
+ input,button{font:14px system-ui;border:1px solid #2d333b;border-radius:6px;background:#161b22;color:#c9d1d9;padding:8px 10px}
+ button{background:#238636;border-color:#238636;color:#fff;cursor:pointer}
+ button:hover{background:#2ea043}
+ .row{display:flex;gap:8px}
+ .row input{flex:1}
+ #status{font-size:12px;color:#8b949e;margin-bottom:10px}
+ #status b.ok{color:#3fb950} #status b.bad{color:#f85149}
+ #log{list-style:none;margin:0;padding:0;max-height:46vh;overflow:auto}
+ #log li{padding:8px 10px;border:1px solid #21262d;border-radius:6px;margin-bottom:6px;background:#161b22}
+ #log li .t{color:#8b949e;font-size:11px}
+ #log li .m{color:#e6edf3;font-size:15px;word-break:break-word}
+ .muted{color:#8b949e}
+</style>
+</head>
+<body>
+<header>
+ <h1>gusher.cluster — realtime push demo</h1>
+ <div class="sub">type on the left (backend → master) · watch it arrive live on the right (slave → WebSocket)</div>
+</header>
+<div class="wrap">
+ <section class="pane">
+  <h2>① backend — publish</h2>
+  <div class="body">
+   <div class="muted" style="margin-bottom:10px">POST a message to channel <code>demo</code> (proxied to the master).</div>
+   <div class="row">
+    <input id="msg" placeholder="type a message…" autocomplete="off">
+    <button onclick="publish()">send</button>
+   </div>
+   <div id="pubstatus" class="muted" style="margin-top:8px"></div>
+  </div>
+ </section>
+ <section class="pane">
+  <h2>② frontend — subscribe</h2>
+  <div class="body">
+   <div id="status">connecting…</div>
+   <ul id="log"></ul>
+  </div>
+ </section>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const ts=()=>new Date().toLocaleTimeString();
+let ws=null, cfg=null;
+
+function setStatus(html){$('status').innerHTML=html;}
+
+async function connect(){
+ try{
+  cfg=await (await fetch('/token')).json();
+  const host=location.hostname, url='ws://'+host+':'+cfg.wsPort+'/v1/apps/'+cfg.app+'/ws?token='+cfg.token;
+  ws=new WebSocket(url);
+  ws.onopen=()=>{
+   setStatus('socket <b class=ok>open</b> · subscribing to <code>'+cfg.channel+'</code>…');
+   ws.send(JSON.stringify({event:'gusher.subscribe',data:{channel:cfg.channel}}));
+  };
+  ws.onmessage=ev=>{
+   let m; try{m=JSON.parse(ev.data);}catch(e){return;}
+   if(m.event==='gusher.subscribe_succeeded'){setStatus('subscribed to <code>'+cfg.channel+'</code> · <b class=ok>live</b>');return;}
+   if(m.event==='message'){addMsg(m.data);}
+  };
+  ws.onclose=()=>{setStatus('socket <b class=bad>closed</b> · retrying in 2s…');setTimeout(connect,2000);};
+  ws.onerror=()=>{setStatus('socket <b class=bad>error</b>');};
+ }catch(e){setStatus('<b class=bad>'+e.message+'</b> · retrying…');setTimeout(connect,2000);}
+}
+function addMsg(data){
+ const li=document.createElement('li');
+ li.innerHTML='<div class="t">'+ts()+'</div><div class="m"></div>';
+ li.querySelector('.m').textContent=typeof data==='string'?data:JSON.stringify(data);
+ $('log').prepend(li);
+}
+async function publish(){
+ const v=$('msg').value.trim(); if(!v)return;
+ $('msg').value='';
+ const r=await fetch('/publish',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:v})});
+ $('pubstatus').textContent=r.ok?('sent ✓ ('+ts()+')'):('send failed: '+r.status);
+}
+$('msg').addEventListener('keydown',e=>{if(e.key==='Enter')publish();});
+connect();
+</script>
+</body>
+</html>

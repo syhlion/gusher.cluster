@@ -1,0 +1,56 @@
+# gusher.cluster realtime demo — nats + master + slave + a tiny demo backend.
+# Run from the repo root:
+#   docker compose -f example/docker-compose.yml up --build
+# then open http://localhost:8080
+#
+# Reuses the repo's demo RSA keypair (test/key/{private,public}.pem): the demo
+# backend signs JWTs with the private key; master/slave verify with the public key.
+
+services:
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js"]
+
+  gusher-master:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: gusher.cluster:example
+    command: ["master"]
+    environment:
+      GUSHER_NATS_ADDR: "nats://nats:4222"
+      GUSHER_MASTER_API_LISTEN: ":7777"
+      GUSHER_PUBLIC_PEM_FILE: "/keys/public.pem"
+      GUSHER_LOG_OUTPUT: "stdout"
+      GUSHER_LOG_FORMAT: "json"
+    volumes:
+      - ../test/key/public.pem:/keys/public.pem:ro
+    depends_on: [nats]
+
+  gusher-slave:
+    image: gusher.cluster:example
+    command: ["slave"]
+    environment:
+      GUSHER_NATS_ADDR: "nats://nats:4222"
+      GUSHER_API_LISTEN: ":8888"
+      GUSHER_PUBLIC_PEM_FILE: "/keys/public.pem"
+      GUSHER_LOG_OUTPUT: "stdout"
+      GUSHER_LOG_FORMAT: "json"
+    volumes:
+      - ../test/key/public.pem:/keys/public.pem:ro
+    ports:
+      - "8888:8888" # browser opens the WebSocket here
+    depends_on: [nats, gusher-master]
+
+  demo:
+    build:
+      context: ./app
+    environment:
+      MASTER_URL: "http://gusher-master:7777"
+      PRIVATE_PEM: "/keys/private.pem"
+      LISTEN: ":8080"
+    volumes:
+      - ../test/key/private.pem:/keys/private.pem:ro
+    ports:
+      - "8080:8080" # the demo UI
+    depends_on: [gusher-master, gusher-slave]
