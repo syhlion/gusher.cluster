@@ -10,7 +10,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/nats-io/nats-server/v2 v2.14.2
 	github.com/nats-io/nats.go v1.52.0
-	github.com/syhlion/redisocket.v2 v1.0.1
+	github.com/syhlion/redisocket.v2 v1.1.0
 	github.com/urfave/cli v1.22.10
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )

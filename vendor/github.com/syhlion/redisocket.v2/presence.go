@@ -14,6 +14,13 @@ type PresenceMember struct {
 	Channels []string
 }
 
+// AppStat is a per-app usage snapshot returned by Stats: Conns is the live
+// connection (socket) count, Users is the distinct-user (uid) count.
+type AppStat struct {
+	Conns int `json:"conns"`
+	Users int `json:"users"`
+}
+
 // Presence 抽象「在線/頻道成員」追蹤:誰在線、某頻道有誰、列頻道。
 // 現役為 Redis sorted-set 實作;NATS 後端將以 per-node 記憶體 + request/reply 取代,
 // 屆時連線層不需改動(只換注入的實作)。
@@ -28,6 +35,8 @@ type Presence interface {
 	Online(prefix, appKey string) ([]string, error)
 	// Channels 回傳某 app 符合 pattern 的頻道名。
 	Channels(prefix, appKey, pattern string) ([]string, error)
+	// Stats 回傳每個 app 的連線數 + 在線人數(全節點彙整)。
+	Stats(prefix string) (map[string]AppStat, error)
 	// Close 釋放資源(memoryPresence 退訂查詢主題;redisPresence 為 no-op)。
 	Close() error
 }
@@ -108,6 +117,30 @@ func (p *redisPresence) Online(prefix, appKey string) ([]string, error) {
 	nt := time.Now().Unix()
 	dt := nt - 120
 	return redis.Strings(conn.Do("ZRANGEBYSCORE", prefix+appKey+"@online", dt, nt))
+}
+
+// Stats reports per-app counts. The redis @online set is keyed by uid (deduped),
+// so socket count is not tracked; Conns and Users both report the distinct-user
+// count (best-effort — the NATS memoryPresence backend tracks them separately).
+func (p *redisPresence) Stats(prefix string) (map[string]AppStat, error) {
+	conn := p.pool.Get()
+	defer conn.Close()
+	keys, err := redis.Strings(conn.Do("keys", prefix+"*@online"))
+	if err != nil {
+		return nil, err
+	}
+	nt := time.Now().Unix()
+	dt := nt - 120
+	out := make(map[string]AppStat)
+	for _, k := range keys {
+		app := strings.TrimSuffix(strings.TrimPrefix(k, prefix), "@online")
+		n, err := redis.Int(conn.Do("ZCOUNT", k, dt, nt))
+		if err != nil {
+			continue
+		}
+		out[app] = AppStat{Conns: n, Users: n}
+	}
+	return out, nil
 }
 
 func (p *redisPresence) Channels(prefix, appKey, pattern string) ([]string, error) {

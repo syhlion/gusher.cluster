@@ -120,6 +120,13 @@ func (s *Sender) GetOnline(channelPrefix string, appKey string) (online []string
 	return s.presence.Online(channelPrefix, appKey)
 }
 
+// GetStats returns per-app connection (socket) + distinct-user counts across all
+// nodes. Connection counts are exact; user counts are an approximate sum (a user
+// connected to multiple nodes is counted once per node).
+func (s *Sender) GetStats(channelPrefix string) (map[string]AppStat, error) {
+	return s.presence.Stats(channelPrefix)
+}
+
 // PushBatch push batch data
 func (s *Sender) PushBatch(channelPrefix, appKey string, data []BatchData) {
 	for _, d := range data {

@@ -25,18 +25,27 @@ type memoryPresence struct {
 	online map[string]map[string]struct{}
 	// appKey -> channel -> set(uid)
 	channels map[string]map[string]map[string]struct{}
+	// appKey -> connection (socket) count on this node, refreshed on Sync.
+	// Unlike online (deduped by uid), this counts every socket, so summing it
+	// across nodes is exact.
+	conns map[string]int
 }
 
 // presenceQuery / presenceReply 是跨節點查詢的 envelope(走 NATS request/reply)。
 type presenceQuery struct {
-	Type    string `json:"t"` // online | channel | channels
+	Type    string `json:"t"` // online | channel | channels | stats
 	AppKey  string `json:"a"`
 	Channel string `json:"c"`
 	Pattern string `json:"p"`
 }
+type appStatWire struct {
+	Conns int `json:"n"`
+	Users int `json:"u"`
+}
 type presenceReply struct {
-	Uids     []string `json:"u,omitempty"`
-	Channels []string `json:"c,omitempty"`
+	Uids     []string               `json:"u,omitempty"`
+	Channels []string               `json:"c,omitempty"`
+	Stats    map[string]appStatWire `json:"s,omitempty"`
 }
 
 const defaultPresenceQueryTimeout = 100 * time.Millisecond
@@ -49,6 +58,7 @@ func NewMemoryPresence(nc *nats.Conn, prefix string) (Presence, error) {
 		queryTimeout: defaultPresenceQueryTimeout,
 		online:       make(map[string]map[string]struct{}),
 		channels:     make(map[string]map[string]map[string]struct{}),
+		conns:        make(map[string]int),
 	}
 	// 每個節點都訂閱查詢主題,回覆自己本機的成員。用 queue group 之外的純 fan-out:
 	// 不設 queue,故所有節點都會收到並回覆(scatter-gather)。
@@ -82,8 +92,11 @@ func (p *memoryPresence) Sync(prefix string, members []PresenceMember) error {
 	defer p.mu.Unlock()
 	p.online = make(map[string]map[string]struct{})
 	p.channels = make(map[string]map[string]map[string]struct{})
+	p.conns = make(map[string]int)
 	for _, m := range members {
 		p.addLocked(m.AppKey, m.Uid, m.Channels)
+		// one member per socket → counting members is the connection count
+		p.conns[m.AppKey]++
 	}
 	return nil
 }
@@ -131,6 +144,27 @@ func (p *memoryPresence) Channels(prefix, appKey, pattern string) ([]string, err
 		}
 	}
 	return setToSlice(set), nil
+}
+
+// Stats aggregates per-app counts across all nodes: connection (socket) counts
+// are summed (exact — a socket lives on one node), while user counts are summed
+// from each node's distinct-uid count (approximate — a user connected to two
+// nodes is counted twice).
+func (p *memoryPresence) Stats(prefix string) (map[string]AppStat, error) {
+	replies, err := p.scatter(presenceQuery{Type: "stats"})
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]AppStat)
+	for _, r := range replies {
+		for app, s := range r.Stats {
+			cur := out[app]
+			cur.Conns += s.Conns
+			cur.Users += s.Users
+			out[app] = cur
+		}
+	}
+	return out, nil
 }
 
 func (p *memoryPresence) scatterUids(q presenceQuery) ([]string, error) {
@@ -202,6 +236,17 @@ func (p *memoryPresence) handleQuery(m *nats.Msg) {
 		for ch := range p.channels[q.AppKey] {
 			if globMatch(q.Pattern, ch) {
 				reply.Channels = append(reply.Channels, ch)
+			}
+		}
+	case "stats":
+		// union of apps known from either map; report per-app conn + user counts
+		reply.Stats = make(map[string]appStatWire)
+		for app := range p.conns {
+			reply.Stats[app] = appStatWire{Conns: p.conns[app], Users: len(p.online[app])}
+		}
+		for app := range p.online {
+			if _, ok := reply.Stats[app]; !ok {
+				reply.Stats[app] = appStatWire{Conns: p.conns[app], Users: len(p.online[app])}
 			}
 		}
 	}

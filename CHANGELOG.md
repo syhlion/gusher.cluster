@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### [Added]
+
+- **Global observability endpoints** (master): `GET /v1/stats` (totals across all
+  apps) and `GET /v1/apps` (per-app breakdown), each reporting **connections**
+  (exact — summed sockets) and **users** (approximate — summed per-node distinct
+  uids). Backed by the new `redisocket.v2` `Stats` scatter-gather (bumped to
+  v1.1.0). Counts refresh on each presence sync (`GUSHER_SCAN_INTERVAL`, default 30s).
+
 ### [Changed / API]
 
 - **HTTP API redesigned to a clean resource-oriented REST shape** and moved off

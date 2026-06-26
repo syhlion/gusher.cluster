@@ -66,6 +66,10 @@ func master(c *cli.Context) {
 	r.HandleFunc("GET /readyz", Ready(nc))
 	r.HandleFunc("GET /version", Version(mc.Version))
 
+	// global observability (across all apps)
+	r.HandleFunc("GET /v1/stats", GetGlobalStats(rsender))
+	r.HandleFunc("GET /v1/apps", GetApps(rsender))
+
 	// publish
 	r.HandleFunc("POST /v1/apps/{app}/channels/{channel}/messages", PushMessage(rsender))
 	r.HandleFunc("POST /v1/apps/{app}/messages", PushMessageByPattern(rsender))
