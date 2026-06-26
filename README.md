@@ -129,6 +129,7 @@ Output is selectable and rotated, via env:
 
 ## Docs
 
+- [example/](example/) — **runnable demo**: type on a backend, watch it arrive live on a frontend (one `docker compose` command)
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — architecture, NATS bus/presence, evolution from Redis (with diagrams)
 - [doc/protocal.md](./doc/protocal.md) — WebSocket protocol
 - [doc/api.md](./doc/api.md) — REST API

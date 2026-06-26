@@ -124,6 +124,7 @@ JWT 帶有 `gusher` claim——`{"app_key","user_id","channels"}`——以 **RS2
 
 ## 文件
 
+- [example/](example/) — **可直接跑的 demo**：在後端打字、前端即時看到（一行 `docker compose` 啟動）
 - [docs/ARCHITECTURE.zh-TW.md](docs/ARCHITECTURE.zh-TW.md) — 架構、NATS 匯流排/presence、從 Redis 的演進（含圖）
 - [doc/protocal.md](./doc/protocal.md) — WebSocket 協定
 - [doc/api.md](./doc/api.md) — REST API
