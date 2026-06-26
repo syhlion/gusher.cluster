@@ -1,7 +1,7 @@
 # Gusher.Cluster
 
-[![Build Status](https://drone.syhlion.tw/api/badges/syhlion/gusher.cluster/status.svg)](https://drone.syhlion.tw/syhlion/gusher.cluster)
 [![Stars](https://img.shields.io/github/stars/syhlion/gusher.cluster.svg)](https://github.com/syhlion/gusher.cluster)
+[![Build Status](https://drone.syhlion.tw/api/badges/syhlion/gusher.cluster/status.svg)](https://drone.syhlion.tw/syhlion/gusher.cluster)
 [![Go](https://img.shields.io/github/go-mod/go-version/syhlion/gusher.cluster.svg)](go.mod)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Backed by NATS](https://img.shields.io/badge/backed%20by-NATS-27AAE1.svg)](https://nats.io)
@@ -39,13 +39,44 @@ evolution from Redis) in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Quick start (Docker Compose)
 
-Put your `public.pem` next to the compose file, then:
+The stack ships a **demo RSA key** (`docker-compose/public.pem`, matched by
+`test/key/private.pem`), so it runs out of the box — no setup:
 
 ```sh
 docker compose -f docker-compose/docker-compose.yml up --build
 ```
 
 Brings up `nats` + `gusher-master` (`:7777`) + `gusher-slave` (`:8888`), no Redis.
+
+**See it work** — one command brings the stack up, signs a JWT, subscribes over
+WebSocket, pushes a message and asserts it arrives, then tears down:
+
+```sh
+make smoke
+```
+
+Or test by hand against the running stack — sign a token with the demo key, then
+auth → connect → push:
+
+```sh
+# 1. sign a JWT (claims: app_key TEST, channels AA/BB)
+go run test/jwtgenerate/jwtgenerate.go gen --private-key test/key/private.pem
+# 2. exchange it for a session token
+curl -s localhost:8888/auth -d 'jwt=<JWT>'
+# 3. open the socket: ws://localhost:8888/ws/TEST?token=<token>
+#    then subscribe: {"event":"gusher.subscribe","data":{"channel":"AA"}}
+# 4. push from any backend — the subscribed socket receives it
+curl -s localhost:7777/push/TEST/AA/EVENT -d 'data={"hi":"there"}'
+```
+
+**Use your own keys** (for real deployments) — generate an RSA pair and drop the
+public half next to the compose file (or point `GUSHER_PUBLIC_PEM_FILE` at it):
+
+```sh
+make rsakey        # writes private.pem + public.pem
+```
+
+Full key lifecycle (generate → sign → verify → rotate) in [docs/KEYS.md](docs/KEYS.md).
 
 ## Run (from source)
 
