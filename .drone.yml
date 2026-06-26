@@ -1,6 +1,14 @@
 kind: pipeline
 name: default
 
+# Only build master pushes, tags, and pull requests — not every feature/docs
+# branch push. ref-based so tag builds are never filtered out by a branch rule.
+trigger:
+  ref:
+    - refs/heads/master
+    - refs/tags/**
+    - refs/pull/**
+
 steps:
 - name: test
   image: golang:1.25
@@ -22,6 +30,10 @@ steps:
         from_secret: docker_account
     password:
         from_secret: docker_password
+  when:
+    event:
+    - push
+    - tag
 - name: build
   image: golang
   commands:
@@ -58,6 +70,9 @@ steps:
     to:
         from_secret: bot_to
   when:
+    event:
+    - push
+    - tag
     status:
     - failure
     - success
