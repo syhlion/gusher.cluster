@@ -13,6 +13,18 @@ Request and response bodies are JSON.
 | GET | `/healthz` | liveness — `200 ok` while the process serves |
 | GET | `/readyz` | readiness — `200 ready` when NATS is connected, `503` otherwise |
 | GET | `/version` | build version string |
+| GET | `/ui` | master only — single-page engineering console (global stats + per-app channels) |
+
+## Master observability
+
+Counts refresh on each presence sync (`GUSHER_SCAN_INTERVAL`, default 30s).
+`connections` is exact; `users` is an approximate sum across nodes (a user
+connected to multiple nodes is counted per node).
+
+| Method | Path | Response |
+|---|---|---|
+| GET | `/v1/stats` | `{"apps":3,"connections":348,"users":312}` — totals across all apps |
+| GET | `/v1/apps` | `[{"app":"TEST","connections":120,"users":110}, ...]` — per-app, sorted |
 
 ## Slave API
 

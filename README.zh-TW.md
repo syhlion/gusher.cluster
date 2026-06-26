@@ -106,6 +106,8 @@ JWT 帶有 `gusher` claim——`{"app_key","user_id","channels"}`——以 **RS2
 
 - **健康檢查**：`GET /healthz`（liveness）· `GET /readyz`（readiness——只有在 NATS
   連線正常時才回 200）。
+- **Console / 統計**：master 在 `GET /ui` 提供單頁 console（全域連線數/人數 ＋ 逐 app
+  頻道），背後走 `GET /v1/stats` 與 `GET /v1/apps`。
 - **NATS 認證**：設定 `GUSHER_NATS_CREDS=/path/to/app.creds` 使用 user credentials；
   TLS 則用 `tls://` 位址（或在 NATS server 設定）。client 會自動重連。
 

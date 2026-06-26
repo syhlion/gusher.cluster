@@ -65,6 +65,7 @@ func master(c *cli.Context) {
 	r.HandleFunc("GET /healthz", Healthz())
 	r.HandleFunc("GET /readyz", Ready(nc))
 	r.HandleFunc("GET /version", Version(mc.Version))
+	r.HandleFunc("GET /ui", UI())
 
 	// global observability (across all apps)
 	r.HandleFunc("GET /v1/stats", GetGlobalStats(rsender))

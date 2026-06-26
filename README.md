@@ -111,6 +111,8 @@ protocol and [doc/api.md](./doc/api.md) for the REST API.
 
 - **Health**: `GET /healthz` (liveness) · `GET /readyz` (readiness — 200 only while
   NATS is connected).
+- **Console / stats**: the master serves a single-page console at `GET /ui` (global
+  connections/users + per-app channels) over `GET /v1/stats` and `GET /v1/apps`.
 - **NATS auth**: set `GUSHER_NATS_CREDS=/path/to/app.creds` for user credentials;
   use a `tls://` address (or NATS server config) for TLS. The client auto-reconnects.
 
