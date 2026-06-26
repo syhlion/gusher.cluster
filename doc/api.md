@@ -1,295 +1,110 @@
-## Slave  Api
+# gusher.cluster HTTP API
 
-### Auth:
+All endpoints are versioned under `/v1`; operational probes live at the root.
+Request and response bodies are JSON.
 
-`POST /{prefix}/auth`
+- **slave** serves the client-facing auth + WebSocket endpoints.
+- **master** serves the backend publish + presence-query endpoints.
 
-fields: jwt={jwt}
+## Operational (both roles)
 
-Success Response:
-```
-{
-    "token":""
-}
-```
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/healthz` | liveness — `200 ok` while the process serves |
+| GET | `/readyz` | readiness — `200 ready` when NATS is connected, `503` otherwise |
+| GET | `/version` | build version string |
 
-jwt [ref](https://jwt.io)
+## Slave API
 
-jwt [example](https://github.com/syhlion/gusher.cluster/blob/master/jwt.example)
+### Auth — `POST /v1/auth`
 
+Body: `{"jwt":"<JWT>"}`. The JWT is verified locally with the RSA public key and
+returned as the session token (stateless — no store).
 
-### Connect:
-
-`GET /{prefix}/ws/{app_key}?token={token}`
-
-### Ping:
-
-`GET /{prefix}/ping`
-
-Success Response:
-
-```
-pong
+```json
+{ "token": "<JWT>" }
 ```
 
-### Ready:
+JWT [ref](https://jwt.io) · [example](https://github.com/syhlion/gusher.cluster/blob/master/jwt.example)
 
-`GET /{prefix}/ready`
+### Connect — `GET /v1/apps/{app}/ws?token=<token>`
 
-Readiness probe — `200 ready` when NATS is connected, `503 nats not connected` otherwise.
+Upgrades to a WebSocket. Subscribe over the socket with
+`{"event":"gusher.subscribe","data":{"channel":"AA"}}`.
 
-## Master Api
+## Master API
 
+### Presence queries
 
-### Get Channels:
+| Method | Path | Response |
+|---|---|---|
+| GET | `/v1/apps/{app}/channels` | `["channel1","channel2", ...]` |
+| GET | `/v1/apps/{app}/channels/count` | `{"count":3}` |
+| GET | `/v1/apps/{app}/channels/{channel}/users` | `["user_id", ...]` |
+| GET | `/v1/apps/{app}/channels/{channel}/users/count` | `{"count":3}` |
+| GET | `/v1/apps/{app}/users` | `["user_id", ...]` |
+| GET | `/v1/apps/{app}/users/count` | `{"count":3}` |
 
-`GET /{app_key}/channels`
-Sucess Response:
+### Publish to a channel — `POST /v1/apps/{app}/channels/{channel}/messages`
 
+Body:
+
+```json
+{ "event": "notify", "data": { "key": "value" } }
 ```
 
-["channel1","channel2","channel3"...]
+`data` may be any JSON value (object, string, number). Response echoes the
+delivered envelope: `{"channel","event","data"}`.
 
+### Publish by channel pattern — `POST /v1/apps/{app}/messages`
+
+Body:
+
+```json
+{ "channel_pattern": "^App", "event": "notify", "data": { "key": "value" } }
 ```
 
-### Get Channels Count:
+`channel_pattern` is a regular expression matched against the app's live
+channels. Response: `{"total":1,"pattern":"^App"}`.
 
-`GET /{app_key}/channels/count`
-Sucess Response:
+### Batch publish — `POST /v1/apps/{app}/messages/batch`
 
+Body is a JSON array of messages:
+
+```json
+[
+  { "channel": "public", "event": "notify", "data": "test" },
+  { "channel": "public", "event": "notify", "data": { "username": "test" } }
+]
 ```
 
-{
-    "count":3
-}
+Response: `{"total":2}`.
 
+### Push to a user — `POST /v1/apps/{app}/users/{user}/messages`
+
+Body: `{"data": {"key":"value"}}` → `{"user_id":"...","data":...}`.
+
+### Push to a socket — `POST /v1/apps/{app}/sockets/{socket}/messages`
+
+Body: `{"data": {"key":"value"}}` → `{"socket_id":"...","data":...}`.
+
+### Add a channel to a user — `POST /v1/apps/{app}/users/{user}/channels`
+
+Body: `{"channel":"aa"}` → `{"user_id":"...","data":"aa"}`.
+
+### Replace a user's channels — `PUT /v1/apps/{app}/users/{user}/channels`
+
+Body: `{"channels":["gg","ff"]}` → `{"user_id":"...","data":["gg","ff"]}`.
+
+### Decode a JWT (debug) — `POST /v1/auth/decode`
+
+Body: `{"jwt":"<JWT>"}`.
+
+```json
+{ "gusher": { "channels": [], "user_id": "", "app_key": "" } }
 ```
 
-### Get Online:
+---
 
-`GET /{app_key}/online`
-Sucess Response:
-
-```
-
-["user_id","user_id","user_id"...]
-
-```
-
-### Get Online Count:
-
-`GET /{app_key}/online/count`
-Sucess Response:
-
-```
-
-{
-    "count":3
-}
-
-```
-
-### Get Online by channel:
-
-`GET /{app_key}/online/bychannel/{channel}`
-Sucess Response:
-
-```
-
-["user_id","user_id","user_id"...]
-
-```
-
-### Get Online Count by channel:
-
-`GET /{app_key}/online/bychannel/{channel}/count`
-Sucess Response:
-
-```
-
-{
-    "count":3
-}
-
-```
-
-### Push Message By Regex Pattern:
-
-`POST /{api}/push/{app_key}`
-
-|key|value|description|
-|----|----|----|
-|data|{"key":"value"}|string or json|
-|event|event|string|
-|channel_pattern|^App|regexp or string|
-
-Sucess Response:
-
-```
-{
-    "total":1,
-    "pattern":"^App"
-}
-```
-
-`POST /{api}/push_batch/{app_key}`
-
-|key|value|description|
-|----|----|----|
-|batch_data|[{"channel":"public","event":"notify","data":"test"},{"channel":"public","event":"notify","data":{"username":"test"}}]|json|
-
-
-Sucess Response:
-
-```
-{
-    "total":2,
-    "cap":102456 //byte
-}
-```
-
-### Push Message:
-
-`POST /{api}/push/{app_key}/{channel}/{event}`
-
-|key|value|description|
-|----|----|----|
-|data|{"key":"value"}|string or json|
-
-Sucess Response:
-
-```
-{
-    "channel":"",
-    "event":"",
-    "data":""
-}
-```
-
-`POST /{api}/push_batch/{app_key}`
-
-|key|value|description|
-|----|----|----|
-|batch_data|[{"channel":"public","event":"notify","data":"test"},{"channel":"public","event":"notify","data":{"username":"test"}}]|json|
-
-
-Sucess Response:
-
-```
-{
-    "total":2,
-    "cap":102456 //byte
-}
-```
-
-### Push Message to User:
-
-`POST /{api}/push/user/{app_key}/{user_id}`
-
-|key|value|description|
-|----|----|----|
-|data|{"key":"value"}|string or json|
-
-Sucess Response:
-
-```
-{
-    "user_id":"",
-    "data":""
-}
-```
-
-### Push Message to Socket:
-
-`POST /{api}/push/socket/{app_key}/{socket_id}`
-
-|key|value|description|
-|----|----|----|
-|data|{"key":"value"}|string or json|
-
-Sucess Response:
-
-```
-{
-    "socket_id":"",
-    "data":""
-}
-```
-
-### Reload channel to userid:
-
-`POST /{api}/reload/channel/user/{app_key}/{user_id}`
-
-|key|value|description|
-|----|----|----|
-|data|["gg","ff"]|json|
-
-Sucess Response:
-
-```
-{
-    "user_id":"",
-    "data":"["gg","ff"]"
-}
-```
-
-
-### add channel to userid:
-
-`POST /{api}/add/channel/user/{app_key}/{user_id}`
-
-|key|value|description|
-|----|----|----|
-|data|aa|string|
-
-Sucess Response:
-
-```
-{
-    "user_id":"",
-    "data":"aa"
-}
-```
-
-### Decode:
-
-`POST /{api}/decode?data={jwt}`
-
-
-Sucess Response:
-
-```
-{
-    "gusher":{
-        "channels":[],
-        "user_id":"",
-        "app_key":""
-    }
-}
-```
-
-### Ping:
-
-`GET /{prefix}/ping`
-
-Success Response:
-
-```
-pong
-```
-
-### Ready:
-
-`GET /{prefix}/ready`
-
-Readiness probe — `200 ready` when NATS is connected, `503 nats not connected` otherwise.
-
-* note1: if channels slice have "*" char that user can sub all channels
-* note2: support *  like test = t*st or app* = apple
-
-
-
-
-
-
-
+* note1: a `channels` slice containing `"*"` lets the user subscribe to all channels.
+* note2: `*` glob is supported, e.g. `t*st` matches `test`, `app*` matches `apple`.

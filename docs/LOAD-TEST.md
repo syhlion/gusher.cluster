@@ -8,9 +8,10 @@ latency** (push → received) as p50 / p99 / max plus the delivery rate.
 
 ```sh
 go run ./test/loadtest -n 5000 -channel AA \
-  -ws   ws://127.0.0.1:8888/ws/TEST \
-  -auth http://127.0.0.1:8888/auth \
-  -push http://127.0.0.1:7777/push/TEST/AA/notify \
+  -ws   ws://127.0.0.1:8888/v1/apps/TEST/ws \
+  -auth http://127.0.0.1:8888/v1/auth \
+  -push http://127.0.0.1:7777/v1/apps/TEST/channels/AA/messages \
+  -event notify \
   -jwt  "$JWT"
 ```
 

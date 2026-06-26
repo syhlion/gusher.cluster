@@ -94,20 +94,18 @@ func start(c *cli.Context) {
 		log.Fatal(err)
 	}
 	httpClient := &http.Client{Timeout: 30 * time.Second}
-	loginUrl := url.Values{}
-
-	loginUrl.Add("jwt", jwt)
+	loginBody := `{"jwt":"` + jwt + `"}`
 	tokenChan := make(chan string, conn_total)
 	tokenGroup := sync.WaitGroup{}
 	for i := 0; i < conn_total; i++ {
 		tokenGroup.Add(1)
 		go func() {
 			defer tokenGroup.Done()
-			req, err := http.NewRequest("POST", wsAuthurl.String(), bytes.NewBufferString(loginUrl.Encode()))
+			req, err := http.NewRequest("POST", wsAuthurl.String(), bytes.NewBufferString(loginBody))
 			if err != nil {
 				log.Fatal(err)
 			}
-			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Add("Content-Type", "application/json")
 			resp, err := httpClient.Do(req)
 			if err != nil {
 				log.Println("auth request error:", err)
@@ -237,15 +235,13 @@ func start(c *cli.Context) {
 	listen_wg.Wait()
 	log.Printf("%v connect finish", connTotal)
 	//push start
-	v := url.Values{}
-
-	v.Add("data", push_msg)
-	req, err := http.NewRequest("POST", pushurl.String(), bytes.NewBufferString(v.Encode()))
+	pushBody := `{"event":"EVENT","data":"` + push_msg + `"}`
+	req, err := http.NewRequest("POST", pushurl.String(), bytes.NewBufferString(pushBody))
 	if err != nil {
 		log.Fatal(err)
 	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Add("Content-Length", strconv.Itoa(len(v.Encode())))
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Content-Length", strconv.Itoa(len(pushBody)))
 
 	if err != nil {
 		log.Fatal(err)

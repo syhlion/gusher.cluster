@@ -8,9 +8,10 @@ master 推播,然後回報每個 client 的 **fan-out 延遲**(推播→收到)p
 
 ```sh
 go run ./test/loadtest -n 5000 -channel AA \
-  -ws   ws://127.0.0.1:8888/ws/TEST \
-  -auth http://127.0.0.1:8888/auth \
-  -push http://127.0.0.1:7777/push/TEST/AA/notify \
+  -ws   ws://127.0.0.1:8888/v1/apps/TEST/ws \
+  -auth http://127.0.0.1:8888/v1/auth \
+  -push http://127.0.0.1:7777/v1/apps/TEST/channels/AA/messages \
+  -event notify \
   -jwt  "$JWT"
 ```
 

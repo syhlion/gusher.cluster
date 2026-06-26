@@ -57,11 +57,11 @@ make smoke
 # 1. 簽一張 JWT（claims：app_key TEST、channels AA/BB）
 go run test/jwtgenerate/jwtgenerate.go gen --private-key test/key/private.pem
 # 2. 換成 session token
-curl -s localhost:8888/auth -d 'jwt=<JWT>'
-# 3. 開 socket：ws://localhost:8888/ws/TEST?token=<token>
+curl -s localhost:8888/v1/auth -d '{"jwt":"<JWT>"}'
+# 3. 開 socket：ws://localhost:8888/v1/apps/TEST/ws?token=<token>
 #    然後訂閱：{"event":"gusher.subscribe","data":{"channel":"AA"}}
 # 4. 從任一後端推播——訂閱中的 socket 就會收到
-curl -s localhost:7777/push/TEST/AA/EVENT -d 'data={"hi":"there"}'
+curl -s localhost:7777/v1/apps/TEST/channels/AA/messages -d '{"event":"EVENT","data":{"hi":"there"}}'
 ```
 
 **換成自己的金鑰**（正式部署用）——產生一組 RSA 金鑰對，把公鑰放到 compose 檔旁邊
@@ -80,22 +80,23 @@ go build -ldflags "-X main.name=gusher" -o gusher.cluster .
 
 # slave
 GUSHER_NATS_ADDR=nats://127.0.0.1:4222 GUSHER_PUBLIC_PEM_FILE=./public.pem \
-GUSHER_API_LISTEN=:8888 GUSHER_API_URI_PREFIX=/ ./gusher.cluster slave
+GUSHER_API_LISTEN=:8888 ./gusher.cluster slave
 
 # master
 GUSHER_NATS_ADDR=nats://127.0.0.1:4222 GUSHER_PUBLIC_PEM_FILE=./public.pem \
-GUSHER_MASTER_API_LISTEN=:7777 GUSHER_MASTER_URI_PREFIX=/ ./gusher.cluster master
+GUSHER_MASTER_API_LISTEN=:7777 ./gusher.cluster master
 ```
 
 完整環境變數清單見 `slave.env.example` / `master.env.example`。
 
 ## 客端流程
 
-1. `POST /auth` 帶 `jwt=<JWT>` → `{"token":"<JWT>"}`（JWT 在本地驗證後直接當 token
-   回傳——無狀態、不需 store）。
-2. `GET /ws/{app_key}?token=<token>` → WebSocket。以
+1. `POST /v1/auth` 帶 `{"jwt":"<JWT>"}` → `{"token":"<JWT>"}`（JWT 在本地驗證後直接
+   當 token 回傳——無狀態、不需 store）。
+2. `GET /v1/apps/{app}/ws?token=<token>` → WebSocket。以
    `{"event":"gusher.subscribe","data":{"channel":"AA"}}` 訂閱。
-3. 後端推播：`POST /push/{app_key}/{channel}/{event}` 帶 `data=...`。
+3. 後端推播：`POST /v1/apps/{app}/channels/{channel}/messages` 帶
+   `{"event":"...","data":...}`。
 
 JWT 帶有 `gusher` claim——`{"app_key","user_id","channels"}`——以 **RS256** 簽章。
 完整 WebSocket 協定見 [doc/protocal.md](./doc/protocal.md)，REST API 見
@@ -103,7 +104,7 @@ JWT 帶有 `gusher` claim——`{"app_key","user_id","channels"}`——以 **RS2
 
 ## 維運
 
-- **健康檢查**：`GET /ping`（liveness）· `GET /ready`（readiness——只有在 NATS
+- **健康檢查**：`GET /healthz`（liveness）· `GET /readyz`（readiness——只有在 NATS
   連線正常時才回 200）。
 - **NATS 認證**：設定 `GUSHER_NATS_CREDS=/path/to/app.creds` 使用 user credentials；
   TLS 則用 `tls://` 位址（或在 NATS server 設定）。client 會自動重連。

@@ -5,7 +5,6 @@ go 1.25.0
 require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.4.0
 	github.com/json-iterator/go v1.1.12

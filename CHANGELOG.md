@@ -1,5 +1,23 @@
 ## [Unreleased]
 
+### [Changed / API]
+
+- **HTTP API redesigned to a clean resource-oriented REST shape** and moved off
+  `gorilla/mux` to the stdlib `net/http.ServeMux` (Go 1.22+ method routing; one
+  fewer dependency). Resources are `apps`, `channels`, `users`, `sockets`,
+  `messages`; the HTTP verb carries the action and request bodies are JSON
+  (`{event,data}`) instead of form values. Examples:
+  - publish: `POST /v1/apps/{app}/channels/{channel}/messages` (was `POST /push/{app}/{channel}/{event}`)
+  - pattern / batch: `POST /v1/apps/{app}/messages` / `.../messages/batch`
+  - to user / socket: `POST /v1/apps/{app}/users/{user}/messages` / `.../sockets/{socket}/messages`
+  - a user's channels: `POST` (add) / `PUT` (replace) `/v1/apps/{app}/users/{user}/channels`
+  - presence: `GET /v1/apps/{app}/channels[/count]`, `GET /v1/apps/{app}/users[/count]`, `GET /v1/apps/{app}/channels/{channel}/users[/count]`
+  - auth / ws: `POST /v1/auth`, `GET /v1/apps/{app}/ws?token=`; decode: `POST /v1/auth/decode`
+- **Health probes renamed** `/ping`→`/healthz`, `/ready`→`/readyz`; added `GET /version`.
+- **Dropped the configurable URI prefix** (`GUSHER_MASTER_URI_PREFIX` /
+  `GUSHER_API_URI_PREFIX`) and the legacy `/wtf` ws alias — the API path is fixed
+  at `/v1`. **Breaking**, hard cutover (no aliases).
+
 ## [v2.0.0] - 2026-06-25
 
 > **Breaking**: the backend is now NATS (no Redis); env and the `remote` feature

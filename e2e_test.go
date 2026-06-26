@@ -5,13 +5,11 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"testing"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	natsserver "github.com/nats-io/nats-server/v2/server"
 	"github.com/nats-io/nats.go"
@@ -101,22 +99,23 @@ func TestE2E_AuthSubscribePush(t *testing.T) {
 
 	// --- HTTP servers wired with the real handlers ---
 	sc := SlaveConfig{}
-	slaveRouter := mux.NewRouter()
-	slaveRouter.HandleFunc("/auth", WsAuth(sc, pub)).Methods("POST")
-	slaveRouter.HandleFunc("/ws/{app_key}", WsConnect(sc, pub, hub)).Methods("GET")
+	slaveRouter := http.NewServeMux()
+	slaveRouter.HandleFunc("POST /v1/auth", WsAuth(sc, pub))
+	slaveRouter.HandleFunc("GET /v1/apps/{app}/ws", WsConnect(sc, pub, hub))
 	slaveSrv := httptest.NewServer(slaveRouter)
 	defer slaveSrv.Close()
 
-	masterRouter := mux.NewRouter()
-	masterRouter.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(sender)).Methods("POST")
+	masterRouter := http.NewServeMux()
+	masterRouter.HandleFunc("POST /v1/apps/{app}/channels/{channel}/messages", PushMessage(sender))
 	masterSrv := httptest.NewServer(masterRouter)
 	defer masterSrv.Close()
 
 	const appKey, channel, event = "TEST", "AA", "myevent"
 	token := buildE2EJWT(t, "user-1", appKey, []string{channel})
 
-	// 1) /auth — local JWT verify, echoes the token back
-	authResp, err := http.PostForm(slaveSrv.URL+"/auth", url.Values{"jwt": {token}})
+	// 1) /v1/auth — local JWT verify, echoes the token back
+	authResp, err := http.Post(slaveSrv.URL+"/v1/auth", "application/json",
+		strings.NewReader(`{"jwt":"`+token+`"}`))
 	if err != nil {
 		t.Fatalf("auth post: %v", err)
 	}
@@ -126,7 +125,7 @@ func TestE2E_AuthSubscribePush(t *testing.T) {
 	authResp.Body.Close()
 
 	// 2) open the websocket
-	wsURL := "ws" + strings.TrimPrefix(slaveSrv.URL, "http") + "/ws/" + appKey + "?token=" + token
+	wsURL := "ws" + strings.TrimPrefix(slaveSrv.URL, "http") + "/v1/apps/" + appKey + "/ws?token=" + token
 	c, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
 		t.Fatalf("ws dial: %v", err)
@@ -148,9 +147,10 @@ func TestE2E_AuthSubscribePush(t *testing.T) {
 	}
 
 	// 4) master pushes to channel AA; client must receive it
-	pushResp, err := http.PostForm(
-		masterSrv.URL+"/push/"+appKey+"/"+channel+"/"+event,
-		url.Values{"data": {"hello-e2e"}},
+	pushResp, err := http.Post(
+		masterSrv.URL+"/v1/apps/"+appKey+"/channels/"+channel+"/messages",
+		"application/json",
+		strings.NewReader(`{"event":"`+event+`","data":"hello-e2e"}`),
 	)
 	if err != nil {
 		t.Fatalf("push post: %v", err)
@@ -179,12 +179,13 @@ func TestE2E_RejectBadToken(t *testing.T) {
 	}
 
 	sc := SlaveConfig{}
-	router := mux.NewRouter()
-	router.HandleFunc("/auth", WsAuth(sc, pub)).Methods("POST")
+	router := http.NewServeMux()
+	router.HandleFunc("POST /v1/auth", WsAuth(sc, pub))
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	resp, err := http.PostForm(srv.URL+"/auth", url.Values{"jwt": {"not-a-jwt"}})
+	resp, err := http.Post(srv.URL+"/v1/auth", "application/json",
+		strings.NewReader(`{"jwt":"not-a-jwt"}`))
 	if err != nil {
 		t.Fatalf("auth post: %v", err)
 	}

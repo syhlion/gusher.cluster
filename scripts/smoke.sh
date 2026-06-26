@@ -10,8 +10,8 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 COMPOSE="docker compose -f docker-compose/docker-compose.yml"
-MASTER_PING="http://127.0.0.1:7777/ping"
-SLAVE_PING="http://127.0.0.1:8888/ping"
+MASTER_PING="http://127.0.0.1:7777/healthz"
+SLAVE_PING="http://127.0.0.1:8888/healthz"
 
 cleanup() {
   echo "--- tearing down stack ---"
@@ -55,9 +55,9 @@ fi
 
 echo "--- running smoke client ---"
 SMOKE_JWT="$TOKEN" \
-SMOKE_AUTH_URL="http://127.0.0.1:8888/auth" \
-SMOKE_WS_URL="ws://127.0.0.1:8888/ws/TEST" \
-SMOKE_PUSH_URL="http://127.0.0.1:7777/push/TEST/AA/EVENT" \
+SMOKE_AUTH_URL="http://127.0.0.1:8888/v1/auth" \
+SMOKE_WS_URL="ws://127.0.0.1:8888/v1/apps/TEST/ws" \
+SMOKE_PUSH_URL="http://127.0.0.1:7777/v1/apps/TEST/channels/AA/messages" \
 SMOKE_CONNECTIONS="${SMOKE_CONNECTIONS:-50}" \
   go run test/smoke/smoke.go
 

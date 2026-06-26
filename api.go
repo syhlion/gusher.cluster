@@ -5,545 +5,349 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/gorilla/mux"
 	redisocket "github.com/syhlion/redisocket.v2"
 )
 
-func GetAllChannelCount(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		channels, err := rsender.GetChannels(listenChannelPrefix, params["app_key"], "*")
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
-			w.WriteHeader(400)
-			w.Write([]byte("get redis error"))
-		}
-		tmp := struct {
-			Count int `json:"count"`
-		}{
-			Count: len(channels),
-		}
-		b, err := json.Marshal(tmp)
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
-			w.WriteHeader(400)
-			w.Write([]byte("json marshal error"))
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
+// writeJSON marshals v and writes it as a 200 JSON response.
+func writeJSON(w http.ResponseWriter, r *http.Request, v interface{}) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("json marshal error"))
 		return
 	}
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write(b)
 }
-func GetAllChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		channels, err := rsender.GetChannels(listenChannelPrefix, params["app_key"], "*")
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
-			w.WriteHeader(400)
-			w.Write([]byte("get redis error"))
-		}
-		b, err := json.Marshal(channels)
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
-			w.WriteHeader(400)
-			w.Write([]byte("json marshal error"))
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-		return
+// decodeBody reads a JSON request body into v. Returns false (and writes a 400)
+// on malformed input.
+func decodeBody(w http.ResponseWriter, r *http.Request, v interface{}) bool {
+	if err := json.NewDecoder(r.Body).Decode(v); err != nil {
+		logger.GetRequestEntry(r).WithError(err).Warn("body decode error")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("body decode error"))
+		return false
 	}
+	return true
 }
-func GetOnlineCountByChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
 
+// GET /v1/apps/{app}/channels/count
+func GetAllChannelCount(rsender *redisocket.Sender) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		online, err := rsender.GetOnlineByChannel(listenChannelPrefix, params["app_key"], params["channel"])
+		channels, err := rsender.GetChannels(listenChannelPrefix, r.PathValue("app"), "*")
 		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
-			w.WriteHeader(400)
-			w.Write([]byte("get redis error"))
-		}
-		tmp := struct {
-			Count int `json:"count"`
-		}{
-			Count: len(online),
-		}
-		b, err := json.Marshal(tmp)
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
-			w.WriteHeader(400)
-			w.Write([]byte("json marshal error"))
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-		return
-	}
-}
-func GetOnlineByChannel(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		online, err := rsender.GetOnlineByChannel(listenChannelPrefix, params["app_key"], params["channel"])
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
-			w.WriteHeader(400)
-			w.Write([]byte("get redis error"))
-		}
-		b, err := json.Marshal(online)
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
-			w.WriteHeader(400)
-			w.Write([]byte("json marshal error"))
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-		return
-	}
-}
-func GetOnlineCount(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		online, err := rsender.GetOnline(listenChannelPrefix, params["app_key"])
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
-			w.WriteHeader(400)
-			w.Write([]byte("get redis error"))
-		}
-		tmp := struct {
-			Count int `json:"count"`
-		}{
-			Count: len(online),
-		}
-		b, err := json.Marshal(tmp)
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
-			w.WriteHeader(400)
-			w.Write([]byte("json marshal error"))
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-		return
-	}
-}
-func GetOnline(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		online, err := rsender.GetOnline(listenChannelPrefix, params["app_key"])
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("get redis error")
-			w.WriteHeader(400)
-			w.Write([]byte("get redis error"))
-		}
-		b, err := json.Marshal(online)
-		if err != nil {
-			logger.GetRequestEntry(r).WithError(err).Warn("json marshal error")
-			w.WriteHeader(400)
-			w.Write([]byte("json marshal error"))
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-		return
-	}
-}
-func PushToSocket(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		app_key := params["app_key"]
-		if app_key == "" {
-			logger.GetRequestEntry(r).Warn("empty param")
-			w.WriteHeader(400)
-			w.Write([]byte("empty param"))
+			logger.GetRequestEntry(r).WithError(err).Warn("get channels error")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("get channels error"))
 			return
 		}
-		socket_id := params["socket_id"]
-		data := r.FormValue("data")
-		j := JsonCheck(data)
-		rsender.PushToSid(listenChannelPrefix, app_key, socket_id, j)
-		push := struct {
+		writeJSON(w, r, struct {
+			Count int `json:"count"`
+		}{Count: len(channels)})
+	}
+}
+
+// GET /v1/apps/{app}/channels
+func GetAllChannel(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		channels, err := rsender.GetChannels(listenChannelPrefix, r.PathValue("app"), "*")
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get channels error")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("get channels error"))
+			return
+		}
+		writeJSON(w, r, channels)
+	}
+}
+
+// GET /v1/apps/{app}/channels/{channel}/users/count
+func GetOnlineCountByChannel(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		online, err := rsender.GetOnlineByChannel(listenChannelPrefix, r.PathValue("app"), r.PathValue("channel"))
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get online error")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("get online error"))
+			return
+		}
+		writeJSON(w, r, struct {
+			Count int `json:"count"`
+		}{Count: len(online)})
+	}
+}
+
+// GET /v1/apps/{app}/channels/{channel}/users
+func GetOnlineByChannel(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		online, err := rsender.GetOnlineByChannel(listenChannelPrefix, r.PathValue("app"), r.PathValue("channel"))
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get online error")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("get online error"))
+			return
+		}
+		writeJSON(w, r, online)
+	}
+}
+
+// GET /v1/apps/{app}/users/count
+func GetOnlineCount(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		online, err := rsender.GetOnline(listenChannelPrefix, r.PathValue("app"))
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get online error")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("get online error"))
+			return
+		}
+		writeJSON(w, r, struct {
+			Count int `json:"count"`
+		}{Count: len(online)})
+	}
+}
+
+// GET /v1/apps/{app}/users
+func GetOnline(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		online, err := rsender.GetOnline(listenChannelPrefix, r.PathValue("app"))
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get online error")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("get online error"))
+			return
+		}
+		writeJSON(w, r, online)
+	}
+}
+
+// POST /v1/apps/{app}/sockets/{socket}/messages  body: {data}
+func PushToSocket(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		app := r.PathValue("app")
+		socketID := r.PathValue("socket")
+		var req DataRequest
+		if !decodeBody(w, r, &req) {
+			return
+		}
+		rsender.PushToSid(listenChannelPrefix, app, socketID, req.Data)
+		writeJSON(w, r, struct {
 			SocketId string      `json:"socket_id"`
 			Data     interface{} `json:"data"`
-		}{
-			SocketId: socket_id,
-			Data:     data,
-		}
-		d, err := json.Marshal(push)
-		if err != nil {
-			logger.GetRequestEntry(r).Warn(err)
-			w.WriteHeader(400)
-			w.Write([]byte("data error"))
-			return
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(d)
-		return
+		}{SocketId: socketID, Data: req.Data})
 	}
 }
-func AddUserChannels(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+
+// POST /v1/apps/{app}/users/{user}/channels  body: {channel}
+func AddUserChannels(rsender *redisocket.Sender) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		app_key := params["app_key"]
-		if app_key == "" {
-			logger.GetRequestEntry(r).Warn("empty param")
-			w.WriteHeader(400)
-			w.Write([]byte("empty param"))
+		app := r.PathValue("app")
+		userID := r.PathValue("user")
+		var req AddChannelRequest
+		if !decodeBody(w, r, &req) {
 			return
 		}
-		user_id := params["user_id"]
-		channel := r.FormValue("data")
-		if channel == "" {
-			w.WriteHeader(400)
-			w.Write([]byte("data empty error"))
+		if req.Channel == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("channel empty error"))
 			return
 		}
-		rsender.AddChannel(listenChannelPrefix, app_key, user_id, channel)
-		push := struct {
-			UserId string      `json:"user_id"`
-			Data   interface{} `json:"data"`
-		}{
-			UserId: user_id,
-			Data:   channel,
-		}
-		d, err := json.Marshal(push)
-		if err != nil {
-			logger.GetRequestEntry(r).Warn(err)
-			w.WriteHeader(400)
-			w.Write([]byte("data error"))
-			return
-		}
+		rsender.AddChannel(listenChannelPrefix, app, userID, req.Channel)
+
 		a := ChannelInfoData{}
 		a.Data = struct {
 			Channel string `json:"channel"`
-		}{
-			Channel: channel,
-		}
+		}{Channel: req.Channel}
 		a.Event = AddChannelEvent
+		rsender.PushToUid(listenChannelPrefix, app, userID, a)
 
-		//send to user
-		rsender.PushToUid(listenChannelPrefix, app_key, user_id, a)
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(d)
-		return
-	}
-}
-func ReloadUserChannels(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		app_key := params["app_key"]
-		if app_key == "" {
-			logger.GetRequestEntry(r).Warn("empty param")
-			w.WriteHeader(400)
-			w.Write([]byte("empty param"))
-			return
-		}
-		user_id := params["user_id"]
-		data := r.FormValue("data")
-		channels := make([]string, 0)
-		err := json.Unmarshal([]byte(data), &channels)
-		if err != nil {
-			logger.GetRequestEntry(r).Warn(err)
-			w.WriteHeader(400)
-			w.Write([]byte("data unmarshal error"))
-			return
-		}
-		rsender.ReloadChannel(listenChannelPrefix, app_key, user_id, channels)
-		push := struct {
+		writeJSON(w, r, struct {
 			UserId string      `json:"user_id"`
 			Data   interface{} `json:"data"`
-		}{
-			UserId: user_id,
-			Data:   data,
-		}
-		d, err := json.Marshal(push)
-		if err != nil {
-			logger.GetRequestEntry(r).Warn(err)
-			w.WriteHeader(400)
-			w.Write([]byte("data error"))
+		}{UserId: userID, Data: req.Channel})
+	}
+}
+
+// PUT /v1/apps/{app}/users/{user}/channels  body: {channels}
+func ReloadUserChannels(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		app := r.PathValue("app")
+		userID := r.PathValue("user")
+		var req ReloadChannelsRequest
+		if !decodeBody(w, r, &req) {
 			return
 		}
+		rsender.ReloadChannel(listenChannelPrefix, app, userID, req.Channels)
+
 		a := ChannelInfoData{}
 		a.Data = struct {
 			Channels []string `json:"channels"`
-		}{
-			Channels: channels,
-		}
+		}{Channels: req.Channels}
 		a.Event = ReloadChannelEvent
+		rsender.PushToUid(listenChannelPrefix, app, userID, a)
 
-		//send to user
-		rsender.PushToUid(listenChannelPrefix, app_key, user_id, a)
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(d)
-		return
-	}
-}
-func PushToUser(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		app_key := params["app_key"]
-		if app_key == "" {
-			logger.GetRequestEntry(r).Warn("empty param")
-			w.WriteHeader(400)
-			w.Write([]byte("empty param"))
-			return
-		}
-		user_id := params["user_id"]
-		data := r.FormValue("data")
-		j := JsonCheck(data)
-		rsender.PushToUid(listenChannelPrefix, app_key, user_id, j)
-		push := struct {
+		writeJSON(w, r, struct {
 			UserId string      `json:"user_id"`
 			Data   interface{} `json:"data"`
-		}{
-			UserId: user_id,
-			Data:   data,
-		}
-		d, err := json.Marshal(push)
-		if err != nil {
-			logger.GetRequestEntry(r).Warn(err)
-			w.WriteHeader(400)
-			w.Write([]byte("data error"))
-			return
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(d)
-		return
+		}{UserId: userID, Data: req.Channels})
 	}
 }
 
-func PushBatchMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+// POST /v1/apps/{app}/users/{user}/messages  body: {data}
+func PushToUser(rsender *redisocket.Sender) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		app_key := params["app_key"]
-		if app_key == "" {
-			logger.GetRequestEntry(r).Warn("empty param")
-			w.WriteHeader(400)
-			w.Write([]byte("empty param"))
+		app := r.PathValue("app")
+		userID := r.PathValue("user")
+		var req DataRequest
+		if !decodeBody(w, r, &req) {
 			return
 		}
-		data := r.FormValue("batch_data")
-		if data == "" {
-			logger.GetRequestEntry(r).Warn("empty batch data")
-			w.WriteHeader(400)
-			w.Write([]byte("empty batch data"))
-			return
-		}
+		rsender.PushToUid(listenChannelPrefix, app, userID, req.Data)
+		writeJSON(w, r, struct {
+			UserId string      `json:"user_id"`
+			Data   interface{} `json:"data"`
+		}{UserId: userID, Data: req.Data})
+	}
+}
+
+// POST /v1/apps/{app}/messages/batch  body: [{channel,event,data}, ...]
+func PushBatchMessage(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		app := r.PathValue("app")
 		batchData := make([]BatchData, 0)
-		byteData := []byte(data)
-		err := json.Unmarshal(byteData, &batchData)
-		if err != nil {
-			logger.GetRequestEntry(r).Warn(err)
-			w.WriteHeader(400)
-			w.Write([]byte("data error"))
+		if !decodeBody(w, r, &batchData) {
 			return
 		}
-		l := len(batchData)
-		bd := make([]redisocket.BatchData, l)
+		bd := make([]redisocket.BatchData, 0, len(batchData))
 		for _, data := range batchData {
-			push := struct {
+			d, err := json.Marshal(struct {
 				Channel string      `json:"channel"`
 				Event   string      `json:"event"`
 				Data    interface{} `json:"data"`
-			}{
-				Channel: data.Channel,
-				Event:   data.Event,
-				Data:    data.Data,
-			}
-			d, err := json.Marshal(push)
+			}{Channel: data.Channel, Event: data.Event, Data: data.Data})
 			if err != nil {
 				logger.GetRequestEntry(r).Warn(err)
 				continue
 			}
-			b := redisocket.BatchData{
-				Data:  d,
-				Event: data.Channel,
-			}
-			bd = append(bd, b)
-
+			bd = append(bd, redisocket.BatchData{Data: d, Event: data.Channel})
 		}
-		rsender.PushBatch(listenChannelPrefix, app_key, bd)
-		response := struct {
+		rsender.PushBatch(listenChannelPrefix, app, bd)
+		writeJSON(w, r, struct {
 			Total int `json:"total"`
-			Cap   int `json:"cap"`
-		}{
-			Total: len(batchData),
-			Cap:   len(byteData),
-		}
-		d, err := json.Marshal(response)
-		if err != nil {
-			w.WriteHeader(400)
-			w.Write([]byte("response marshal error"))
-			return
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(d)
-		return
+		}{Total: len(batchData)})
 	}
 }
 
-func PushMessageByPattern(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+// POST /v1/apps/{app}/messages  body: {channel_pattern, event, data}
+func PushMessageByPattern(rsender *redisocket.Sender) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		app_key := params["app_key"]
-		channelPattern := r.FormValue("channel_pattern")
-		event := r.FormValue("event")
-		if app_key == "" || channelPattern == "" || event == "" {
+		app := r.PathValue("app")
+		var req PatternMessageRequest
+		if !decodeBody(w, r, &req) {
+			return
+		}
+		if req.ChannelPattern == "" || req.Event == "" {
 			logger.GetRequestEntry(r).Warn("empty param")
-			w.WriteHeader(400)
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("empty param"))
 			return
 		}
-		re, err := regexp.Compile(channelPattern)
+		re, err := regexp.Compile(req.ChannelPattern)
 		if err != nil {
 			logger.GetRequestEntry(r).Warn("pattern error")
-			w.WriteHeader(400)
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("channel_pattern cant regex"))
 			return
-
 		}
-		chs, err := rsender.GetChannels(listenChannelPrefix, app_key, "*")
+		chs, err := rsender.GetChannels(listenChannelPrefix, app, "*")
 		if err != nil {
 			logger.GetRequestEntry(r).Warn("get channel error")
-			w.WriteHeader(400)
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("get channel error"))
 			return
-
 		}
-
-		data := r.FormValue("data")
-		if data == "" {
-			logger.GetRequestEntry(r).Warn("empty data")
-			w.WriteHeader(400)
-			w.Write([]byte("empty data"))
-			return
-		}
-		jsonData := JsonCheck(data)
-
 		var match int
 		for _, v := range chs {
-			if re.MatchString(v) {
-				match++
-				push := struct {
-					Channel string      `json:"channel"`
-					Event   string      `json:"event"`
-					Data    interface{} `json:"data"`
-				}{
-					Channel: v,
-					Event:   event,
-					Data:    jsonData,
-				}
-				d, err := json.Marshal(push)
-				if err != nil {
-					logger.GetRequestEntry(r).Warn(err)
-					continue
-				}
-				_, err = rsender.Push(listenChannelPrefix, app_key, v, d)
-				if err != nil {
-					logger.GetRequestEntry(r).Warn(err)
-					continue
-				}
+			if !re.MatchString(v) {
+				continue
+			}
+			match++
+			d, err := json.Marshal(struct {
+				Channel string      `json:"channel"`
+				Event   string      `json:"event"`
+				Data    interface{} `json:"data"`
+			}{Channel: v, Event: req.Event, Data: req.Data})
+			if err != nil {
+				logger.GetRequestEntry(r).Warn(err)
+				continue
+			}
+			if _, err = rsender.Push(listenChannelPrefix, app, v, d); err != nil {
+				logger.GetRequestEntry(r).Warn(err)
+				continue
 			}
 		}
-		response := struct {
+		writeJSON(w, r, struct {
 			Total   int    `json:"total"`
 			Pattern string `json:"pattern"`
-		}{
-			Total:   match,
-			Pattern: channelPattern,
-		}
-		d, err := json.Marshal(response)
-		if err != nil {
-			w.WriteHeader(400)
-			w.Write([]byte("response marshal error"))
-			return
-		}
-		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		w.Write(d)
-		return
+		}{Total: match, Pattern: req.ChannelPattern})
 	}
 }
-func PushMessage(rsender *redisocket.Sender) func(w http.ResponseWriter, r *http.Request) {
+
+// POST /v1/apps/{app}/channels/{channel}/messages  body: {event, data}
+func PushMessage(rsender *redisocket.Sender) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		app_key := params["app_key"]
-		channel := params["channel"]
-		event := params["event"]
-		if app_key == "" || channel == "" || event == "" {
-			logger.GetRequestEntry(r).Warn("empty param")
-			w.WriteHeader(400)
-			w.Write([]byte("empty param"))
+		app := r.PathValue("app")
+		channel := r.PathValue("channel")
+		var req MessageRequest
+		if !decodeBody(w, r, &req) {
 			return
 		}
-
-		data := r.FormValue("data")
-		if data == "" {
-			logger.GetRequestEntry(r).Warn("empty data")
-			w.WriteHeader(400)
-			w.Write([]byte("empty data"))
+		if req.Event == "" {
+			logger.GetRequestEntry(r).Warn("empty event")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("empty event"))
 			return
 		}
-		jsonData := JsonCheck(data)
-
-		push := struct {
+		d, err := json.Marshal(struct {
 			Channel string      `json:"channel"`
 			Event   string      `json:"event"`
 			Data    interface{} `json:"data"`
-		}{
-			Channel: channel,
-			Event:   event,
-			Data:    jsonData,
-		}
-		d, err := json.Marshal(push)
+		}{Channel: channel, Event: req.Event, Data: req.Data})
 		if err != nil {
 			logger.GetRequestEntry(r).Warn(err)
-			w.WriteHeader(400)
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("data error"))
 			return
 		}
-		_, err = rsender.Push(listenChannelPrefix, app_key, channel, d)
-		if err != nil {
+		if _, err = rsender.Push(listenChannelPrefix, app, channel, d); err != nil {
 			logger.GetRequestEntry(r).Warn(err)
-			w.WriteHeader(400)
-			w.Write([]byte("data error"))
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("push error"))
 			return
 		}
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write(d)
-		return
 	}
 }
-func DecodeJWT(key *rsa.PublicKey) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
 
-		data := r.FormValue("data")
-		auth, err := Decode(key, data)
+// POST /v1/auth/decode  body: {jwt}
+func DecodeJWT(key *rsa.PublicKey) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req JwtRequest
+		if !decodeBody(w, r, &req) {
+			return
+		}
+		auth, err := Decode(key, req.Jwt)
 		if err != nil {
-			logger.GetRequestEntry(r).Warnf("error:%s, post data:%s", err, data)
-			w.WriteHeader(400)
+			logger.GetRequestEntry(r).Warnf("error:%s", err)
+			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("data error"))
 			return
 		}
-		if err = json.NewEncoder(w).Encode(auth); err != nil {
-			logger.GetRequestEntry(r).Warnf("error:%s", err)
-			w.WriteHeader(400)
-			w.Write([]byte("parse error"))
-		}
-		return
+		writeJSON(w, r, auth)
 	}
 }

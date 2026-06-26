@@ -14,7 +14,6 @@ import (
 	_ "net/http/pprof"
 
 	jwt "github.com/golang-jwt/jwt/v5"
-	"github.com/gorilla/mux"
 	redisocket "github.com/syhlion/redisocket.v2"
 	"github.com/urfave/cli"
 )
@@ -37,7 +36,7 @@ func master(c *cli.Context) {
 	}
 	public_pem, rsaKeyErr := jwt.ParseRSAPublicKeyFromPEM(b)
 	if rsaKeyErr != nil {
-		logger.Warnf("Did not start \"%sdecode\" api", mc.ApiPrefix)
+		logger.Warn("Did not start /v1/auth/decode api")
 	}
 
 	/*NATS:publish + presence 聚合(master 無連線,presence 查詢經 request/reply 匯總各 slave)*/
@@ -58,26 +57,36 @@ func master(c *cli.Context) {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	r := mux.NewRouter()
+	// stdlib ServeMux (Go 1.22+ method + path-wildcard routing) — no third-party
+	// router, no configurable prefix; the versioned REST API lives under /v1.
+	r := http.NewServeMux()
 
-	sub := r.PathPrefix(mc.ApiPrefix).Subrouter()
-	sub.HandleFunc("/push/socket/{app_key}/{socket_id}", PushToSocket(rsender)).Methods("POST")
-	sub.HandleFunc("/push/user/{app_key}/{user_id}", PushToUser(rsender)).Methods("POST")
-	sub.HandleFunc("/push/{app_key}/{channel}/{event}", PushMessage(rsender)).Methods("POST")
-	sub.HandleFunc("/push_batch/{app_key}", PushBatchMessage(rsender)).Methods("POST")
-	sub.HandleFunc("/push/{app_key}", PushMessageByPattern(rsender)).Methods("POST")
-	sub.HandleFunc("/reload/channel/user/{app_key}/{user_id}", ReloadUserChannels(rsender)).Methods("POST")
-	sub.HandleFunc("/add/channel/user/{app_key}/{user_id}", AddUserChannels(rsender)).Methods("POST")
-	sub.HandleFunc("/{app_key}/channels", GetAllChannel(rsender)).Methods("GET")
-	sub.HandleFunc("/{app_key}/channels/count", GetAllChannelCount(rsender)).Methods("GET")
-	sub.HandleFunc("/{app_key}/online/bychannel/{channel}", GetOnlineByChannel(rsender)).Methods("GET")
-	sub.HandleFunc("/{app_key}/online/bychannel/{channel}/count", GetOnlineCountByChannel(rsender)).Methods("GET")
-	sub.HandleFunc("/{app_key}/online", GetOnline(rsender)).Methods("GET")
-	sub.HandleFunc("/{app_key}/online/count", GetOnlineCount(rsender)).Methods("GET")
-	sub.HandleFunc("/ping", Ping()).Methods("GET")
-	sub.HandleFunc("/ready", Ready(nc)).Methods("GET")
+	// ops (unversioned)
+	r.HandleFunc("GET /healthz", Healthz())
+	r.HandleFunc("GET /readyz", Ready(nc))
+	r.HandleFunc("GET /version", Version(mc.Version))
+
+	// publish
+	r.HandleFunc("POST /v1/apps/{app}/channels/{channel}/messages", PushMessage(rsender))
+	r.HandleFunc("POST /v1/apps/{app}/messages", PushMessageByPattern(rsender))
+	r.HandleFunc("POST /v1/apps/{app}/messages/batch", PushBatchMessage(rsender))
+	r.HandleFunc("POST /v1/apps/{app}/users/{user}/messages", PushToUser(rsender))
+	r.HandleFunc("POST /v1/apps/{app}/sockets/{socket}/messages", PushToSocket(rsender))
+
+	// a user's channel set
+	r.HandleFunc("POST /v1/apps/{app}/users/{user}/channels", AddUserChannels(rsender))
+	r.HandleFunc("PUT /v1/apps/{app}/users/{user}/channels", ReloadUserChannels(rsender))
+
+	// presence / queries
+	r.HandleFunc("GET /v1/apps/{app}/channels", GetAllChannel(rsender))
+	r.HandleFunc("GET /v1/apps/{app}/channels/count", GetAllChannelCount(rsender))
+	r.HandleFunc("GET /v1/apps/{app}/channels/{channel}/users", GetOnlineByChannel(rsender))
+	r.HandleFunc("GET /v1/apps/{app}/channels/{channel}/users/count", GetOnlineCountByChannel(rsender))
+	r.HandleFunc("GET /v1/apps/{app}/users", GetOnline(rsender))
+	r.HandleFunc("GET /v1/apps/{app}/users/count", GetOnlineCount(rsender))
+
 	if rsaKeyErr == nil {
-		sub.HandleFunc("/decode", DecodeJWT(public_pem)).Methods("POST")
+		r.HandleFunc("POST /v1/auth/decode", DecodeJWT(public_pem))
 	}
 	handler := RequestLogger(ls.Slog)(r)
 	serverError := make(chan error, 1)
@@ -162,19 +171,13 @@ func slave(c *cli.Context) {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	r := mux.NewRouter()
-
-	/*api end*/
-
-	//server := http.NewServeMux()
-
-	sub := r.PathPrefix(sc.ApiPrefix).Subrouter()
-	sub.HandleFunc("/ws/{app_key}", WsConnect(sc, publicPem, rsHub)).Methods("GET")
-	// /wtf 是 /ws 的 legacy alias(同一 handler),保留相容舊客戶端;新接入一律用 /ws。
-	sub.HandleFunc("/wtf/{app_key}", WsConnect(sc, publicPem, rsHub)).Methods("GET")
-	sub.HandleFunc("/auth", WsAuth(sc, publicPem)).Methods("POST")
-	sub.HandleFunc("/ping", Ping()).Methods("GET")
-	sub.HandleFunc("/ready", Ready(nc)).Methods("GET")
+	// stdlib ServeMux (Go 1.22+); versioned REST API under /v1, ops at root.
+	r := http.NewServeMux()
+	r.HandleFunc("GET /healthz", Healthz())
+	r.HandleFunc("GET /readyz", Ready(nc))
+	r.HandleFunc("GET /version", Version(sc.Version))
+	r.HandleFunc("POST /v1/auth", WsAuth(sc, publicPem))
+	r.HandleFunc("GET /v1/apps/{app}/ws", WsConnect(sc, publicPem, rsHub))
 	handler := RequestLogger(ls.Slog)(r)
 	serverError := make(chan error, 1)
 	server := http.Server{

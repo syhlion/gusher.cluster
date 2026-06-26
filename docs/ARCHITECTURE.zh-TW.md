@@ -15,8 +15,9 @@ gusher.cluster 是自架的即時推播服務（仿 Pusher）。瀏覽器以 **W
 - **slave** — 持有 ws 連線、本機驗 JWT（RSA 公鑰）、訂閱其 client 頻道對應的 NATS
   subject、把進來的訊息 fan-out。內嵌
   [redisocket.v2](https://github.com/syhlion/redisocket.v2) 引擎。
-- **master** — 無狀態的 publish / REST API（`/push/...`、`/{app}/online`、
-  `/{app}/channels`）。它不持有連線;在線/頻道查詢靠 NATS request/reply 匯總各 slave。
+- **master** — 無狀態的 publish / REST API（`POST /v1/apps/{app}/channels/{channel}/messages`、
+  `GET /v1/apps/{app}/users`、`GET /v1/apps/{app}/channels`）。它不持有連線;在線/頻道
+  查詢靠 NATS request/reply 匯總各 slave。
 - **NATS** — 單一後端:
   - bus:subject `gusher.ch.<appKey>`（節點只收自己訂閱的頻道）;
   - presence:`gusher.presence.query`（request/reply scatter-gather,無 store）。
@@ -28,9 +29,9 @@ gusher.cluster 是自架的即時推播服務（仿 Pusher）。瀏覽器以 **W
 JWT 帶 `gusher` claim——`{app_key, user_id, channels}`,RS256 簽。流程（對 client
 不變,但無狀態）:
 
-1. `POST /auth {jwt}` → slave 用 RSA **公鑰**本機驗（`helper.Decode`),把 JWT 本身
-   當 `token` 回傳。
-2. `GET /ws/{app_key}?token=<JWT>` → slave 再把 token-as-JWT 本機驗一次、upgrade。
+1. `POST /v1/auth {"jwt":...}` → slave 用 RSA **公鑰**本機驗（`helper.Decode`),把
+   JWT 本身當 `token` 回傳。
+2. `GET /v1/apps/{app}/ws?token=<JWT>` → slave 再把 token-as-JWT 本機驗一次、upgrade。
 
 沒有 decode service、沒有 token store——舊的 `RPUSH`/`SET` redis 路徑全數移除。
 
@@ -38,9 +39,9 @@ JWT 帶 `gusher` claim——`{app_key, user_id, channels}`,RS256 簽。流程（
 
 - **訂閱** — client 送 `{"event":"gusher.subscribe","data":{"channel":"AA"}}`;
   slave 依 JWT 的 `channels`（萬用字元 / regex）比對授權後註冊訂閱。
-- **推播** — `POST /push/{app_key}/{channel}/{event}` → master publish 到
+- **推播** — `POST /v1/apps/{app}/channels/{channel}/messages` → master publish 到
   `gusher.ch.<appKey>` → 每個訂閱該頻道的 slave 把訊息寫給對應的 ws client。
-- **presence** — master 的 `GET /{app_key}/online` 等,經 NATS scatter-gather 各
+- **presence** — master 的 `GET /v1/apps/{app}/users` 等,經 NATS scatter-gather 各
   slave 後合併。
 
 ## 遷移（Redis → NATS）

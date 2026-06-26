@@ -19,9 +19,10 @@ NATS / in-process.
   subscribes to the NATS subjects for its clients' channels, and fans out
   incoming messages. Embeds the [redisocket.v2](https://github.com/syhlion/redisocket.v2)
   engine.
-- **master** — a stateless publish/REST API (`/push/...`, `/{app}/online`,
-  `/{app}/channels`). It holds no connections; online/channel queries are
-  answered by aggregating all slaves via NATS request/reply.
+- **master** — a stateless publish/REST API (`POST /v1/apps/{app}/channels/{channel}/messages`,
+  `GET /v1/apps/{app}/users`, `GET /v1/apps/{app}/channels`). It holds no
+  connections; online/channel queries are answered by aggregating all slaves via
+  NATS request/reply.
 - **NATS** — the single backend:
   - bus: subject `gusher.ch.<appKey>` (a node only receives the channels it
     subscribed to);
@@ -34,9 +35,9 @@ Both roles are stateless and scale horizontally.
 The JWT carries the `gusher` claim — `{app_key, user_id, channels}` — signed
 RS256. Flow (unchanged for clients, but stateless):
 
-1. `POST /auth {jwt}` → the slave verifies it with the RSA **public key**
+1. `POST /v1/auth {"jwt":...}` → the slave verifies it with the RSA **public key**
    (`helper.Decode`) and returns the JWT itself as the `token`.
-2. `GET /ws/{app_key}?token=<JWT>` → the slave verifies the token-as-JWT again
+2. `GET /v1/apps/{app}/ws?token=<JWT>` → the slave verifies the token-as-JWT again
    locally and upgrades.
 
 No decode service, no token store — the old `RPUSH`/`SET` Redis paths are gone.
@@ -46,10 +47,10 @@ No decode service, no token store — the old `RPUSH`/`SET` Redis paths are gone
 - **Subscribe** — client sends `{"event":"gusher.subscribe","data":{"channel":"AA"}}`;
   the slave checks the channel against the JWT's `channels` (wildcards / regex)
   and registers the subscription.
-- **Push** — `POST /push/{app_key}/{channel}/{event}` → master publishes to
-  `gusher.ch.<appKey>` → every slave subscribed to that channel writes the
+- **Push** — `POST /v1/apps/{app}/channels/{channel}/messages` → master publishes
+  to `gusher.ch.<appKey>` → every slave subscribed to that channel writes the
   message to its matching ws clients.
-- **Presence** — `GET /{app_key}/online` etc. on the master scatter-gather the
+- **Presence** — `GET /v1/apps/{app}/users` etc. on the master scatter-gather the
   slaves over NATS and merge.
 
 ## Migration (Redis → NATS)
