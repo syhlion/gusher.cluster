@@ -56,6 +56,8 @@ github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5Cc
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/syhlion/redisocket.v2 v1.0.1 h1:BUt+xaGdhjccufSWocnB2zCf6iLf4vq1VZtqXdv7I88=
 github.com/syhlion/redisocket.v2 v1.0.1/go.mod h1:R5v23aI9k2C/VTqNqm/1dfl4i8ZGYikgoRp/bXTYoGw=
+github.com/syhlion/redisocket.v2 v1.1.0 h1:6+lno+zsVNilhpA40zg18Z6T3krvkrKrVcqtKgtSpLA=
+github.com/syhlion/redisocket.v2 v1.1.0/go.mod h1:R5v23aI9k2C/VTqNqm/1dfl4i8ZGYikgoRp/bXTYoGw=
 github.com/urfave/cli v1.22.10 h1:p8Fspmz3iTctJstry1PYS3HVdllxnEzTEsgIgtxTrCk=
 github.com/urfave/cli v1.22.10/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/yuin/gopher-lua v1.1.1 h1:kYKnWBjvbNP4XLT3+bPEwAXJx262OhaHDWDVOPjL46M=

@@ -88,7 +88,7 @@ github.com/russross/blackfriday/v2
 github.com/shurcooL/sanitized_anchor_name
 # github.com/stretchr/testify v1.7.0
 ## explicit; go 1.13
-# github.com/syhlion/redisocket.v2 v1.0.1
+# github.com/syhlion/redisocket.v2 v1.1.0
 ## explicit; go 1.25.0
 github.com/syhlion/redisocket.v2
 # github.com/urfave/cli v1.22.10

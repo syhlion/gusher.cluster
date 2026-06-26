@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"net/http"
 	"regexp"
+	"sort"
 
 	redisocket "github.com/syhlion/redisocket.v2"
 )
@@ -331,6 +332,53 @@ func PushMessage(rsender *redisocket.Sender) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		w.Write(d)
+	}
+}
+
+// GET /v1/stats — global totals across all apps (connections exact, users approx).
+func GetGlobalStats(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		stats, err := rsender.GetStats(listenChannelPrefix)
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get stats error")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("get stats error"))
+			return
+		}
+		var conns, users int
+		for _, s := range stats {
+			conns += s.Conns
+			users += s.Users
+		}
+		writeJSON(w, r, struct {
+			Apps        int `json:"apps"`
+			Connections int `json:"connections"`
+			Users       int `json:"users"`
+		}{Apps: len(stats), Connections: conns, Users: users})
+	}
+}
+
+// GET /v1/apps — per-app breakdown (connections exact, users approx), sorted by app.
+func GetApps(rsender *redisocket.Sender) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		stats, err := rsender.GetStats(listenChannelPrefix)
+		if err != nil {
+			logger.GetRequestEntry(r).WithError(err).Warn("get stats error")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("get stats error"))
+			return
+		}
+		type appRow struct {
+			App         string `json:"app"`
+			Connections int    `json:"connections"`
+			Users       int    `json:"users"`
+		}
+		rows := make([]appRow, 0, len(stats))
+		for app, s := range stats {
+			rows = append(rows, appRow{App: app, Connections: s.Conns, Users: s.Users})
+		}
+		sort.Slice(rows, func(i, j int) bool { return rows[i].App < rows[j].App })
+		writeJSON(w, r, rows)
 	}
 }
 
