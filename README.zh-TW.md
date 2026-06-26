@@ -5,6 +5,7 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/syhlion/gusher.cluster.svg)](go.mod)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Backed by NATS](https://img.shields.io/badge/backed%20by-NATS-27AAE1.svg)](https://nats.io)
+[![Docker](https://img.shields.io/docker/v/syhlion/gusher.cluster?sort=semver&logo=docker&logoColor=white&label=docker)](https://hub.docker.com/r/syhlion/gusher.cluster)
 [![docs English](https://img.shields.io/badge/docs-English-lightgrey.svg)](README.md)
 [![docs 繁體中文](https://img.shields.io/badge/docs-%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-blue.svg)](README.zh-TW.md)
 
@@ -88,6 +89,27 @@ GUSHER_MASTER_API_LISTEN=:7777 ./gusher.cluster master
 ```
 
 完整環境變數清單見 `slave.env.example` / `master.env.example`。
+
+## 容器映像（Docker Hub）
+
+repo 內的 `docker-compose.yml` 與 `example/` 都是**從原始碼建**（開發 / demo 用）。
+若要**不自己 build、直接部署**,從 Docker Hub 拉發佈好的 image——
+[**syhlion/gusher.cluster**](https://hub.docker.com/r/syhlion/gusher.cluster),
+每個 release 都有 tag(`:3.0.0` / `:3` / `:latest`):
+
+```sh
+docker pull syhlion/gusher.cluster:latest
+# image 以「角色」當啟動指令;給它一個可連的 NATS ＋ 你的公鑰:
+docker run --rm -p 7777:7777 \
+  -e GUSHER_NATS_ADDR=nats://your-nats:4222 \
+  -e GUSHER_MASTER_API_LISTEN=:7777 \
+  -e GUSHER_PUBLIC_PEM_FILE=/public.pem \
+  -v "$PWD/public.pem:/public.pem:ro" \
+  syhlion/gusher.cluster:latest master
+```
+
+想在自己的 compose 裡「拉 image 而非 build」,把 `build:` 區塊換成
+`image: syhlion/gusher.cluster:<tag>` 即可。
 
 ## 客端流程
 

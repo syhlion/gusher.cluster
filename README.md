@@ -5,6 +5,7 @@
 [![Go](https://img.shields.io/github/go-mod/go-version/syhlion/gusher.cluster.svg)](go.mod)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Backed by NATS](https://img.shields.io/badge/backed%20by-NATS-27AAE1.svg)](https://nats.io)
+[![Docker](https://img.shields.io/docker/v/syhlion/gusher.cluster?sort=semver&logo=docker&logoColor=white&label=docker)](https://hub.docker.com/r/syhlion/gusher.cluster)
 [![docs English](https://img.shields.io/badge/docs-English-blue.svg)](README.md)
 [![docs 繁體中文](https://img.shields.io/badge/docs-%E7%B9%81%E9%AB%94%E4%B8%AD%E6%96%87-lightgrey.svg)](README.zh-TW.md)
 
@@ -93,6 +94,27 @@ GUSHER_MASTER_API_LISTEN=:7777 ./gusher.cluster master
 ```
 
 See `slave.env.example` / `master.env.example` for the full env list.
+
+## Container image
+
+The repo's `docker-compose.yml` and `example/` **build from source** (for dev /
+the demo). To deploy without building, pull the published image from Docker Hub —
+[**syhlion/gusher.cluster**](https://hub.docker.com/r/syhlion/gusher.cluster),
+tagged per release (`:3.0.0` / `:3` / `:latest`):
+
+```sh
+docker pull syhlion/gusher.cluster:latest
+# the image takes the role as its command; give it a reachable NATS + your public key:
+docker run --rm -p 7777:7777 \
+  -e GUSHER_NATS_ADDR=nats://your-nats:4222 \
+  -e GUSHER_MASTER_API_LISTEN=:7777 \
+  -e GUSHER_PUBLIC_PEM_FILE=/public.pem \
+  -v "$PWD/public.pem:/public.pem:ro" \
+  syhlion/gusher.cluster:latest master
+```
+
+To pull instead of build in your own compose, swap the `build:` block for
+`image: syhlion/gusher.cluster:<tag>`.
 
 ## Client flow
 
