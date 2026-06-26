@@ -2,6 +2,11 @@
 
 ### [Added]
 
+- **Engineering console** (master): `GET /ui` — a single self-contained HTML page
+  (no build, no auth) showing master health, global connection/user totals, a
+  per-app breakdown, and per-channel online counts for an entered app_key, with
+  optional 3s auto-refresh. Mirrors gua's console; a probe + API-validation
+  surface, not an end-user product.
 - **Global observability endpoints** (master): `GET /v1/stats` (totals across all
   apps) and `GET /v1/apps` (per-app breakdown), each reporting **connections**
   (exact — summed sockets) and **users** (approximate — summed per-node distinct
