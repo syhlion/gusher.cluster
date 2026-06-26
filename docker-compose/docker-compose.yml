@@ -21,7 +21,6 @@ services:
     environment:
       GUSHER_NATS_ADDR: "nats://nats:4222"
       GUSHER_MASTER_API_LISTEN: ":7777"
-      GUSHER_MASTER_URI_PREFIX: "/"
       GUSHER_PUBLIC_PEM_FILE: "/gusher/public.pem"
       GUSHER_LOG_OUTPUT: "stdout" # stdout | file | both
       GUSHER_LOG_FORMAT: "json"
@@ -38,7 +37,6 @@ services:
     environment:
       GUSHER_NATS_ADDR: "nats://nats:4222"
       GUSHER_API_LISTEN: ":8888"
-      GUSHER_API_URI_PREFIX: "/"
       GUSHER_PUBLIC_PEM_FILE: "/gusher/public.pem"
       GUSHER_LOG_OUTPUT: "stdout"
       GUSHER_LOG_FORMAT: "json"

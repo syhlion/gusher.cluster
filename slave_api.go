@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-	"github.com/gorilla/mux"
 	"github.com/syhlion/redisocket.v2"
 )
 
@@ -26,16 +25,32 @@ type commandResponse struct {
 	multiData []string //multi sub use
 }
 
-func Ping() http.HandlerFunc {
+// Healthz is a liveness probe: 200 as long as the process is serving.
+func Healthz() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("pong"))
+		w.Write([]byte("ok"))
 	}
 }
+
+// Version reports the build version. GET /version
+func Version(v string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(v))
+	}
+}
+
+// POST /v1/auth  body: {jwt} -> {token}
 func WsAuth(sc SlaveConfig, pubKey *rsa.PublicKey) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		jwtStr := r.FormValue("jwt")
+		var req JwtRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "body decode fail", http.StatusBadRequest)
+			return
+		}
+		jwtStr := req.Jwt
 		// 本機驗 JWT;通過即把「JWT 本身」當 token 回給 client(無狀態、無 redis)。
 		// client 後續 /ws?token=<JWT>,該端點再本機驗一次 → 全程零 redis、保留原兩步流程。
 		if _, err := Decode(pubKey, jwtStr); err != nil {
@@ -51,13 +66,12 @@ func WsAuth(sc SlaveConfig, pubKey *rsa.PublicKey) http.HandlerFunc {
 	}
 }
 
-// WsConnect 同時供 /ws 與 /wtf(原 WtfConnect 已併入,去除重複)。
+// WsConnect upgrades GET /v1/apps/{app}/ws?token=<JWT> to a WebSocket.
 // token 參數即 JWT,本機 RSA 公鑰驗證 → auth,無 redis。
 func WsConnect(sc SlaveConfig, pubKey *rsa.PublicKey, rHub *redisocket.Hub) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := mux.Vars(r)
-		appKey := params["app_key"]
-		token := r.FormValue("token") // token 即 JWT
+		appKey := r.PathValue("app")
+		token := r.URL.Query().Get("token") // token 即 JWT
 		if appKey == "" || token == "" {
 			logger.Warn("app_key or token is nil")
 			http.Error(w, "app_key is nil", http.StatusUnauthorized)

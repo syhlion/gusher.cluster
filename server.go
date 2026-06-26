@@ -54,11 +54,11 @@ var (
 	}
 	logger          *Logger
 	masterMsgFormat = "\nmaster mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
-		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
+		"api_listen:\"{{.ApiListen}}\"\n" +
 		"nats_addr:\"{{.NatsAddr}}\"\n" +
 		"public_key_location:\"{{.PublicKeyLocation}}\"\n\n"
 	slaveMsgFormat = "\nslave mode start at \"{{.GetStartTime}}\"\tserver ip:\"{{.ExternalIp}}\"\tversion:\"{{.Version}}\"\tcomplie at \"{{.CompileDate}}\"\n" +
-		"api_listen:\"{{.ApiListen}}\"\tapi_preifx:\"{{.ApiPrefix}}\"\n" +
+		"api_listen:\"{{.ApiListen}}\"\n" +
 		"read_buffer:\"{{.ReadBuffer}}\"\twrite_buffer:\"{{.WriteBuffer}}\"\tmax_message_size:\"{{.MaxMessage}}\"\tscan_interval:\"{{.ScanInterval}}\"\tlog_sys_interval:\"{{.LogInterval}}\"\n" +
 		"nats_addr:\"{{.NatsAddr}}\"\n" +
 		"public_key_location:\"{{.PublicKeyLocation}}\"\n\n"
@@ -77,10 +77,6 @@ func getSlaveConfig(c *cli.Context) (sc SlaveConfig) {
 	sc.ApiListen = os.Getenv("GUSHER_API_LISTEN")
 	if sc.ApiListen == "" {
 		logger.Fatal("empty env GUSHER_API_LISTEN")
-	}
-	sc.ApiPrefix = os.Getenv("GUSHER_API_URI_PREFIX")
-	if sc.ApiPrefix == "" {
-		logger.Fatal("empty env GUSHER_API_URI_PREIFX")
 	}
 	logInterval, err := strconv.Atoi(os.Getenv("GUSHER_LOG_SYS_INTERVAL"))
 	if err != nil {
@@ -138,10 +134,6 @@ func getMasterConfig(c *cli.Context) (mc MasterConfig) {
 	mc.ApiListen = os.Getenv("GUSHER_MASTER_API_LISTEN")
 	if mc.ApiListen == "" {
 		logger.Fatal("empty env GUSHER_MASTER_API_LISTEN")
-	}
-	mc.ApiPrefix = os.Getenv("GUSHER_MASTER_URI_PREFIX")
-	if mc.ApiPrefix == "" {
-		logger.Fatal("empty env GUSHER_MASTER_URI_PREFIX")
 	}
 	// log 格式/輸出由 setupLoggingFromEnv 處理(GUSHER_LOG_*)
 

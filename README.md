@@ -62,11 +62,11 @@ auth → connect → push:
 # 1. sign a JWT (claims: app_key TEST, channels AA/BB)
 go run test/jwtgenerate/jwtgenerate.go gen --private-key test/key/private.pem
 # 2. exchange it for a session token
-curl -s localhost:8888/auth -d 'jwt=<JWT>'
-# 3. open the socket: ws://localhost:8888/ws/TEST?token=<token>
+curl -s localhost:8888/v1/auth -d '{"jwt":"<JWT>"}'
+# 3. open the socket: ws://localhost:8888/v1/apps/TEST/ws?token=<token>
 #    then subscribe: {"event":"gusher.subscribe","data":{"channel":"AA"}}
 # 4. push from any backend — the subscribed socket receives it
-curl -s localhost:7777/push/TEST/AA/EVENT -d 'data={"hi":"there"}'
+curl -s localhost:7777/v1/apps/TEST/channels/AA/messages -d '{"event":"EVENT","data":{"hi":"there"}}'
 ```
 
 **Use your own keys** (for real deployments) — generate an RSA pair and drop the
@@ -85,22 +85,23 @@ go build -ldflags "-X main.name=gusher" -o gusher.cluster .
 
 # slave
 GUSHER_NATS_ADDR=nats://127.0.0.1:4222 GUSHER_PUBLIC_PEM_FILE=./public.pem \
-GUSHER_API_LISTEN=:8888 GUSHER_API_URI_PREFIX=/ ./gusher.cluster slave
+GUSHER_API_LISTEN=:8888 ./gusher.cluster slave
 
 # master
 GUSHER_NATS_ADDR=nats://127.0.0.1:4222 GUSHER_PUBLIC_PEM_FILE=./public.pem \
-GUSHER_MASTER_API_LISTEN=:7777 GUSHER_MASTER_URI_PREFIX=/ ./gusher.cluster master
+GUSHER_MASTER_API_LISTEN=:7777 ./gusher.cluster master
 ```
 
 See `slave.env.example` / `master.env.example` for the full env list.
 
 ## Client flow
 
-1. `POST /auth` with `jwt=<JWT>` → `{"token":"<JWT>"}` (the JWT is verified
-   locally and returned as the token — stateless, no store).
-2. `GET /ws/{app_key}?token=<token>` → WebSocket. Subscribe with
+1. `POST /v1/auth` with `{"jwt":"<JWT>"}` → `{"token":"<JWT>"}` (the JWT is
+   verified locally and returned as the token — stateless, no store).
+2. `GET /v1/apps/{app}/ws?token=<token>` → WebSocket. Subscribe with
    `{"event":"gusher.subscribe","data":{"channel":"AA"}}`.
-3. Backend pushes: `POST /push/{app_key}/{channel}/{event}` with `data=...`.
+3. Backend pushes: `POST /v1/apps/{app}/channels/{channel}/messages` with
+   `{"event":"...","data":...}`.
 
 The JWT carries the `gusher` claim — `{"app_key","user_id","channels"}` — signed
 **RS256**. See [doc/protocal.md](./doc/protocal.md) for the full WebSocket
@@ -108,7 +109,7 @@ protocol and [doc/api.md](./doc/api.md) for the REST API.
 
 ## Ops
 
-- **Health**: `GET /ping` (liveness) · `GET /ready` (readiness — 200 only while
+- **Health**: `GET /healthz` (liveness) · `GET /readyz` (readiness — 200 only while
   NATS is connected).
 - **NATS auth**: set `GUSHER_NATS_CREDS=/path/to/app.creds` for user credentials;
   use a `tls://` address (or NATS server config) for TLS. The client auto-reconnects.

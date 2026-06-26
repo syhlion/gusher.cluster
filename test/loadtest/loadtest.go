@@ -8,9 +8,9 @@
 //
 //	go run ./test/loadtest \
 //	  -n 5000 -channel AA \
-//	  -ws ws://127.0.0.1:8888/ws/TEST \
-//	  -auth http://127.0.0.1:8888/auth \
-//	  -push http://127.0.0.1:7777/push/TEST/AA/notify \
+//	  -ws ws://127.0.0.1:8888/v1/apps/TEST/ws \
+//	  -auth http://127.0.0.1:8888/v1/auth \
+//	  -push http://127.0.0.1:7777/v1/apps/TEST/channels/AA/messages \
 //	  -jwt "$JWT"
 package main
 
@@ -31,9 +31,10 @@ import (
 
 func main() {
 	n := flag.Int("n", 1000, "number of concurrent connections")
-	wsAPI := flag.String("ws", "", "ws endpoint, e.g. ws://host:8888/ws/TEST")
-	authAPI := flag.String("auth", "", "auth endpoint, e.g. http://host:8888/auth")
-	pushAPI := flag.String("push", "", "master push endpoint, e.g. http://host:7777/push/TEST/AA/notify")
+	wsAPI := flag.String("ws", "", "ws endpoint, e.g. ws://host:8888/v1/apps/TEST/ws")
+	authAPI := flag.String("auth", "", "auth endpoint, e.g. http://host:8888/v1/auth")
+	pushAPI := flag.String("push", "", "master push endpoint, e.g. http://host:7777/v1/apps/TEST/channels/AA/messages")
+	event := flag.String("event", "notify", "event name for the push")
 	jwt := flag.String("jwt", "", "JWT (gusher claim with the channel authorized)")
 	channel := flag.String("channel", "AA", "channel to subscribe")
 	dial := flag.Int("dial-concurrency", 500, "max concurrent dials")
@@ -103,7 +104,8 @@ func main() {
 
 	// 3. one push, measure fan-out
 	pushAt.Store(time.Now().UnixNano())
-	if _, err := http.PostForm(*pushAPI, url.Values{"data": {"loadtest"}}); err != nil {
+	if _, err := http.Post(*pushAPI, "application/json",
+		strings.NewReader(`{"event":"`+*event+`","data":"loadtest"}`)); err != nil {
 		fmt.Println("push error:", err)
 		os.Exit(1)
 	}
@@ -136,7 +138,7 @@ func main() {
 }
 
 func authToken(authAPI, jwt string) string {
-	resp, err := http.PostForm(authAPI, url.Values{"jwt": {jwt}})
+	resp, err := http.Post(authAPI, "application/json", strings.NewReader(`{"jwt":"`+jwt+`"}`))
 	if err != nil {
 		fmt.Println("auth error:", err)
 		os.Exit(1)

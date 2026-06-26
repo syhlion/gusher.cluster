@@ -5,7 +5,6 @@ import "time"
 type MasterConfig struct {
 	NatsAddr          string
 	ApiListen         string
-	ApiPrefix         string
 	PublicKeyLocation string
 	Version           string
 	CompileDate       string
@@ -24,7 +23,6 @@ type SlaveConfig struct {
 	ScanInterval      time.Duration
 	MaxMessage        int
 	ApiListen         string
-	ApiPrefix         string
 	Version           string
 	CompileDate       string
 	ExternalIp        string

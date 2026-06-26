@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -30,11 +29,12 @@ func env(key, def string) string {
 
 func main() {
 	var (
-		authURL = env("SMOKE_AUTH_URL", "http://127.0.0.1:8888/auth")
-		wsURL   = env("SMOKE_WS_URL", "ws://127.0.0.1:8888/ws/TEST")
-		pushURL = env("SMOKE_PUSH_URL", "http://127.0.0.1:7777/push/TEST/AA/EVENT")
+		authURL = env("SMOKE_AUTH_URL", "http://127.0.0.1:8888/v1/auth")
+		wsURL   = env("SMOKE_WS_URL", "ws://127.0.0.1:8888/v1/apps/TEST/ws")
+		pushURL = env("SMOKE_PUSH_URL", "http://127.0.0.1:7777/v1/apps/TEST/channels/AA/messages")
 		jwt     = os.Getenv("SMOKE_JWT")
 		subMsg  = env("SMOKE_SUBSCRIBE", `{"event":"gusher.subscribe","data":{"channel":"AA"}}`)
+		event   = env("SMOKE_EVENT", "EVENT")
 		payload = env("SMOKE_PAYLOAD", "hello-smoke")
 	)
 	conns, _ := strconv.Atoi(env("SMOKE_CONNECTIONS", "50"))
@@ -45,8 +45,8 @@ func main() {
 		fatal("SMOKE_JWT is empty")
 	}
 
-	// 1) /auth — local JWT verify
-	resp, err := http.PostForm(authURL, url.Values{"jwt": {jwt}})
+	// 1) /v1/auth — local JWT verify
+	resp, err := http.Post(authURL, "application/json", strings.NewReader(`{"jwt":"`+jwt+`"}`))
 	if err != nil {
 		fatal("auth request: %v", err)
 	}
@@ -101,7 +101,8 @@ func main() {
 	}
 
 	// 4) master push (once) — fan-out to all subscribers
-	pResp, err := http.PostForm(pushURL, url.Values{"data": {payload}})
+	pResp, err := http.Post(pushURL, "application/json",
+		strings.NewReader(`{"event":"`+event+`","data":"`+payload+`"}`))
 	if err != nil {
 		fatal("push request: %v", err)
 	}

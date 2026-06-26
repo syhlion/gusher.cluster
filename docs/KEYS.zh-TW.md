@@ -71,10 +71,10 @@ container。
 
 ```sh
 # 1. 用上面的開發工具簽出 token → TOKEN
-# 2. 拿去 /auth 兌換
-curl -s -X POST http://127.0.0.1:8888/auth -d "jwt=$TOKEN"
+# 2. 拿去 /v1/auth 兌換
+curl -s -X POST http://127.0.0.1:8888/v1/auth -d "{\"jwt\":\"$TOKEN\"}"
 #    → {"token":"<JWT>"}
-# 3. 開 WebSocket：GET /ws/{app_key}?token=<token>
+# 3. 開 WebSocket：GET /v1/apps/{app}/ws?token=<token>
 ```
 
 `make smoke` 對著實際的 compose stack 跑的就是這整套流程。

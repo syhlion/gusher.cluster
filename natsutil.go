@@ -38,7 +38,7 @@ func connectNATS(addr, name string) (*nats.Conn, error) {
 }
 
 // Ready returns 200 only while NATS is connected — use it as a k8s readiness
-// probe (vs /ping which is a plain liveness check).
+// probe (vs /healthz which is a plain liveness check).
 func Ready(nc *nats.Conn) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if nc.IsConnected() {

@@ -73,10 +73,10 @@ mounted into both containers.
 
 ```sh
 # 1. sign a token (dev tool above) → TOKEN
-# 2. exchange it at /auth
-curl -s -X POST http://127.0.0.1:8888/auth -d "jwt=$TOKEN"
+# 2. exchange it at /v1/auth
+curl -s -X POST http://127.0.0.1:8888/v1/auth -d "{\"jwt\":\"$TOKEN\"}"
 #    → {"token":"<JWT>"}
-# 3. open the WebSocket: GET /ws/{app_key}?token=<token>
+# 3. open the WebSocket: GET /v1/apps/{app}/ws?token=<token>
 ```
 
 `make smoke` runs exactly this flow against a live compose stack.
