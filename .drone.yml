@@ -27,6 +27,8 @@ steps:
     dockerfile: docker/Dockerfile
     auto_tag: true
     purge: true
+    build_args:
+      - VERSION=${DRONE_SEMVER}
     username:
         from_secret: docker_account
     password:
@@ -36,7 +38,7 @@ steps:
     - push
     - tag
 - name: build
-  image: golang
+  image: golang:1.25
   commands:
   - git fetch --tags
   - make build/linux_amd64.tar.gz
