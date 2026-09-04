@@ -1,0 +1,65 @@
+# CI for gusher.cluster. Replaces the retired Drone pipeline (.drone.yml).
+#
+#   test    every push to master, every PR, every tag: build, vet and
+#           `go test -race` (the suite is self-contained: it embeds a NATS
+#           server, so no service containers are needed).
+#   docker  tags only, after test passes: build docker/Dockerfile and push it
+#           to Docker Hub as <major>.<minor>.<patch>, <major>.<minor>, <major>
+#           and latest. Needs the DOCKERHUB_USERNAME / DOCKERHUB_TOKEN secrets.
+#
+# Not carried over from Drone: the cross-platform tarballs + draft GitHub
+# release and the Telegram notification. Releases are cut by hand with `gh`.
+name: ci
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  GOFLAGS: -mod=vendor
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go build ./...
+      - run: go vet ./...
+      - run: go test -race -count=1 ./...
+
+  docker:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: syhlion/gusher.cluster
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # stamped into main.version (GET /version); the Dockerfile's ARG
+          build-args: VERSION=${{ steps.meta.outputs.version }}

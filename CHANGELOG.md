@@ -1,5 +1,15 @@
 ## [Unreleased]
 
+### [CI]
+
+- **CI moved from Drone to GitHub Actions** (`.github/workflows/ci.yml`); the
+  self-hosted Drone at drone.syhlion.tw is retired (its README badge had been
+  404ing). `test` (build, vet, `go test -race`) runs on master pushes, PRs and
+  tags; `docker` builds `docker/Dockerfile` and pushes `syhlion/gusher.cluster`
+  on `v*` tags only, stamping the tag into `main.version`. Not carried over:
+  the cross-platform tarballs + draft GitHub release and the Telegram
+  notification (releases are cut by hand with `gh`). `.drone.yml` removed.
+
 ## [v3.0.0] - 2026-06-26
 
 > **Breaking**: HTTP API redesigned to a clean resource-oriented REST shape under
