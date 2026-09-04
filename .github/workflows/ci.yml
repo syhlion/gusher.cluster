@@ -5,7 +5,8 @@
 #           server, so no service containers are needed).
 #   docker  tags only, after test passes: build docker/Dockerfile and push it
 #           to Docker Hub as <major>.<minor>.<patch>, <major>.<minor>, <major>
-#           and latest. Needs the DOCKERHUB_USERNAME / DOCKERHUB_TOKEN secrets.
+#           and latest. Needs the DOCKERHUB_USERNAME / DOCKERHUB_TOKEN secrets
+#           of the `dockerhub` environment.
 #
 # Not carried over from Drone: the cross-platform tarballs + draft GitHub
 # release and the Telegram notification. Releases are cut by hand with `gh`.
@@ -38,6 +39,8 @@ jobs:
   docker:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')
+    # the DOCKERHUB_* secrets live on this environment (Settings → Environments)
+    environment: dockerhub
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

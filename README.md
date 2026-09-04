@@ -100,7 +100,7 @@ See `slave.env.example` / `master.env.example` for the full env list.
 The repo's `docker-compose.yml` and `example/` **build from source** (for dev /
 the demo). To deploy without building, pull the published image from Docker Hub —
 [**syhlion/gusher.cluster**](https://hub.docker.com/r/syhlion/gusher.cluster),
-tagged per release (`:3.0.0` / `:3` / `:latest`):
+tagged per release (`:3.0.1` / `:3` / `:latest`):
 
 ```sh
 docker pull syhlion/gusher.cluster:latest

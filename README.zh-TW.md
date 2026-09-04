@@ -95,7 +95,7 @@ GUSHER_MASTER_API_LISTEN=:7777 ./gusher.cluster master
 repo 內的 `docker-compose.yml` 與 `example/` 都是**從原始碼建**（開發 / demo 用）。
 若要**不自己 build、直接部署**,從 Docker Hub 拉發佈好的 image——
 [**syhlion/gusher.cluster**](https://hub.docker.com/r/syhlion/gusher.cluster),
-每個 release 都有 tag(`:3.0.0` / `:3` / `:latest`):
+每個 release 都有 tag(`:3.0.1` / `:3` / `:latest`):
 
 ```sh
 docker pull syhlion/gusher.cluster:latest

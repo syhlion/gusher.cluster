@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## [v3.0.1] - 2026-09-04
+
+### [Security]
+
+- bump `github.com/buger/jsonparser` v1.1.1 → v1.1.2 (Dependabot high,
+  GHSA-6g7g-w4f8-9c9x: denial of service on crafted input).
+
 ### [CI]
 
 - **CI moved from Drone to GitHub Actions** (`.github/workflows/ci.yml`); the
@@ -9,6 +16,7 @@
   on `v*` tags only, stamping the tag into `main.version`. Not carried over:
   the cross-platform tarballs + draft GitHub release and the Telegram
   notification (releases are cut by hand with `gh`). `.drone.yml` removed.
+  The Docker Hub credentials are read from the repo's `dockerhub` environment.
 
 ## [v3.0.0] - 2026-06-26
 
