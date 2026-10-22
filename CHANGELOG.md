@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [v3.0.2] - 2026-10-22
+
 ### [Security]
 
 - Go toolchain 1.25 → 1.27.3 (go.mod `go 1.27.0` + `toolchain go1.27.3`,
