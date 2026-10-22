@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## [v3.0.3] - 2026-10-22
+
+### [Security]
+
+- bump `github.com/klauspost/compress` v1.18.6 → v1.18.7 (indirect, via
+  `nats.go` / `nats-server`; Dependabot high, GHSA-259r-337f-4rfw: integer
+  overflow and out-of-bounds write in `s2`).
+
 ## [v3.0.2] - 2026-10-22
 
 ### [Security]
