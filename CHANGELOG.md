@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+## [v3.0.2] - 2026-10-22
+
+### [Security]
+
+- Go toolchain 1.25 → 1.27.3 (go.mod `go 1.27.0` + `toolchain go1.27.3`,
+  Docker base image `golang:1.27.3-alpine`, CI pinned to 1.27.3). Fixes
+  CVE-2026-111943 (crypto/x509 `Verify` did not reject the revoked eMudhra
+  intermediate certificates). Go 1.25 is out of support.
+- runtime image `alpine:3.20` → `alpine:3.24` (3.20 is EOL), for both
+  `docker/Dockerfile` and `example/app/Dockerfile`.
+
 ## [v3.0.1] - 2026-09-04
 
 ### [Security]

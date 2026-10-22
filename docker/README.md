@@ -1,6 +1,6 @@
 # gusher.cluster Dockerfile
 
-Multi-stage build from the local source + `vendor/` (Go 1.25). The image
+Multi-stage build from the local source + `vendor/` (Go 1.27). The image
 entrypoint is the `gusher.cluster` binary — run it as `master` or `slave`.
 
 ## Build

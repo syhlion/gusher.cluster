@@ -1,5 +1,5 @@
-# build stage（本地原始碼 + vendor;Go 1.25，無 redis、NATS 後端）
-FROM golang:1.25-alpine AS builder
+# build stage（本地原始碼 + vendor;Go 1.27，無 redis、NATS 後端）
+FROM golang:1.27.3-alpine AS builder
 WORKDIR /app
 # VERSION is stamped into main.version (shown by GET /version); passed from CI as
 # the release tag, empty for non-tag (:latest) builds.
@@ -9,7 +9,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor \
     -ldflags "-X main.name=gusher -X main.version=${VERSION}" -o /gusher.cluster .
 
 # final stage
-FROM alpine:3.20
+FROM alpine:3.24
 WORKDIR /gusher
 COPY --from=builder /gusher.cluster .
 EXPOSE 7777 8888
